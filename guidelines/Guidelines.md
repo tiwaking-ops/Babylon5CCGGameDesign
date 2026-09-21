@@ -1,3 +1,29 @@
+---
+document:
+  title: "Project guidelines"
+  status: "Governance"
+provenance:
+  author_llm: {name: "unknown", version: "unknown"}
+  assessor_llm:
+    - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
+  last_modified_by_llm: {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
+  created_date: "unknown"
+  last_modified_date: "2026-09-21"
+---
+
+**Project documentation system — provenance required (formal)**
+All LLM-produced documentation (proposals, reports, investigations, stored artifacts, any `.md` file an LLM creates) MUST carry at its top:
+`author_llm: <name> (<version>)`
+The author line records the original creator and is never overwritten or removed. Any file for which no record of authorship can be found SHALL be labelled `author_llm: unknown` — never infer authorship from style, date, filename, or content.
+Any LLM that later assesses, reviews, edits, migrates, or otherwise changes the document MUST append (never replace) an assessor entry:
+`assessor_llm: <name> (<version>) — <date> — <assess|edit|migrate: brief note>`
+Multiple assessors append multiple `assessor_llm:` lines in order, preserving full history. An LLM MUST never list itself as both author and assessor of the same document in the same revision; if author edits own doc, add a dated assessor line for the change. Human edits do not require an LLM field but must not remove LLM provenance.
+
+**Build rule — Java 6 only, no external libraries by default**
+* `b5ccg/` builds with `javac -source 6 -target 6`, no external jars. `b5ccg/src-java8-archive/` is the frozen Java 8 original — never edit it.
+* All further development in `b5ccg/src/` MUST be Java 6 compatible (no lambdas, method refs, streams, `computeIfAbsent`, `@FunctionalInterface`, try-with-resources, diamond-dependent APIs beyond 6).
+* Adding any external library requires explicit human approval first. Propose the library, license, and why stdlib cannot suffice; do not vendor it until approved.
+
 **Add your own guidelines here**
 <!--
 

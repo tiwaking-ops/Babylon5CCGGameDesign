@@ -1,0 +1,32 @@
+package b5ccg.model;
+
+import b5ccg.model.enums.*;
+
+public class AftermathCard extends Card {
+    private final String triggerCondition;
+
+    public AftermathCard(String id, String title, String subtype,
+                         Rarity rarity, Faction faction, CardSet cardSet,
+                         String imageKey, String text, String triggerCondition) {
+        super(id, title, CardType.AFTERMATH, subtype, rarity, faction,
+              cardSet, imageKey, text);
+        this.triggerCondition = triggerCondition != null ? triggerCondition.toUpperCase() : "ANY";
+    }
+
+    public String getTriggerCondition() { return triggerCondition; }
+
+    public boolean isEligible(boolean playerWon, boolean playerParticipated,
+                              ConflictType conflictType) {
+        String t = triggerCondition;
+        if (t.contains("WON")      && !playerWon)         return false;
+        if (t.contains("LOST")     && playerWon)          return false;
+        if (t.contains("PARTICIPANT") && !playerParticipated) return false;
+        if (t.contains("MILITARY")  && conflictType != ConflictType.MILITARY)  return false;
+        if (t.contains("DIPLOMACY") && conflictType != ConflictType.DIPLOMACY) return false;
+        if (t.contains("INTRIGUE")  && conflictType != ConflictType.INTRIGUE)  return false;
+        return true;
+    }
+
+    @Override
+    public int getPrimaryStatValue(ConflictType type) { return 0; }
+}

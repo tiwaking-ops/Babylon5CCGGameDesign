@@ -1,5 +1,5 @@
 @echo off
-REM Compile the B5 CCG Java project (Java 8, no external libraries)
+REM Compile the B5 CCG Java project (Java 6 only, no external libraries)
 setlocal enabledelayedexpansion
 
 set ROOT=%~dp0
@@ -21,7 +21,7 @@ if "!JAVA_FILES!"=="" (
 )
 
 echo Compiling source files...
-javac -source 8 -target 8 -encoding UTF-8 -d "%OUT%" !JAVA_FILES!
+javac -source 6 -target 6 -encoding UTF-8 -d "%OUT%" !JAVA_FILES!
 if errorlevel 1 (
   echo Compilation failed.
   exit /b 1

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Compile the B5 CCG Java project (Java 8, no external libraries)
+# Compile the B5 CCG Java project (Java 6 only, no external libraries)
 set -e
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -22,7 +22,7 @@ if [ -z "$JAVA_FILES" ]; then
 fi
 
 echo "Compiling $(echo "$JAVA_FILES" | wc -w | tr -d ' ') source files…"
-javac -source 8 -target 8 -encoding UTF-8 -d "$OUT" $JAVA_FILES
+javac -source 6 -target 6 -encoding UTF-8 -d "$OUT" $JAVA_FILES
 
 echo "Copying resources…"
 if [ -d "$RES" ]; then
