@@ -6,14 +6,14 @@ import java.util.*;
 public class Conflict {
     private final ConflictCard      card;
     private final Player            initiator;
-    private final Map<Player, List<Card>> committed = new LinkedHashMap<>();
+    private final Map<Player, List<Card>> committed = new LinkedHashMap<Player, List<Card>>();
     private       Player            winner;
     private boolean                 resolved = false;
 
     public Conflict(ConflictCard card, Player initiator) {
         this.card      = card;
         this.initiator = initiator;
-        committed.put(initiator, new ArrayList<>());
+        committed.put(initiator, new ArrayList<Card>());
     }
 
     public ConflictCard   getCard()            { return card; }
@@ -24,16 +24,18 @@ public class Conflict {
     public Player         getWinner()          { return winner; }
 
     public void commitCard(Player player, Card c) {
-        committed.computeIfAbsent(player, k -> new ArrayList<>()).add(c);
+        if (!committed.containsKey(player)) committed.put(player, new ArrayList<Card>());
+        committed.get(player).add(c);
     }
 
     public void addParticipant(Player player) {
-        committed.putIfAbsent(player, new ArrayList<>());
+        if (!committed.containsKey(player)) committed.put(player, new ArrayList<Card>());
     }
 
     public Set<Player>    getParticipants()          { return committed.keySet(); }
     public List<Card>     getCommittedCards(Player p) {
-        return committed.getOrDefault(p, Collections.emptyList());
+        if (committed.containsKey(p)) return committed.get(p);
+        return Collections.emptyList();
     }
     public Map<Player, List<Card>> getAllCommitted()  {
         return Collections.unmodifiableMap(committed);
@@ -42,8 +44,10 @@ public class Conflict {
     /** Returns the stat total for one player in this conflict. */
     public int playerTotal(Player p) {
         int total = 0;
-        for (Card c : committed.getOrDefault(p, Collections.emptyList())) {
-            total += c.getPrimaryStatValue(getConflictType());
+        if (committed.containsKey(p)) {
+            for (Card c : committed.get(p)) {
+                total += c.getPrimaryStatValue(getConflictType());
+            }
         }
         return total;
     }

@@ -5,15 +5,20 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 
 public class ImageCache {
 
     private static final int CARD_W = 200;
     private static final int CARD_H = 280;
-    private static final ConcurrentHashMap<String, ImageIcon> cache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, ImageIcon> cache = new ConcurrentHashMap<String, ImageIcon>();
 
     public static ImageIcon getCardImage(String imageKey) {
-        return cache.computeIfAbsent(imageKey, ImageCache::load);
+        ImageIcon cached = cache.get(imageKey);
+        if (cached != null) return cached;
+        ImageIcon loaded = load(imageKey);
+        cache.put(imageKey, loaded);
+        return loaded;
     }
 
     private static ImageIcon load(String key) {
@@ -61,7 +66,7 @@ public class ImageCache {
     }
 
     private static java.util.List<String> wrap(String text, FontMetrics fm, int maxW) {
-        java.util.List<String> lines = new java.util.ArrayList<>();
+        java.util.List<String> lines = new java.util.ArrayList<String>();
         StringBuilder line = new StringBuilder();
         for (String word : text.split(" ")) {
             String test = line.length() == 0 ? word : line + " " + word;

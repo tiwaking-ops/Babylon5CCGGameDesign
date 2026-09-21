@@ -1,0 +1,14 @@
+# Build outputs (created during verification)
+b5ccg/out/
+b5ccg/out_b50102/
+b5ccg/out_b50103/
+b5ccg/out_model/
+b5ccg/out_test/
+b5ccg/out_ui/
+
+# Temp script
+verify_task.py
+
+# Python cache
+__pycache__/
+*.pyc

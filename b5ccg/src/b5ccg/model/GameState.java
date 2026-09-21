@@ -11,17 +11,20 @@ public class GameState {
     private       Conflict     activeConflict;
     private       Player       winner;
 
-    private final List<String> log = new ArrayList<>();
+    private final List<String> log = new ArrayList<String>();
 
     public GameState(List<Player> players) {
-        this.players = new ArrayList<>(players);
+        this.players = new ArrayList<Player>(players);
     }
 
     // ── Players ───────────────────────────────────────────────────────────────
     public List<Player> getPlayers()       { return Collections.unmodifiableList(players); }
     public Player getActivePlayer()        { return players.get(currentPlayerIndex); }
-    public Player getHumanPlayer()         {
-        return players.stream().filter(Player::isHuman).findFirst().orElse(players.get(0));
+    public Player getHumanPlayer() {
+        for (Player p : players) {
+            if (p.isHuman()) return p;
+        }
+        return players.get(0);
     }
 
     public void advanceTurn() {

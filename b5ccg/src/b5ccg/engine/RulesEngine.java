@@ -18,7 +18,7 @@ public class RulesEngine {
      */
     public Player resolveConflict(Conflict conflict, GameState state) {
         ConflictType type = conflict.getConflictType();
-        Map<Player, Integer> totals = new HashMap<>();
+        Map<Player, Integer> totals = new HashMap<Player, Integer>();
 
         for (Player p : conflict.getParticipants()) {
             int total = 0;
@@ -35,7 +35,7 @@ public class RulesEngine {
 
         // Determine winner — highest total wins; ties go to initiator
         Player winner = conflict.getInitiator();
-        int    winVal = totals.getOrDefault(winner, 0);
+        int    winVal = totals.containsKey(winner) ? totals.get(winner) : 0;
 
         for (Map.Entry<Player, Integer> entry : totals.entrySet()) {
             if (entry.getValue() > winVal) {
@@ -61,13 +61,13 @@ public class RulesEngine {
         // Damage losing ambassador if winner beats by 3+
         for (Player p : conflict.getParticipants()) {
             if (p != winner) {
-                int diff = winVal - totals.getOrDefault(p, 0);
+                int diff = winVal - (totals.containsKey(p) ? totals.get(p) : 0);
                 if (diff >= 3 && p.getAmbassador() != null) {
                     p.getAmbassador().damage();
                     state.log(p.getName() + "'s ambassador is damaged.");
                 }
                 // Supporting-role characters that participated are discarded on loss
-                List<Card> pCards = new ArrayList<>(conflict.getCommittedCards(p));
+                List<Card> pCards = new ArrayList<Card>(conflict.getCommittedCards(p));
                 for (Card c : pCards) {
                     if (c instanceof CharacterCard) {
                         CharacterCard ch = (CharacterCard) c;

@@ -3,10 +3,15 @@ package b5ccg.ui;
 import b5ccg.model.*;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+
+/** Java 6-compatible callback for card-selection events. */
+interface CardSelectedListener {
+    void onCardSelected(Card card);
+}
 
 public class HandPanel extends JPanel {
 
@@ -14,24 +19,28 @@ public class HandPanel extends JPanel {
     private static final int CARD_H   = 148;
     private static final int OVERLAP  = 18;
 
-    private List<Card>      hand = new ArrayList<>();
+    private List<Card>      hand = new ArrayList<Card>();
     private int             selectedIndex = -1;
-    private Consumer<Card>  onCardSelected;
+    private CardSelectedListener onCardSelected;
 
     public HandPanel() {
         setBackground(new Color(10, 25, 10));
         setPreferredSize(new Dimension(1280, 170));
         addMouseListener(new MouseAdapter() {
-            @Override public void mouseClicked(MouseEvent e) { handleClick(e.getX(), e.getY()); }
+            @Override public void mouseClicked(MouseEvent e) {
+                handleClick(e.getX(), e.getY());
+            }
         });
     }
 
-    public void setOnCardSelected(Consumer<Card> cb) { onCardSelected = cb; }
+    public void setOnCardSelected(CardSelectedListener cb) { onCardSelected = cb; }
 
     public void update(List<Card> hand) {
-        this.hand = new ArrayList<>(hand);
+        this.hand = new ArrayList<Card>(hand);
         selectedIndex = -1;
-        SwingUtilities.invokeLater(this::repaint);
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override public void run() { repaint(); }
+        });
     }
 
     private void handleClick(int mx, int my) {
@@ -40,7 +49,7 @@ public class HandPanel extends JPanel {
             int y = (getHeight() - CARD_H) / 2;
             if (mx >= x && mx <= x + CARD_W && my >= y && my <= y + CARD_H) {
                 selectedIndex = i;
-                if (onCardSelected != null) onCardSelected.accept(hand.get(i));
+                if (onCardSelected != null) onCardSelected.onCardSelected(hand.get(i));
                 repaint();
                 return;
             }

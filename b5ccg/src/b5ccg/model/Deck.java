@@ -3,8 +3,8 @@ package b5ccg.model;
 import java.util.*;
 
 public class Deck {
-    private final LinkedList<Card> drawPile    = new LinkedList<>();
-    private final List<Card>       discardPile = new ArrayList<>();
+    private final LinkedList<Card> drawPile    = new LinkedList<Card>();
+    private final List<Card>       discardPile = new ArrayList<Card>();
 
     public Deck(List<Card> cards) {
         drawPile.addAll(cards);
@@ -20,7 +20,7 @@ public class Deck {
     }
 
     public List<Card> draw(int n) {
-        List<Card> hand = new ArrayList<>();
+        List<Card> hand = new ArrayList<Card>();
         for (int i = 0; i < n && !drawPile.isEmpty(); i++) {
             hand.add(drawPile.removeFirst());
         }
@@ -44,7 +44,7 @@ public class Deck {
 
     /** Peek at the top N cards without removing them. */
     public List<Card> peekTop(int n) {
-        List<Card> result = new ArrayList<>();
+        List<Card> result = new ArrayList<Card>();
         Iterator<Card> it = drawPile.iterator();
         for (int i = 0; i < n && it.hasNext(); i++) result.add(it.next());
         return result;

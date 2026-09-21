@@ -11,15 +11,15 @@ public class Player {
     private int influence = 4;
 
     private CharacterCard        ambassador;
-    private final List<CharacterCard>  innerCircle     = new ArrayList<>();
-    private final List<CharacterCard>  supportingRole  = new ArrayList<>();
-    private final List<FleetCard>      fleets          = new ArrayList<>();
-    private final List<LocationCard>   locations       = new ArrayList<>();
-    private final List<GroupCard>      groups          = new ArrayList<>();
-    private final List<EnhancementCard> enhancements   = new ArrayList<>();
+    private final List<CharacterCard>  innerCircle     = new ArrayList<CharacterCard>();
+    private final List<CharacterCard>  supportingRole  = new ArrayList<CharacterCard>();
+    private final List<FleetCard>      fleets          = new ArrayList<FleetCard>();
+    private final List<LocationCard>   locations       = new ArrayList<LocationCard>();
+    private final List<GroupCard>      groups          = new ArrayList<GroupCard>();
+    private final List<EnhancementCard> enhancements   = new ArrayList<EnhancementCard>();
     private       AgendaCard           agenda;
 
-    private final List<Card> hand = new ArrayList<>();
+    private final List<Card> hand = new ArrayList<Card>();
     private       Deck       deck;
 
     private boolean passed       = false;

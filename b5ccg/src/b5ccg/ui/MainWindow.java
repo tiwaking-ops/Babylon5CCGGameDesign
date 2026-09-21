@@ -31,15 +31,6 @@ public class MainWindow extends JFrame {
         boardPanel = new GameBoardPanel();
         add(boardPanel, BorderLayout.CENTER);
 
-        // ── Hand ──────────────────────────────────────────────────────────────
-        handPanel = new HandPanel();
-        handPanel.setOnCardSelected(card -> {
-            selectedCard = card;
-            statusLabel.setText("Selected: " + card.getTitle() + "  |  " + card.getText());
-            playCardButton.setEnabled(true);
-        });
-        add(handPanel, BorderLayout.SOUTH);
-
         // ── Right sidebar: log ────────────────────────────────────────────────
         logArea = new JTextArea(12, 28);
         logArea.setEditable(false);
@@ -62,8 +53,18 @@ public class MainWindow extends JFrame {
         statusLabel.setForeground(new Color(200, 220, 200));
         statusLabel.setFont(new Font("SansSerif", Font.PLAIN, 11));
 
-        passButton = makeButton("Pass Turn", e -> controller.submitHumanAction(GameAction.pass()));
-        playCardButton = makeButton("Play / Initiate", e -> playSelected());
+        passButton = makeButton("Pass Turn", new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                MainWindow.this.controller.submitHumanAction(GameAction.pass());
+            }
+        });
+        playCardButton = makeButton("Play / Initiate", new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                playSelected();
+            }
+        });
         playCardButton.setEnabled(false);
 
         toolbar.add(passButton);
@@ -73,14 +74,30 @@ public class MainWindow extends JFrame {
 
         add(toolbar, BorderLayout.NORTH);
 
+        // ── Hand ──────────────────────────────────────────────────────────────
+        handPanel = new HandPanel();
+        final JLabel fStatusLabel = statusLabel;
+        final JButton fPlayCardButton = playCardButton;
+        handPanel.setOnCardSelected(new CardSelectedListener() {
+            @Override
+            public void onCardSelected(Card card) {
+                selectedCard = card;
+                fStatusLabel.setText("Selected: " + card.getTitle() + "  |  " + card.getText());
+                fPlayCardButton.setEnabled(true);
+            }
+        });
+        add(handPanel, BorderLayout.SOUTH);
+
         pack();
         setLocationRelativeTo(null);
         setMinimumSize(new Dimension(1300, 820));
     }
 
     /** Called from the game controller (off EDT) whenever state changes. */
-    public void onStateUpdate(GameState state) {
-        SwingUtilities.invokeLater(() -> refresh(state));
+    public void onStateUpdate(final GameState state) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override public void run() { refresh(state); }
+        });
     }
 
     private void refresh(GameState state) {
@@ -117,10 +134,14 @@ public class MainWindow extends JFrame {
         if (selectedCard instanceof ConflictCard) {
             // Pick a target — for now, auto-target the leading non-human player
             GameState state = controller.getState();
-            Player target = state.getPlayers().stream()
-                .filter(p -> !p.isHuman())
-                .max(java.util.Comparator.comparingInt(Player::getInfluence))
-                .orElse(null);
+            Player target = null;
+            int bestInfluence = -1;
+            for (Player p : state.getPlayers()) {
+                if (!p.isHuman() && p.getInfluence() > bestInfluence) {
+                    bestInfluence = p.getInfluence();
+                    target = p;
+                }
+            }
             action = GameAction.initiateConflict(selectedCard, target);
         } else {
             action = GameAction.playCard(selectedCard);

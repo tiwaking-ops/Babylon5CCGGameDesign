@@ -11,18 +11,20 @@ import java.util.*;
 public class Main {
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            try {
-                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-            } catch (Exception ignored) {}
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override public void run() {
+                try {
+                    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+                } catch (Exception ignored) {}
 
-            try {
-                startGame();
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(null,
-                    "Fatal error starting game:\n" + e.getMessage(),
-                    "B5 CCG Error", JOptionPane.ERROR_MESSAGE);
-                e.printStackTrace();
+                try {
+                    startGame();
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(null,
+                        "Fatal error starting game:\n" + e.getMessage(),
+                        "B5 CCG Error", JOptionPane.ERROR_MESSAGE);
+                    e.printStackTrace();
+                }
             }
         });
     }
@@ -69,14 +71,21 @@ public class Main {
         final MainWindow[] windowHolder = new MainWindow[1];
 
         GameController controller = new GameController(state, aiPlayers,
-            gs -> { if (windowHolder[0] != null) windowHolder[0].onStateUpdate(gs); });
+            new GameStateCallback() {
+                @Override public void accept(GameState gs) {
+                    if (windowHolder[0] != null) windowHolder[0].onStateUpdate(gs);
+                }
+            });
 
+        final GameController fController = controller;
         MainWindow window = new MainWindow(controller);
         windowHolder[0] = window;
         window.setVisible(true);
 
         // ── Run game loop on background thread ───────────────────────────────
-        Thread gameThread = new Thread(controller::runGame, "GameLoop");
+        Thread gameThread = new Thread(new Runnable() {
+            @Override public void run() { fController.runGame(); }
+        }, "GameLoop");
         gameThread.setDaemon(true);
         gameThread.start();
     }
@@ -98,14 +107,14 @@ public class Main {
     }
 
     private static List<Faction> otherFactions(Faction chosen) {
-        List<Faction> all = new ArrayList<>(
+        List<Faction> all = new ArrayList<Faction>(
             Arrays.asList(Faction.HUMAN, Faction.MINBARI, Faction.CENTAURI, Faction.NARN));
         all.remove(chosen);
         return all;
     }
 
     private static List<Card> buildFactionDeck(List<Card> all, Faction faction) {
-        List<Card> deck = new ArrayList<>();
+        List<Card> deck = new ArrayList<Card>();
         // 1. Faction-specific cards first
         for (Card c : all) {
             if (c.getFaction() == faction && deck.size() < 30) deck.add(c);
@@ -128,7 +137,7 @@ public class Main {
 
     /** Minimal fallback card set used if JSON files are not on the classpath. */
     private static List<Card> buildMinimalTestSet() {
-        List<Card> cards = new ArrayList<>();
+        List<Card> cards = new ArrayList<Card>();
         cards.add(new CharacterCard("test_sinclair","Jeffrey Sinclair","CHARACTER_HUMAN",
             Rarity.FIXED, Faction.HUMAN, CardSet.PREMIERE,"jeffrey_sinclair",
             "Human Ambassador.",5,3,0,4,true));

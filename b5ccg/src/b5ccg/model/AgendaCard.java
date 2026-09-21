@@ -20,26 +20,32 @@ public class AgendaCard extends Card {
     public String  getWinConditionKey() { return winConditionKey; }
 
     public boolean isConditionMet(GameState state, Player owner) {
-        switch (winConditionKey) {
-            case "INFLUENCE_20":
-                return owner.getInfluence() >= 20;
-            case "MILITARY_SUPREMACY": {
-                int ownerMil = owner.getFleets().stream()
-                    .mapToInt(FleetCard::getMilitary).sum();
-                return state.getPlayers().stream()
-                    .filter(p -> p != owner)
-                    .allMatch(p -> p.getFleets().stream()
-                        .mapToInt(FleetCard::getMilitary).sum() < ownerMil);
-            }
-            case "MOST_INNER_CIRCLE": {
-                int ownerSize = owner.getInnerCircle().size();
-                return ownerSize > 0 && state.getPlayers().stream()
-                    .filter(p -> p != owner)
-                    .allMatch(p -> p.getInnerCircle().size() < ownerSize);
-            }
-            default:
-                return owner.getInfluence() >= 20;
+        if ("INFLUENCE_20".equals(winConditionKey)) {
+            return owner.getInfluence() >= 20;
         }
+        if ("MILITARY_SUPREMACY".equals(winConditionKey)) {
+            int ownerMil = 0;
+            for (FleetCard f : owner.getFleets()) ownerMil += f.getMilitary();
+            boolean supreme = true;
+            for (Player p : state.getPlayers()) {
+                if (p == owner) continue;
+                int mil = 0;
+                for (FleetCard f : p.getFleets()) mil += f.getMilitary();
+                if (mil >= ownerMil) { supreme = false; break; }
+            }
+            return supreme;
+        }
+        if ("MOST_INNER_CIRCLE".equals(winConditionKey)) {
+            int ownerSize = owner.getInnerCircle().size();
+            if (ownerSize == 0) return false;
+            boolean most = true;
+            for (Player p : state.getPlayers()) {
+                if (p == owner) continue;
+                if (p.getInnerCircle().size() >= ownerSize) { most = false; break; }
+            }
+            return most;
+        }
+        return owner.getInfluence() >= 20;
     }
 
     @Override

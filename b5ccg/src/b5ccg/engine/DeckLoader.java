@@ -16,14 +16,18 @@ public class DeckLoader {
     public static List<Card> loadFromResource(String resourcePath) throws IOException {
         URL url = DeckLoader.class.getResource(resourcePath);
         if (url == null) throw new FileNotFoundException("Resource not found: " + resourcePath);
-        try (InputStream is = url.openStream()) {
+        InputStream is = null;
+        try {
+            is = url.openStream();
             String json = readAll(is);
             return parseCards(json);
+        } finally {
+            if (is != null) { try { is.close(); } catch (IOException e) {} }
         }
     }
 
     public static List<Card> loadBothSets() throws IOException {
-        List<Card> all = new ArrayList<>();
+        List<Card> all = new ArrayList<Card>();
         all.addAll(loadFromResource("/cards/premiere.json"));
         all.addAll(loadFromResource("/cards/deluxe.json"));
         return all;
@@ -35,12 +39,17 @@ public class DeckLoader {
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         byte[] chunk = new byte[4096];
         int n;
-        while ((n = is.read(chunk)) != -1) buf.write(chunk, 0, n);
+        try {
+            while ((n = is.read(chunk)) != -1) buf.write(chunk, 0, n);
+        } finally {
+            // is will be closed by caller via try-with-resources in Java 7+;
+            // for Java 6 we simply leave it open — the URL connection handles cleanup.
+        }
         return buf.toString(StandardCharsets.UTF_8.name());
     }
 
     static List<Card> parseCards(String json) {
-        List<Card> cards = new ArrayList<>();
+        List<Card> cards = new ArrayList<Card>();
         List<Map<String, String>> objects = splitObjects(json);
         for (Map<String, String> obj : objects) {
             try {
@@ -55,7 +64,7 @@ public class DeckLoader {
 
     /** Split the top-level JSON array into individual object maps. */
     private static List<Map<String, String>> splitObjects(String json) {
-        List<Map<String, String>> result = new ArrayList<>();
+        List<Map<String, String>> result = new ArrayList<Map<String, String>>();
         int depth = 0;
         int start = -1;
         for (int i = 0; i < json.length(); i++) {
@@ -76,7 +85,7 @@ public class DeckLoader {
 
     /** Parse a single JSON object { "key":"value", ... } into a Map. */
     private static Map<String, String> parseObject(String obj) {
-        Map<String, String> map = new LinkedHashMap<>();
+        Map<String, String> map = new LinkedHashMap<String, String>();
         // Strip outer braces
         obj = obj.trim();
         if (obj.startsWith("{")) obj = obj.substring(1);
@@ -135,12 +144,12 @@ public class DeckLoader {
         String id       = req(m, "id");
         String title    = req(m, "title");
         String typeStr  = req(m, "type");
-        String subtype  = m.getOrDefault("subtype", "");
-        String rarStr   = m.getOrDefault("rarity", "COMMON");
-        String facStr   = m.getOrDefault("faction", "ANY");
-        String setStr   = m.getOrDefault("set", "PREMIERE");
-        String imgKey   = m.getOrDefault("imageKey", id);
-        String text     = m.getOrDefault("text", "");
+        String subtype  = getOrDefault(m, "subtype", "");
+        String rarStr   = getOrDefault(m, "rarity", "COMMON");
+        String facStr   = getOrDefault(m, "faction", "ANY");
+        String setStr   = getOrDefault(m, "set", "PREMIERE");
+        String imgKey   = getOrDefault(m, "imageKey", id);
+        String text     = getOrDefault(m, "text", "");
 
         CardType type    = CardType.valueOf(typeStr.toUpperCase());
         Rarity   rarity  = parseRarity(rarStr);
@@ -164,19 +173,19 @@ public class DeckLoader {
             }
             case CONFLICT: {
                 ConflictType ct  = ConflictType.valueOf(
-                    m.getOrDefault("conflictType", "DIPLOMACY").toUpperCase());
+                    getOrDefault(m, "conflictType", "DIPLOMACY").toUpperCase());
                 int reward = intVal(m, "influenceReward", 1);
                 return new ConflictCard(id, title, subtype, rarity, faction, cardSet,
                                         imgKey, text, ct, reward);
             }
             case AGENDA: {
                 boolean major  = boolVal(m, "isMajorAgenda", false);
-                String  winKey = m.getOrDefault("winCondition", "INFLUENCE_20");
+                String  winKey = getOrDefault(m, "winCondition", "INFLUENCE_20");
                 return new AgendaCard(id, title, subtype, rarity, faction, cardSet,
                                       imgKey, text, major, winKey);
             }
             case AFTERMATH: {
-                String trigger = m.getOrDefault("triggerCondition", "ANY");
+                String trigger = getOrDefault(m, "triggerCondition", "ANY");
                 return new AftermathCard(id, title, subtype, rarity, faction, cardSet,
                                          imgKey, text, trigger);
             }
@@ -211,8 +220,15 @@ public class DeckLoader {
         return v;
     }
 
+    private static String getOrDefault(Map<String, String> m, String key, String def) {
+        String v = m.get(key);
+        return v != null ? v : def;
+    }
+
     private static int intVal(Map<String, String> m, String key, int def) {
-        try { return Integer.parseInt(m.getOrDefault(key, String.valueOf(def)).trim()); }
+        String v = m.get(key);
+        if (v == null) return def;
+        try { return Integer.parseInt(v.trim()); }
         catch (NumberFormatException e) { return def; }
     }
 

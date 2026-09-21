@@ -3,7 +3,6 @@ package b5ccg.ai;
 import b5ccg.model.*;
 import b5ccg.model.enums.*;
 import java.util.*;
-import java.util.stream.*;
 
 /**
  * AI player for three difficulty tiers: EASY, MEDIUM, HARD.
@@ -53,7 +52,7 @@ public class AIPlayer {
     // ── Legal action builder ──────────────────────────────────────────────────
 
     private List<GameAction> buildLegalActions(GameState state, Player p) {
-        List<GameAction> actions = new ArrayList<>();
+        List<GameAction> actions = new ArrayList<GameAction>();
         actions.add(GameAction.pass());
 
         for (Card c : p.getHand()) {
@@ -204,10 +203,14 @@ public class AIPlayer {
 
     /** Returns the player with the most influence (excluding self). */
     private Player leadingPlayer(GameState state, Player self) {
-        return state.getPlayers().stream()
-            .filter(p -> p != self)
-            .max(Comparator.comparingInt(Player::getInfluence))
-            .orElse(self);
+        Player leader = self;
+        int bestInf = -1;
+        for (Player p : state.getPlayers()) {
+            if (p == self) continue;
+            int inf = p.getInfluence();
+            if (inf > bestInf) { bestInf = inf; leader = p; }
+        }
+        return leader;
     }
 
     // ── Pseudocode summary (comment) ─────────────────────────────────────────

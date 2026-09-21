@@ -17,7 +17,9 @@ public class GameBoardPanel extends JPanel {
 
     public void update(GameState s) {
         this.state = s;
-        SwingUtilities.invokeLater(this::repaint);
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override public void run() { repaint(); }
+        });
     }
 
     @Override

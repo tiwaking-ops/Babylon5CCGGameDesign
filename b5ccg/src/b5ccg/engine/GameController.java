@@ -4,24 +4,24 @@ import b5ccg.ai.AIPlayer;
 import b5ccg.model.*;
 import b5ccg.model.enums.*;
 import java.util.*;
-import java.util.function.Consumer;
+
 
 /**
  * Central game loop. Runs off the Swing EDT via a background thread.
- * Notifies the UI through a Consumer<GameState> callback after each state change.
+ * Notifies the UI through a GameStateCallback callback after each state change.
  */
 public class GameController {
 
     private final GameState         state;
     private final RulesEngine       rules   = new RulesEngine();
     private final List<AIPlayer>    aiPlayers;
-    private final Consumer<GameState> uiCallback;
+    private final GameStateCallback uiCallback;
 
     private volatile boolean        waitingForHuman = false;
     private volatile GameAction     pendingHumanAction;
 
     public GameController(GameState state, List<AIPlayer> aiPlayers,
-                          Consumer<GameState> uiCallback) {
+                          GameStateCallback uiCallback) {
         this.state      = state;
         this.aiPlayers  = aiPlayers;
         this.uiCallback = uiCallback;
@@ -177,7 +177,7 @@ public class GameController {
         for (Player p : state.getPlayers()) {
             if (p.isHuman()) continue;
             boolean won = (winner == p);
-            for (Card c : new ArrayList<>(p.getHand())) {
+            for (Card c : new ArrayList<Card>(p.getHand())) {
                 if (c instanceof AftermathCard) {
                     AftermathCard am = (AftermathCard) c;
                     if (rules.canPlayAftermath(p, am, conflict, won)) {
@@ -254,10 +254,10 @@ public class GameController {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private AIPlayer getAI(Player p) {
-        return aiPlayers.stream()
-            .filter(ai -> ai.getPlayer() == p)
-            .findFirst()
-            .orElse(aiPlayers.get(0));
+        for (AIPlayer ai : aiPlayers) {
+            if (ai.getPlayer() == p) return ai;
+        }
+        return aiPlayers.get(0);
     }
 
     private void notifyUI() {
