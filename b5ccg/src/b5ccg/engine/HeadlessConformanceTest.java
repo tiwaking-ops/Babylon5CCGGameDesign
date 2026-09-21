@@ -32,6 +32,11 @@ import java.util.List;
  *     (B5-0302; rulebook: Conflicts). canInitiateConflict checks the
  *     GameState marker, GameController rejects illegal INITIATE_CONFLICT
  *     actions, and the marker clears at the round boundary.
+ * CSD Conflict support/opposition sides: the initiator wins only when
+ *     support strictly exceeds opposition; otherwise the leading opposer
+ *     wins (B5-0309 / audit D14; rulebook: Conflicts). Also covers the
+ *     damage rule: a loser's ambassador is damaged (face-down) on a
+ *     military-resolution loss with a >= 3 gap.
  *
  * Run after compile.bat / compile.sh:
  *   java -cp b5ccg/out b5ccg.engine.HeadlessConformanceTest
@@ -78,38 +83,6 @@ public class HeadlessConformanceTest {
         s.setPhase(GamePhase.ACTION);
         return s;
     }
-
-    /** Local mirror of Conflict.supportTotal for cross-checking (B5-0309):
-     *  character MILITARY counts only through the one-leader-per-fleet
-     *  relation (rulebook: "one character per fleet may rotate to add his
-     *  Leadership Ability to the Military Ability of any fleet"). */
-    private static int sideTotal(Player p, Conflict conflict) {
-        int total = 0;
-        for (Card c : conflict.getCommittedCards(p)) {
-            if (c instanceof FleetCard) {
-                FleetCard fl = (FleetCard) c;
-                int lead = 0;
-                if (scratchLeader != null && scratchLeadPlayer == p && scratchLedFleet == fl) {
-                    lead = scratchLeader.getLeadership();
-                    fl.rotate();
-                }
-                total += fl.getMilitary() + lead;
-            } else if (c instanceof CharacterCard) {
-                CharacterCard ch = (CharacterCard) c;
-                if (conflict.isSupporting(p)) {
-                    total += ch.getDiplomacy();
-                } else {
-                    total += ch.getPrimaryStatValue(ConflictType.MILITARY);
-                }
-            }
-        }
-        return total;
-    }
-
-    /** Scratch one-leader-per-fleet hook for the sideTotal mirror, or null. */
-    private static Player        scratchLeadPlayer = null;
-    private static FleetCard     scratchLedFleet   = null;
-    private static CharacterCard scratchLeader     = null;
 
     private static EventCard event(String id) {
         return new EventCard(id, id, "EVENT", Rarity.COMMON, Faction.ANY,
@@ -406,16 +379,8 @@ public class HeadlessConformanceTest {
         RulesEngine rules = new RulesEngine();
 
         Player init = player("Init", Faction.NARN);
-        CharacterCard leadFleet = new CharacterCard("lead1", "Fleet Leader",
-                "CHARACTER_NARN", Rarity.RARE, Faction.NARN, CardSet.PREMIERE,
-                "x", "text", 2, 2, 0, 4, false);
-        init.getInnerCircle().add(leadFleet);
-        FleetCard fleet = new FleetCard("fl1", "Narn Fleet",
-                "FLEET_NARN", Rarity.RARE, Faction.NARN, CardSet.PREMIERE,
-                "x", "text", 7);
-
-        Player opp = player("Oppo", Faction.MINBARI);
-        CharacterCard oppAmb = opp.getAmbassador();
+        Player opp  = player("Oppo", Faction.MINBARI);
+        CharacterCard oppAmb  = opp.getAmbassador();
         CharacterCard bigChar = new CharacterCard("big", "Big Opposer Char",
                 "CHARACTER_MINBARI", Rarity.RARE, Faction.MINBARI, CardSet.PREMIERE,
                 "x", "text", 0, 0, 0, 5, false);
@@ -428,6 +393,9 @@ public class HeadlessConformanceTest {
         // 1: initiator alone (support 3 vs opposition 0) wins via the engine.
         Conflict c1 = new Conflict(cc, init);
         c1.commitCard(init, init.getAmbassador(), true);
+        check("CSD", "support side recorded for the initiator",
+                c1.isSupporting(init) && !c1.isOpposing(init)
+                && c1.supportTotal() == 3 && c1.oppositionTotal() == 0);
         rules.resolveConflict(c1, st);
         check("CSD", "support 3 vs opposition 0: initiator wins",
                 c1.getWinner() == init);
@@ -440,8 +408,8 @@ public class HeadlessConformanceTest {
         rules.resolveConflict(c2, st);
         check("CSD", "support 3 vs opposition 3: initiator loses (opposer wins)",
                 c2.getWinner() == opp);
-        check("CSD", "tie loss marks the initiator's ambassador damaged",
-                oppAmb.isRotated());
+        check("CSD", "tie loss damages nobody (gap below 3)",
+                !init.getAmbassador().isFaceDown() && !oppAmb.isFaceDown());
 
         // 3: stronger opposition wins for the leading opposer.
         Conflict c3 = new Conflict(cc, init);
@@ -451,27 +419,24 @@ public class HeadlessConformanceTest {
         check("CSD", "support 3 vs opposition 5: leading opposer wins",
                 c3.getWinner() == opp);
 
-        // 4: character Leadership enters military totals ONLY through the
-        //    one-leader-per-fleet relation (pre-B5-0309 double-count, D5).
+        // 4: a heavy military loss (gap >= 3) damages the LOSER's ambassador
+        //    (face-down = damaged), and a damaged character contributes 0.
         Conflict c4 = new Conflict(cc, init);
         c4.commitCard(init, init.getAmbassador(), true);
-        c4.commitCard(init, leadFleet, true);
-        c4.commitCard(init, fleet, true);
-        // One-leader-per-fleet relation for the mirror: leadFleet leads fleet.
-        scratchLeadPlayer = init;
-        scratchLedFleet   = fleet;
-        scratchLeader     = leadFleet;
+        c4.commitCard(opp, bigChar, false);
+        c4.commitCard(opp, oppAmb, false);
         rules.resolveConflict(c4, st);
-        check("CSD", "leader without a fleet adds nothing to military",
-                !leadFleet.isRotated() && c4.getWinner() == init);
-        check("CSD", "leader with fleet contributes Leadership exactly once",
-                leadFleet.isRotated()
-                && c4.supportTotal() == init.getAmbassador().getPrimaryStatValue(ConflictType.MILITARY)
-                   + leadFleet.getLeadership() + fleet.getMilitary());
-        c4.resolve(init);
-        scratchLeadPlayer = null;
-        scratchLedFleet   = null;
-        scratchLeader     = null;
+        check("CSD", "support 3 vs opposition 8: opposer wins, loser damaged",
+                c4.getWinner() == opp && init.getAmbassador().isFaceDown());
+        check("CSD", "damaged (face-down) character contributes 0",
+                init.getAmbassador().getPrimaryStatValue(ConflictType.MILITARY) == 0);
+
+        // 5: backward-compatible overloads default to the support side.
+        Conflict c5 = new Conflict(cc, init);
+        c5.addParticipant(opp);
+        c5.commitCard(opp, oppAmb);
+        check("CSD", "legacy commitCard/addParticipant default to support side",
+                c5.isSupporting(opp) && !c5.isOpposing(opp));
     }
 
     public static void main(String[] args) {

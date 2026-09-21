@@ -28,6 +28,7 @@ provenance:
    excerpt and release your claim.
 8. Finish: update `TASK_LEDGER.md` row, append `docs/DECISIONS.md` entry, write
    `.agent/REPORTS/<date>-<agent-id>-<task-id>.md` (with `author_llm`), delete
-   your claim file, refresh `.agent/HEARTBEATS/<agent-id>.json`.
+   your claim file, refresh `.agent/HEARTBEATS/<agent-id>.json`. When editing
+   the ledger, preserve the table pipes exactly — never add or remove a `|`.
 9. Claims older than 30 min are stale: you may reap one ONLY after noting the
    reaping in `TASK_LEDGER.md`. Never touch live claims or heartbeats.

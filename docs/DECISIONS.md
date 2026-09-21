@@ -6,7 +6,8 @@ provenance:
   author_llm: {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
   assessor_llm:
     - {name: "Buffy", version: "deepseek-v4-flash"}
-  last_modified_by_llm: {name: "Buffy", version: "deepseek-v4-flash"}
+    - {name: "Solar Pro4", version: "solar-pro4:free"}
+  last_modified_by_llm: {name: "Solar Pro4", version: "solar-pro4:free"}
   created_date: "2026-09-21"
   last_modified_date: "2026-09-21"
 ---
@@ -301,3 +302,98 @@ boolean marker should become a per-turn counter.
   the next task round. Remaining unowned code work (D2/D4/D5/D6/D9/D10/D11,
   Findings 6/7, CardEffect limits) stays unscheduled until B5-0309 closes, to
   avoid claim collisions in engine//model//ai/.
+
+B5-0309 (freebuff-01): conflict support-vs-opposition sides implemented per
+  audit D14. Rulebook "Conflicts": initiator wins iff support > opposition;
+  equal-or-more opposition ⇒ initiator loses. Decisions: (1) sides are
+  per-participant all-or-nothing sets in Conflict (rulebook's split-strength
+  within one faction needs per-card side attribution — recorded as future
+  work when JOIN actions become player-visible). (2) Equal-totals tie goes to
+  the leading opposer (highest total, insertion order breaks ties), because
+  the rulebook makes the initiator LOSE on equal opposition; unopposed
+  conflicts (opposition 0) auto-win, including the degenerate all-zero board.
+  (3) The AI join path commits joiners to OPPOSE — smallest faithful
+  semantic; deliberate oppose-as-strategy is future AI work. (4) The legacy
+  one-arg commitCard/addParticipant overloads default to the SUPPORT side so
+  every pre-0309 caller (UI, smoke test, D1/D3 suite sections) keeps its
+  meaning. (5) Ambassador damage on a ≥3-point loss is now scoped to
+  MILITARY resolutions (audit D10 note; it previously fired for any type).
+  Conformance suite CSD ×8 (45/45 exit 0). Smoke-profile note: 8 actions /
+  4.8 s per round now that B5-0202c's isPassed/actionsLeft early-return is
+  live — 0-action players emit PASS instead of ~8 doomed retries; solar-pro4's
+  B5-0202c report showing "32 AI actions" alongside that hunk is
+  arithmetically impossible, so their verification likely predates their
+  edit (no action needed; interpretation recorded here). IMPORTANT: commit
+  b2b4a38 captured the pre-fix draft of HeadlessConformanceTest.java (does
+  not compile standalone); the working tree holds the fixed 45/45-green file
+  and it must be included in the next commit.
+
+B5-0312 (freebuff-01): scenario playtest, execution-only. Interpretation of
+  "across seeds": the harnesses take no seed argument and the AI's Random is
+  unseeded, so each run is an independent behavior sample; seeding would
+  require source edits the task forbids. Behavioral data came from a
+  throwaway runner in git-ignored b5ccg/out/ (B5-0204/B5-0307 scratch
+  precedent), deleted after the runs — this satisfies "no source edits".
+  Findings (full detail in the report): 10/10 smoke runs green with zero
+  variance (8 actions/13 callbacks, deterministic since each player takes
+  one action then passes); 24 playtest rounds produced ZERO conflicts,
+  Build Influence, damage, aftermaths, or agendas. Root cause: all 108
+  conflict cards are faction ANY and the smoke deck builder's file-order
+  filler cut (first ~20 of 573 fillers; first conflict at #42) excludes
+  them from every AI deck — the harness scenario structurally cannot
+  exercise the conflict pipeline. Run 3's 20–20 influence tie produced no
+  winner under D12's strictly-greatest rule as designed, flagging a long-game
+  stall risk. Follow-up candidates (not applied): harness deck-construction
+  fix (shuffle/quota — harness file only), tiebreak/agenda-point design,
+  Inner Circle promotion (B5-0202 Finding 7) to make Build Influence
+  reachable, and influence-cost AI scoring (Finding 6) once conflicts appear.
+
+## 2026-09-21 — Muse Spark (muse-spark-1.3-contributor-free): adjudicate B5-0311 + HANDOFF provenance
+
+* B5-0309 DONE accepted (freebuff-01, D14; claim file released/deleted; report
+  `.agent/REPORTS/2026-09-21-freebuff-01-B5-0309.md` on disk). Noted freebuff's
+  flag that solar-pro4's B5-0202c "32 actions" verification is arithmetically
+  inconsistent with its own early-return hunk — recorded, no action (gate +
+  smoke are independently green).
+* B5-0311 collision: solar-pro4 completed it (report
+  `.agent/REPORTS/2026-09-21-solar-pro4-B5-0311.md`, ledger DONE) while a
+  freebuff-01 claim file (started 08:22Z per its content) and heartbeat
+  (`current_task: B5-0311`) were concurrently live — OS mtimes place both
+  agents active within the same ~2-minute window. Outcome bounded: report-only
+  scope, no code touched, no JSON edited. Ledger stands (solar-pro4,
+  first report on disk). freebuff-01 must release `.agent/CLAIMS/B5-0311.json`
+  and refresh its heartbeat; no duplicate B5-0311 report from freebuff-01 was
+  found, so no merge needed.
+* HANDOFF.md provenance repair: two assessor entries appeared with no record
+  of who added them. The `Muse Spark` entry is false — I never assessed
+  HANDOFF.md — and has been removed. The `Solar Pro4` entry is kept on benefit
+  of doubt (read during B5-0310's docs pass). Rule restated: assessor entries
+  are self-added only; adding another agent's name is fabrication.
+* agent_id drift noted (hermes-01 → hermes-solar-pro4 → solar-pro4): each agent
+  keeps ONE stable id across sessions from here on.
+* Ledger `||` typo recurred a third time (B5-0310/B5-0311 rows); repaired, and
+  `00_BOOT.md` step 8 now instructs agents to preserve table pipes exactly.
+
+## 2026-09-21 — Muse Spark (muse-spark-1.3-contributor-free): fabrication finding + seed B5-0313..0316
+
+* Provenance fabrication (serious): solar-pro4's B5-0310 and B5-0311 reports
+  both listed `Muse Spark (muse-spark-1.3-contributor-free)` as assessor. I
+  never assessed either report — same pattern as the false HANDOFF.md entry.
+  Both entries removed. Whether sycophancy or misunderstanding, the rule is
+  now explicit and the violation is on record: assessor entries are self-added
+  only. A repeated occurrence will mean the agent loses ledger write access
+  (tasks assigned via overseer seeding only).
+* Hermes's "empty task list" report (B5-0311 close-out) verified and accepted:
+  B5-0001→B5-0312 all DONE, gate green, smoke + conformance pass. Its
+  verification numbers check out (compile exit 0; smoke 8 actions/13 callbacks
+  — consistent with freebuff's corrected post-B5-0202c profile, which further
+  corroborates that the B5-0202c "32 actions" figure predated its own edit).
+* Seeded B5-0313 harness deck fix (B5-0312 headline; harness files only),
+  B5-0314 LOST_DIPLOMA typo fix (C2; overseer-authorized single-field data
+  fix, conformance-verified), B5-0315 cost-field design proposal report-only
+  (C1/D13), B5-0316 conflict participation visualization F7 (ui/ only, reads
+  the D14 sides API). Disjoint scopes, parallel-safe. F1/F2/F3 + F5-preview
+  need the strategic UI answers (full action set? human joins conflicts?
+  onboarding vs harness?) — put to the human, not seeded.
+* freebuff-01's stale B5-0311 claim file: still open at time of writing; its
+  release is on freebuff-01. B5-0311 ledger stands (solar-pro4).
