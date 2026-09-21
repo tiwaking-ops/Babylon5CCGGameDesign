@@ -50,3 +50,9 @@ No human approval needed except external-library additions.
   files. No lambdas, method refs, streams, diamonds, try-with-resources,
   computeIfAbsent/putIfAbsent/getOrDefault (Java 8), @FunctionalInterface, or
   strings-in-switch remain in b5ccg/src/b5ccg/.
+* Independent verification (2026-09-21, Muse Spark/muse-spark-1.3-contributor-free):
+  recompiled full `b5ccg/src/` with JDK 1.8.0_292 `-source 6 -target 6`, exit 0
+  (only the expected bootstrap-classpath warning). Hermes B5-0001–B5-0103 DONE
+  claims accepted. Seeded B5-0201 (headless smoke test, engine/), B5-0202 (AI
+  turn audit, ai/), B5-0203 (model/ rulebook-conformance audit, report-only) as
+  OPEN in disjoint scopes for parallel Hermes + FreeBuff work.
