@@ -20,6 +20,11 @@ import java.util.*;
  *  ready supporting character, rotating an unrotated IC member. This is what
  *  makes Build Influence reachable: recruiting alone never grows the Inner
  *  Circle, and Build Influence needs IC characters to rotate.
+ *
+ *  Cost-aware scoring (B5-0202 Finding 6 / B5-0324): MEDIUM and HARD subtract
+ *  a card's influence cost (B5-0323 plumbing) from its positional value, so
+ *  once the data carries costs the AI prefers cheaper plays. All costs are 0
+ *  until the data backfill, so today's ordering is unchanged.
  */
 public class AIPlayer {
 
@@ -158,13 +163,25 @@ public class AIPlayer {
                         : -5;
                 }
                 return 0;
-            case RECRUIT_CHARACTER:
+            case RECRUIT_CHARACTER: {
+                // B5-0324: prefer cheaper recruits (floored at 0; the offer
+                // gate already guarantees affordability).
+                if (a.getCard() instanceof CharacterCard) {
+                    CharacterCard ch = (CharacterCard) a.getCard();
+                    return Math.max(0, 5 - rules.recruitCost(p, ch));
+                }
                 return 5;
-            case PLAY_CARD:
-                if (a.getCard() instanceof AgendaCard) return 8;
-                if (a.getCard() instanceof LocationCard) return 6;
-                if (a.getCard() instanceof GroupCard)    return 4;
-                return 2;
+            }
+            case PLAY_CARD: {
+                // B5-0324: positional value minus the card's influence cost
+                // (zero until the data backfill — ordering unchanged today).
+                int base;
+                if (a.getCard() instanceof AgendaCard)        base = 8;
+                else if (a.getCard() instanceof LocationCard) base = 6;
+                else if (a.getCard() instanceof GroupCard)    base = 4;
+                else                                          base = 2;
+                return Math.max(0, base - a.getCard().getCost());
+            }
             case BUILD_INFLUENCE:
                 // Positive value: pushing toward the Influence cap.
                 // Score scales with how far below the cap we still are.
@@ -221,15 +238,19 @@ public class AIPlayer {
                 CharacterCard ch = (CharacterCard) a.getCard();
                 int maxStat = Math.max(Math.max(ch.getDiplomacy(), ch.getIntrigue()),
                               Math.max(ch.getPsi(), ch.getLeadership()));
-                return 4 + maxStat * 0.5;
+                return 4 + maxStat * 0.5 - rules.recruitCost(p, ch); // B5-0324
             }
-            case PLAY_CARD:
-                if (a.getCard() instanceof AgendaCard)     return 9;
-                if (a.getCard() instanceof LocationCard)   return 7;
-                if (a.getCard() instanceof GroupCard)      return 5;
-                if (a.getCard() instanceof EnhancementCard) return 4;
-                if (a.getCard() instanceof EventCard)      return 3;
-                return 2;
+            case PLAY_CARD: {
+                // B5-0324: positional value minus the card's influence cost.
+                double base;
+                if (a.getCard() instanceof AgendaCard)        base = 9;
+                else if (a.getCard() instanceof LocationCard) base = 7;
+                else if (a.getCard() instanceof GroupCard)    base = 5;
+                else if (a.getCard() instanceof EnhancementCard) base = 4;
+                else if (a.getCard() instanceof EventCard)    base = 3;
+                else                                          base = 2;
+                return base - a.getCard().getCost();
+            }
             case BUILD_INFLUENCE:
                 // Positive, capped value — avoids over-tinging the score table.
                 int depr = Math.max(0, 10 - p.getInfluence());

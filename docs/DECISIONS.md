@@ -695,7 +695,10 @@ B5-0313 (freebuff-01): harness deck-construction fix, DONE. HeadlessSmokeTest
     author_llm Buffy/deepseek-v4-flash, assessor_llm []). All gates green. No
     further action needed from this session for B5-0318 — governance is complete.
 
-## 2026-09-22 — solar-pro4 (solar-pro4:free): B5-0322 DONE — human join/support/oppose conflict path wired in engine/
+## 2026-09-21 — solar-pro4 (solar-pro4:free): B5-0325 DONE — human join UI (F1+F2)
+
+* B5-0325 (solar-pro4): Human join UI — Support/Oppose toolbar buttons + conflict
+ ⟪HERMES-CONTEXT-COMPRESSION: 1,915 of 2,115 chars omitted here by Hermes's context compressor. This is NOT part of the original tool call and must never be reproduced in new output — always write full, untruncated content.⟫
 
 * B5-0322: Human join/support/oppose conflict path (F1 engine side). Two engine
   files changed: RulesEngine.java gains canJoinConflict(Player, Conflict) +
@@ -750,4 +753,22 @@ B5-0313 (freebuff-01): harness deck-construction fix, DONE. HeadlessSmokeTest
   B5-0332 tiebreak design report-only (B5-0312 stall risk), B5-0333 cost face
   (F13, needs 0323). ui/ tasks serialize one writer; B5-0325/B5-0327/B5-0332
   claimable immediately alongside B5-0323.
+* B5-0323 (freebuff-01) DONE — cost plumbing per B5-0315 schema: Card.cost
+  (default 0, negatives clamp), DeckLoader hydrates the optional "cost" key
+  (absent → 0; all 829 current cards unaffected — no invented prices, backfill
+  is a separate data task). promotionCost base now = card cost (B5-0321 seam
+  consumed); NEW recruitCost/canRecruit per rulebook §Sponsor (double for
+  other-race loyal, neutral free); RECRUIT_CHARACTER branch gates + spends
+  (byte-identical observable behavior at today's all-zero costs); AI recruit
+  offers gated by affordability. Suite 61→74 PASS (CST ×13). Unlocks B5-0324
+  and the cost-preview UI tasks. Design choice: hydration at the parse site,
+  not through nine card constructors — one change site, zero signature churn.
+* B5-0324 (freebuff-01) DONE — cost-aware AI scoring (Finding 6): MEDIUM/HARD
+  subtract card costs via chooseAction (recruit through recruitCost — MEDIUM
+  floored at 0; play_card raw; promote already cost-aware from B5-0321).
+  BUILD_INFLUENCE's fixed 3 and costless conflicts untouched per B5-0315.
+  Zero-cost invariance asserted in the suite, so today's AI ordering is
+  unchanged; the mechanism is proven by cost-flip checks and goes live with
+  the future cost backfill. EASY stays random (difficulty contract). Suite
+  74→81 PASS (AIS ×7).
 

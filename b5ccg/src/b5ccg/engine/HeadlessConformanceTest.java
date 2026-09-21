@@ -1,5 +1,6 @@
 package b5ccg.engine;
 
+import b5ccg.ai.AIPlayer;
 import b5ccg.model.*;
 import b5ccg.model.enums.*;
 import java.util.ArrayList;
@@ -41,6 +42,9 @@ import java.util.List;
  *     clamp), the loader hydrates the optional "cost" key, and recruit and
  *     promote costs compose from it with the double-for-other-race rule
  *     (B5-0323; rulebook: Anatomy of a Card, Sponsor, Promote).
+ * AIS Cost-aware AI scoring: MEDIUM/HARD subtract card costs from positional
+ *     values (B5-0202 Finding 6 / B5-0324). Zero costs preserve today's
+ *     ordering exactly; raising a cost flips the choice; MEDIUM floors at 0.
  *
  * Run after compile.bat / compile.sh:
  *   java -cp b5ccg/out b5ccg.engine.HeadlessConformanceTest
@@ -632,6 +636,68 @@ public class HeadlessConformanceTest {
                 parsed.get(1).getCost() == 0);
     }
 
+    // ── B5-0324: cost-aware AI scoring ────────────────────────────────────
+
+    private static void testAIScoring() {
+        System.out.println("AIS (B5-0324): cost-aware AI scoring");
+        Player aiP = player("AIs", Faction.NARN);
+        aiP.gainInfluence(6); // 10 → Build Influence offers are out of the way
+        GameState st = state(aiP);
+
+        AgendaCard agenda = new AgendaCard("ais_ag", "Test Agenda",
+                "AGENDA", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", false, "INFLUENCE_20");
+        LocationCard loc = new LocationCard("ais_loc", "Test Location",
+                "LOCATION", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", 1);
+        aiP.addToHand(agenda);
+        aiP.addToHand(loc);
+
+        AIPlayer med = new AIPlayer(aiP, AIDifficulty.MEDIUM);
+
+        // 1: with all costs 0 (the current data), ordering is exactly as
+        //    before B5-0324 — agenda (8) over location (6).
+        check("AIS", "MEDIUM: zero costs keep the pre-B5-0324 ordering",
+                med.chooseAction(st, aiP).getCard() == agenda);
+
+        // 2: raising the agenda's cost flips the choice (8-3=5 < 6).
+        agenda.setCost(3);
+        check("AIS", "MEDIUM: cost subtracts — picks the cheaper location",
+                med.chooseAction(st, aiP).getCard() == loc);
+
+        // 3: both costs floored at 0 → nothing beats PASS (never negative).
+        agenda.setCost(20);
+        loc.setCost(20);
+        check("AIS", "MEDIUM: scores floor at 0; PASS wins when all equal",
+                med.chooseAction(st, aiP).getType() == GameAction.Type.PASS);
+        loc.setCost(0);
+
+        // 4: HARD subtracts too (agenda 9 vs location 7 at zero; 9-3=6 < 7
+        //    once the agenda costs 3).
+        agenda.setCost(0);
+        AIPlayer hard = new AIPlayer(aiP, AIDifficulty.HARD);
+        check("AIS", "HARD: zero cost keeps positional order",
+                hard.chooseAction(st, aiP).getCard() == agenda);
+        agenda.setCost(3);
+        check("AIS", "HARD: cost subtracts — picks the cheaper location",
+                hard.chooseAction(st, aiP).getCard() == loc);
+
+        // 5: recruits — MEDIUM prefers the cheaper character, floors at 0,
+        //    and flips when costs flip.
+        aiP.removeFromHand(agenda);
+        aiP.removeFromHand(loc);
+        CharacterCard freeChar   = charCard("ais_free",   Faction.NARN, 0);
+        CharacterCard costlyChar = charCard("ais_costly", Faction.NARN, 3);
+        aiP.addToHand(freeChar);
+        aiP.addToHand(costlyChar);
+        check("AIS", "MEDIUM: prefers the cheaper recruit (5 vs 2)",
+                med.chooseAction(st, aiP).getCard() == freeChar);
+        freeChar.setCost(9);   // 5-9 → floored to 0
+        costlyChar.setCost(1); // 5-1 = 4
+        check("AIS", "MEDIUM: after the cost flip picks the now-cheaper recruit",
+                med.chooseAction(st, aiP).getCard() == costlyChar);
+    }
+
     public static void main(String[] args) {
         try {
             System.out.println("=== B5 CCG rulebook-conformance suite (B5-0308) ===");
@@ -649,6 +715,8 @@ public class HeadlessConformanceTest {
             testPromotion();
 
             testCostField();
+
+            testAIScoring();
             System.out.println("Still-open findings (no assertion possible yet):");
             System.out.println("  [info] D2/D4-D7/D9-D11/D15 need effect/target"
                     + " plumbing; partially addressed by B5-0307 (see audit report).");
