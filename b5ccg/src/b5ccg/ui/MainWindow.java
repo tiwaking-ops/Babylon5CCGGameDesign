@@ -18,6 +18,10 @@ public class MainWindow extends JFrame {
     private final JButton         playCardButton;
 
     private Card selectedCard;
+    private JComboBox<String> targetSelector;
+    private JButton supportButton;
+    private JButton opposeButton;
+    private Player selectedTarget;
 
     public MainWindow(GameController controller) {
         super("Babylon 5 CCG — Single Player");
@@ -67,8 +71,52 @@ public class MainWindow extends JFrame {
         });
         playCardButton.setEnabled(false);
 
+        // B5-0325 F2: conflict target selector
+        targetSelector = new JComboBox<String>();
+        targetSelector.setEnabled(false);
+        targetSelector.setMaximumSize(new Dimension(180, 24));
+        targetSelector.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (targetSelector.getSelectedItem() != null) {
+                    String name = (String) targetSelector.getSelectedItem();
+                    for (Player p : controller.getState().getPlayers()) {
+                        if (!p.isHuman() && p.getName().equals(name)) {
+                            selectedTarget = p;
+                            break;
+                        }
+                    }
+                    playCardButton.setEnabled(selectedTarget != null
+                        && !(selectedCard instanceof ConflictCard
+                             && controller.getState().getActiveConflict() != null));
+                }
+            }
+        });
+
+        // B5-0325 F1: support / oppose join buttons
+        supportButton = makeButton("Support", new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                controller.submitHumanAction(GameAction.joinSupport());
+            }
+        });
+        supportButton.setEnabled(false);
+        opposeButton = makeButton("Oppose", new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                controller.submitHumanAction(GameAction.joinOppose());
+            }
+        });
+        opposeButton.setEnabled(false);
+
+        // Assemble toolbar
         toolbar.add(passButton);
         toolbar.add(playCardButton);
+        toolbar.add(Box.createHorizontalStrut(12));
+        toolbar.add(targetSelector);
+        toolbar.add(Box.createHorizontalStrut(12));
+        toolbar.add(supportButton);
+        toolbar.add(opposeButton);
         toolbar.add(Box.createHorizontalStrut(20));
         toolbar.add(statusLabel);
 
@@ -77,13 +125,27 @@ public class MainWindow extends JFrame {
         // ── Hand ──────────────────────────────────────────────────────────────
         handPanel = new HandPanel();
         final JLabel fStatusLabel = statusLabel;
-        final JButton fPlayCardButton = playCardButton;
         handPanel.setOnCardSelected(new CardSelectedListener() {
             @Override
             public void onCardSelected(Card card) {
                 selectedCard = card;
-                fStatusLabel.setText("Selected: " + card.getTitle() + "  |  " + card.getText());
-                fPlayCardButton.setEnabled(true);
+                if (card instanceof ConflictCard) {
+                    // B5-0325 F2: populate target selector with non-human players
+                    targetSelector.removeAllItems();
+                    for (Player p : controller.getState().getPlayers()) {
+                        if (!p.isHuman()) {
+                            targetSelector.addItem(p.getName());
+                        }
+                    }
+                    targetSelector.setEnabled(true);
+                    fStatusLabel.setText("Selected: " + card.getTitle()
+                        + "  |  Target: choose from dropdown");
+                } else {
+                    targetSelector.setEnabled(false);
+                    fStatusLabel.setText("Selected: " + card.getTitle()
+                        + "  |  " + card.getText());
+                }
+                playCardButton.setEnabled(true);
             }
         });
         add(handPanel, BorderLayout.SOUTH);
@@ -111,9 +173,24 @@ public class MainWindow extends JFrame {
         for (String line : log) logArea.append(line + "\n");
         logArea.setCaretPosition(logArea.getDocument().getLength());
 
-        boolean myTurn = state.getActivePlayer() == human && controller.isWaitingForHuman();
+        boolean myTurn = state.getActivePlayer() == human
+            && controller.isWaitingForHuman();
+        boolean activeConflict = state.getActiveConflict() != null;
+
+        // B5-0325 F1: support/oppose buttons enabled during active conflict
+        supportButton.setEnabled(activeConflict);
+        opposeButton.setEnabled(activeConflict);
+
         passButton.setEnabled(myTurn);
-        playCardButton.setEnabled(myTurn && selectedCard != null);
+
+        // Play button: enabled on my turn with a selected card.
+        // If a conflict card is selected and there's already an active
+        // conflict, disable (can't start a second conflict).
+        if (selectedCard instanceof ConflictCard && activeConflict) {
+            playCardButton.setEnabled(false);
+        } else {
+            playCardButton.setEnabled(myTurn && selectedCard != null);
+        }
 
         if (state.isGameOver()) {
             statusLabel.setText("GAME OVER — Winner: "
@@ -132,14 +209,16 @@ public class MainWindow extends JFrame {
         if (selectedCard == null) return;
         GameAction action;
         if (selectedCard instanceof ConflictCard) {
-            // Pick a target — for now, auto-target the leading non-human player
-            GameState state = controller.getState();
-            Player target = null;
-            int bestInfluence = -1;
-            for (Player p : state.getPlayers()) {
-                if (!p.isHuman() && p.getInfluence() > bestInfluence) {
-                    bestInfluence = p.getInfluence();
-                    target = p;
+            // B5-0325 F2: use human-selected target, fall back to auto-target
+            Player target = selectedTarget;
+            if (target == null) {
+                GameState state = controller.getState();
+                int bestInfluence = -1;
+                for (Player p : state.getPlayers()) {
+                    if (!p.isHuman() && p.getInfluence() > bestInfluence) {
+                        bestInfluence = p.getInfluence();
+                        target = p;
+                    }
                 }
             }
             action = GameAction.initiateConflict(selectedCard, target);
@@ -147,6 +226,9 @@ public class MainWindow extends JFrame {
             action = GameAction.playCard(selectedCard);
         }
         selectedCard = null;
+        selectedTarget = null;
+        targetSelector.setSelectedIndex(-1);
+        targetSelector.setEnabled(false);
         playCardButton.setEnabled(false);
         controller.submitHumanAction(action);
     }
