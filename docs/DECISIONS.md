@@ -92,3 +92,30 @@ No human approval needed except external-library additions.
   Fixed the single rule-invalid finding: AIPlayer.buildLegalActions() skips INITIATE_CONFLICT
   generation when state.getActiveConflict() != null. All other findings deferred (most require
   model/ + engine/ changes outside ai/ scope).
+* B5-0203 DONE (report-only): audited all 16 files in `b5ccg/src/b5ccg/model/`
+  against the canonical rulebook (Character/Fleet/Group/Location/Enhancement/
+  Agenda/Event/Conflict/Aftermath card sections, Influence, Victory, round
+  structure, Action Details). NO source file was modified; gate re-verified
+  green (`sh b5ccg/compile.sh` → 34 files at `-source 6 -target 6`) and
+  HeadlessSmokeTest exit 0. Full findings in
+  `.agent/REPORTS/2026-09-21-freebuff-01-B5-0203.md`: 8 conformant areas and
+  15 deviations (D1–D15), each with rulebook section + smallest-fix
+  suggestion. Highlights: (D1) aftermath Won/Lost computed from the playing
+  player instead of the initiator (engine site); (D3) `AftermathCard.isEligible`
+  has no PSI branch, so typed aftermaths are legal in Psi conflicts; (D5)
+  `Player.conflictTotal` adds Leadership directly to military totals, bypassing
+  the one-leader-per-fleet rule; (D8) `Player.drawCards` never imposes the
+  deck-out penalty (discard an Inner Circle character, else lose); (D12)
+  `AgendaCard.isConditionMet` ignores "more than any other player" on ties,
+  `isMajorAgenda` is stored but never consulted, and major agendas should
+  block standard victory; (D13) `Faction.isPlayableBy` treats NON_ALIGNED as
+  universally playable although "Non-Aligned IS a race name" (and no cost
+  field exists for the double-cost rule); (D14) `Conflict` cannot express
+  support vs opposition sides. Root-cause observation: `CardEffect` has no
+  implementers or callers in `b5ccg/src/` — per-card text effects are
+  unimplemented engine-side, which is why most model-side gaps are
+  record-only. Recommendation: a follow-up effect-dispatch task before
+  fixing D1–D15 items that span engine/.
+* Ledger hygiene: repaired a stray `||` at the start of the B5-0201 table row
+  in `.agent/TASK_LEDGER.md` (typo introduced during a concurrent edit; row
+  content unchanged).
