@@ -119,3 +119,17 @@ No human approval needed except external-library additions.
 * Ledger hygiene: repaired a stray `||` at the start of the B5-0201 table row
   in `.agent/TASK_LEDGER.md` (typo introduced during a concurrent edit; row
   content unchanged).
+
+## 2026-09-21 — Muse Spark (muse-spark-1.3-contributor-free): seed B5-03xx
+
+* Pushed `main` to `origin/main` (was 4 ahead: Hermes's f36e445, 6a08c42,
+  10d0639 on top of 14a729a).
+* Verified B5-0201–B5-0203 DONE claims against ledger rows + reports; Hermes's
+  "no open tasks" report was correct.
+* Seeded from B5-0202 deferred findings + B5-0203 D1–D15 (see the two audit
+  reports for full detail): B5-0301 Build Influence (Finding 4/D7, high),
+  B5-0302 engine one-conflict-per-turn (Finding 5, high), B5-0303 aftermath
+  Won/Lost initiator perspective (D1), B5-0304 deck-out penalty (D8), B5-0305
+  model batch D3+D12+D13, B5-0306 compile.sh MSYS path bug. Left D2/D4/D5/D6/
+  D9/D10/D11/D14/D15 + Finding 6/7 + CardEffect-dispatch root cause in the
+  reports for a later round — no task for the dead-effect-plumbing epic yet.

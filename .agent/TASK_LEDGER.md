@@ -27,7 +27,15 @@ One writer per task. Claim via `.agent/CLAIMS/<task-id>.json` before editing
 | B5-0202 | DONE | Audit `ai/` turn quality vs rulebook: report illegal or no-op AI moves, fix the smallest set | `b5ccg/src/b5ccg/ai/` | hermes-solar-pro4 | 2026-09-21: audit complete (7 findings). Fix #1 applied: AIPlayer.buildLegalActions() skips INITIATE_CONFLICT generation when state.getActiveConflict() != null, enforcing rulebook §IV one-conflict-per-turn. compile + smoke test pass (exit 0, ~19.3s round, 32 AI actions, 4/4 legal). 6 findings deferred: missing Build Influence (high), engine re-initiation gap (high), no influence-cost scoring (med), no IC promotion (med), buildLegalActions skips isPassed/actionsLeft (low), EASY 30% pass bias (low/design). |
 | B5-0203 | DONE | Rulebook-conformance audit of `model/` card effects: report-only, list each deviation with rulebook section | `b5ccg/src/b5ccg/model/` | freebuff-01 | 2026-09-21: report-only audit complete, no model/ file modified; gate green (34 files, `-source 6`), smoke exit 0. 8 areas conformant; 15 deviations (D1–D15) logged with rulebook sections + smallest-fix suggestions in `.agent/REPORTS/2026-09-21-freebuff-01-B5-0203.md`. Key: aftermath Won/Lost from wrong player's perspective (engine site), PSI-conflict type hole in AftermathCard.isEligible, Leadership double-count in Player.conflictTotal, deck-out penalty missing in Player.drawCards, standard-victory tie + major-agenda rules ignored in AgendaCard.isConditionMet, NON_ALIGNED universally playable in Faction.isPlayableBy, CardEffect interface dead (no implementers/callers) — effect application is the root engine gap; recommend follow-up task before fixing model-side items. |
 
-Rules: take the highest `OPEN` row with no live claim file. B5-0001–B5-0103 are
+| B5-0301 | OPEN | Implement Build Influence action (rulebook §V): BUILD_INFLUENCE GameAction type + factory, canBuildInfluence + processAction branch, AI offers it at rating ≤ 9 | `b5ccg/src/b5ccg/model/`, `b5ccg/src/b5ccg/engine/`, `b5ccg/src/b5ccg/ai/` | none | — |
+| B5-0302 | OPEN | Enforce one-conflict-per-faction-per-turn in engine (B5-0202 Finding 5): track conflicts initiated this turn per player in GameState, check in canInitiateConflict | `b5ccg/src/b5ccg/engine/`, `b5ccg/src/b5ccg/model/` | none | — |
+| B5-0303 | OPEN | Aftermath Won/Lost from initiator's perspective (D1): pass won=(winner==initiator) at play site | `b5ccg/src/b5ccg/engine/` | none | — |
+| B5-0304 | OPEN | Deck-out penalty (D8): empty deck → discard non-ambassador Inner Circle character, else signal forfeit for victory check | `b5ccg/src/b5ccg/model/` (+ `b5ccg/src/b5ccg/engine/` victory check if needed) | none | — |
+| B5-0305 | OPEN | Model fixes batch: PSI aftermath-type branch in isEligible (D3), NON_ALIGNED as normal race in isPlayableBy (D13), standard-victory strictly-greatest + major-agenda block (D12) | `b5ccg/src/b5ccg/model/` (+ `b5ccg/src/b5ccg/engine/` checkVictory if needed) | none | — |
+| B5-0306 | OPEN | Fix compile.sh Windows+MSYS path bug (pre-existing; agents currently work around with direct javac) | `b5ccg/compile.sh` | none | — |
+
+Rules: take the highest `OPEN` row with no live claim file. B5-0001–B5-0203 are
 DONE and the `-source 6` gate is green — build on it, do not regress it.
-Reap stale claims (>30 min) only with a note here. One writer per scope:
-B5-0201, B5-0202, B5-0203 are in disjoint scopes and may run in parallel.
+Reap stale claims (>30 min) only with a note here. One writer per scope at a
+time: B5-0301–B5-0305 overlap in engine//model/, so second agent must pick a
+task whose scope has no live claim; B5-0306 (script only) always runs parallel.
