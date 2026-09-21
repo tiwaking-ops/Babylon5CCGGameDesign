@@ -651,7 +651,23 @@ B5-0313 (freebuff-01): harness deck-construction fix, DONE. HeadlessSmokeTest
   carry different ids). Verified: pool 446, zero dup titles, Sinclair =
   deluxe, 4×60 starter decks with ambassadors; compile exit 0; smoke PASS;
   conformance 45/45; Java 6 grep empty. Claim released.
-* RESIDUAL: pool counts 382 DELUXE + 64 PREMIERE-set until B5-0318 lands —
-  de_agenda_seizing_advantage carries set=PREMIERE (the B5-0318 defect, still
-  OPEN, still ordered behind B5-0317's live claim). Expected post-fix split:
-  383/63.
+* RESIDUAL RESOLVED (B5-0318, Buffy deepseek-v4-flash, 2026-09-21): the mis-set
+  record is fixed — de_agenda_seizing_advantage now carries set=DELUXE inside
+  deluxe.json. Pool verified live via loadBothSets: 446 = 383 DELUXE + 63
+  premiere-only, exactly the split predicted above. Note: loadBothSets' dedup
+  (B5-0320) keys on TITLE, not set — so this fix changes the surviving copy's
+  set identity, not pool membership; either way exactly one "Seizing Advantage"
+  remains and it now reports DELUXE.
+
+## 2026-09-21 — Muse Spark (muse-spark-1.3-contributor-free): seed F-epic B5-0321..0327
+
+* Human authorized the F-epic (Q1=A full set, Q2=A human joins; Q3=B harness
+  keeps polish deferred). Seeded engine-hooks-first: B5-0321 PROMOTE_CHARACTER
+  (Finding 7; also unblocks Build Influence reachability), B5-0322 human
+  join/support/oppose path (F1 engine side), B5-0323 cost plumbing
+  (B5-0315 follow-through; defaults preserve behavior, NO invented cost
+  values — backfill is a later data task), B5-0324 AI cost scoring (Finding 6,
+  needs 0323). UI last: B5-0325 join UI (needs 0322), B5-0326 action-set UI
+  part 1 + cost preview (needs 0321+0323), B5-0327 phase gating + initiative
+  display (free). Engine hooks share engine//model/ — serialize one writer;
+  dependencies noted in the ledger Rules paragraph.

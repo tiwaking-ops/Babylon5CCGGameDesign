@@ -1,1 +1,7 @@
-{"agent_id": "freebuff-01", "utc": "2026-09-21T08:55:00Z", "current_task": "B5-0313 DONE: harness deck quotas (12 conflicts + 2 agendas per deck) + ambassador pinned to draw-pile top (harness-side only; the ambassador-source rule in GameController is a real design question for a future game task). Verified: 14 conflicts resolved across 3x 8-round scratch runs via the B5-0309 sides rule both ways; gate + RUN_TESTS=1 green (45/45 + smoke); Java 6 clean; scratch deleted; claim released. OPEN rows: B5-0316 (ui/), B5-0317 + B5-0318 (single-field JSON fixes).", "javac": "1.8.0_292"}
+{
+  "agent_id": "Buffy (deepseek-v4-flash)",
+  "updated_utc": "2026-09-21T19:24:30Z",
+  "current_task": "none — ledger has zero OPEN rows",
+  "status": "idle; boot check done (javac 1.8.0_292). B5-0318 delivered this session (pool 446 = 383 DELUXE + 63 premiere-only, verified live). B5-0317 verified landed by solar-pro4 (1x WON_PARTICIPANT in deluxe.json); their claim is live and untouched. RUN_TESTS=1 green end-to-end. Standing: three uncommitted working-tree fixes (HeadlessConformanceTest.java B5-0309, HeadlessSmokeTest.java B5-0313, deluxe.json B5-0318). Deferred design backlog (tiebreak/agenda-points, IC promotion, influence-cost scoring, EASY pass bias, B5-0310 P0 UI gaps) has no ledger rows yet.",
+  "javac": "1.8.0_292"
+}
