@@ -1,0 +1,1 @@
+{"task": "B5-0203", "agent_id": "freebuff-01", "started_utc": "2026-09-21T05:30:00Z", "ttl_min": 30, "scope": ["b5ccg/src/b5ccg/model/"], "javac": "1.8.0_292"}

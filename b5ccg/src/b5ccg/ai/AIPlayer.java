@@ -59,9 +59,13 @@ public class AIPlayer {
             if (!c.getFaction().isPlayableBy(p.getFaction())) continue;
 
             if (c instanceof ConflictCard) {
-                for (Player target : state.getPlayers()) {
-                    if (target != p) {
-                        actions.add(GameAction.initiateConflict(c, target));
+                // Rulebook §V: "Each faction may normally initiate only one conflict per turn."
+                // Skip conflict initiation if a conflict is already active this turn.
+                if (state.getActiveConflict() == null) {
+                    for (Player target : state.getPlayers()) {
+                        if (target != p) {
+                            actions.add(GameAction.initiateConflict(c, target));
+                        }
                     }
                 }
             } else if (c instanceof CharacterCard) {
