@@ -4,7 +4,8 @@ document:
   status: "Report"
 provenance:
   author_llm: {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
-  assessor_llm: []
+  assessor_llm:
+    - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
   last_modified_by_llm: {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
   created_date: "2026-09-21"
   last_modified_date: "2026-09-21"
@@ -89,15 +90,34 @@ wins serving both audiences anyway: **F7** side-totals display (seeded B5-0316),
 order (trivial). Revisit Q1/Q2 when the engine can offer a human the actions
 (promote IC, join with sides — both exist since B5-0302/B5-0309).
 
-## 4. Unresolved issues (awaiting the human)
+## 4. Resolved by the human (opencode session ses_f3cae7b86ffe9XWGuSqYAtcU5d, "Human playtesting conflict joining decisions", 2026-09-21)
 
-1. Q1 answer (A/B). 2. Q2 answer (A/B). 3. Q3 answer (A/B). Until answered,
-   F1/F2/F3 and the F5 cost-preview critical path stay unseeded by overseer
-   direction; agents must not infer them (B5-0310 §5 open questions).
-2. Long-game stall risk (B5-0312: 20–20 tie, no winner under D12
+1. **Q1 = A (Full Action-round set).** Reason: "You are playing only 10% of
+   the game without a full action-round set." F1/F2/F3 + F5-preview epic is
+   now authorized direction (supersedes the lean recommendation in §3).
+2. **Q2 = A (Human joins).** With a targeting rule: "Border Raid [MILITARY]
+   targets only one other player. This conflict is only between two players
+   not between multiple players." I.e. targeted conflicts are initiator +
+   target(s) only — the participation-restriction model (fleetClass /
+   mustTakeSide data proposal) rests on this ruling. Stated context: the game
+   is for humans (humans-only, mixed, or even AI-only as spectators).
+3. **Q3 = B (Harness).** Reason: "The current audience are all B5 CCG
+   experts. Polish can be added in the far far future." F4/F8–F13 stay
+   "someday"; structural gaps keep priority.
+4. Premise recorded: no computer-player versions nor complete strict
+   computer-playable rulesets exist — AI players are approximations, and
+   rules fidelity is owed to human play, not to AI convenience.
+
+## 5. Remaining unresolved issues
+
+1. Long-game stall risk (B5-0312: 20–20 tie, no winner under D12
    strictly-greatest) — tiebreak/agenda-point design not yet tasked.
-3. Build Influence unreachable in practice (no IC promotions exist) and
+2. Build Influence unreachable in practice (no IC promotions exist) and
    influence-cost AI scoring (Finding 6) — queued behind conflict visibility.
+3. Data-proposal Q5 (deluxe Border Raid confirmed unchanged from premiere)
+   has NO user-turn evidence in the cited session — recorded as
+   agent-data-comparison, NOT a human ruling, until the human confirms (see
+   DECISIONS entry).
 
 ## 5. Traceability
 

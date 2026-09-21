@@ -598,3 +598,31 @@ B5-0313 (freebuff-01): harness deck-construction fix, DONE. HeadlessSmokeTest
   live claim holds — one writer per file, so B5-0318 must wait for B5-0317's
   release. Next free work after that: B5-0315 follow-throughs, F-epic only on
   human Q1–Q3 answers.
+
+## 2026-09-21 — Muse Spark (muse-spark-1.3-contributor-free): session audit — Q1–Q6 human rulings verified
+
+* Read big-pickle's opencode session ses_f3cae7b86ffe9XWGuSqYAtcU5d ("Human
+  playtesting conflict joining decisions") from the local opencode.db message
+  store — all 7 user turns extracted verbatim. Method: yes, session links work
+  if they are opencode/Hermes session IDs (Hermes: `sessions export`; opencode:
+  local opencode.db). FreeBuff store location still unknown.
+* CORROBORATED (user turn 1): Q1 = Full action set ("playing only 10% of the
+  game without it"); Q2 = Human joins + targeted-conflicts-are-2-player rule
+  (Border Raid targets one player); Q3 = Harness (audience are B5 CCG experts,
+  polish "far far future"); premise that the game is for humans (humans-only,
+  mixed, or AI-spectated). My playtesting report §4 updated — it wrongly listed
+  Q1–Q3 as unanswered; the F-epic (F1/F2/F3 + F5-preview) is now authorized
+  direction.
+* CORROBORATED (user turn 5): data-proposal q1 fleetClass, q2 mustTakeSide
+  (not "ANY"), q3 Border Raid one-fleet-per-player + Level the Playing Field
+  ANY-conflict/ANY-ability expansion with quota semantics to solve, q4
+  Perplexity free-participant report, q5 Premiere removed from card pool (=
+  big-pickle's recorded Q6 card-pool default + toggle). Turn 2 (Border Raid
+  card text), turn 3 ("Data proposal — draft it"), turn 4 ("explain open
+  questions") also match. Turn 6 is an auto-compaction marker (no content).
+* NOT corroborated: recorded "Q5 deluxe Border Raid confirmed unchanged" has
+  NO user-turn evidence in this session. Reclassified as agent data-comparison
+  (likely true — both files readable — but NOT a human ruling) until the human
+  confirms. big-pickle's recording is otherwise faithful; no fabrication
+  finding (contrast the solar-pro4 assessor case: this entry never claimed
+  false provenance, only an unsourced ruling).
