@@ -33,6 +33,14 @@ import java.util.Set;
  * candidates exist the remainder repeats (should not occur: 160+ candidates per
  * faction).
  *
+ * Card-pool note (human ruling 2026-09-21, Q6 revoked): the pool is ALL Deluxe
+ * plus Premiere-never-reprinted (see DeckLoader.loadBothSets). Fixed deck
+ * lists carry Premiere ids, so lookup falls back to title match — the Deluxe
+ * reprint of the same title fills the slot. Randoms are drawn from any set
+ * (reprinted uncommons/rares now exist as Deluxe records), excluding fixed
+ * cards by TITLE, since a Deluxe reprint has a different id than the fixed
+ * Premiere original.
+ *
  * Java 6 only - stdlib only.
  */
 public final class StarterDeckBuilder {
@@ -44,6 +52,13 @@ public final class StarterDeckBuilder {
 
     /** Cached deck-definition rows; null until first load. */
     private static List<Map<String, String>> deckEntries = null;
+
+    /**
+     * Cached Premiere id to title map; null until first load. Fixed deck
+     * lists carry Premiere ids, so this resolves a fixed id to the title the
+     * deduped pool holds (possibly on the Deluxe reprint).
+     */
+    private static Map<String, String> premiereTitles = null;
 
     /** 0 = non-deterministic (default); non-zero lets tests seed the draw. */
     private static long randomSeed = 0L;
@@ -78,13 +93,16 @@ public final class StarterDeckBuilder {
         if (pool == null || pool.isEmpty()) throw new IllegalArgumentException("card pool is empty");
 
         Map<String, Card> byId = new HashMap<String, Card>();
+        Map<String, Card> byTitle = new HashMap<String, Card>();
         for (int i = 0; i < pool.size(); i++) {
             Card c = pool.get(i);
             byId.put(c.getId(), c);
+            if (!byTitle.containsKey(c.getTitle())) byTitle.put(c.getTitle(), c);
         }
 
         List<Card> deck = new ArrayList<Card>();
         Set<String> fixedIds = new HashSet<String>();
+        Set<String> fixedTitles = new HashSet<String>();
         List<String> missing = new ArrayList<String>();
         int fixedCount = 0;
 
@@ -94,13 +112,19 @@ public final class StarterDeckBuilder {
             if (!faction.name().equals(e.get("deck"))) continue;
             String id = e.get("id");
             Card c = byId.get(id);
+            if (c == null) {
+                // Fixed lists carry Premiere ids; under the deduped pool the
+                // slot may hold the Deluxe reprint — match by title instead.
+                c = findFixedByTitle(byTitle, id);
+            }
             if (c == null) { missing.add(id); continue; }
             int n = parseInt(e.get("count"), 1);
             for (int k = 0; k < n; k++) {
                 deck.add(c);
                 fixedCount++;
             }
-            fixedIds.add(id);
+            fixedIds.add(c.getId());
+            fixedTitles.add(c.getTitle());
         }
         if (!missing.isEmpty()) {
             System.err.println("StarterDeckBuilder: " + faction
@@ -118,14 +142,18 @@ public final class StarterDeckBuilder {
     /** The printed 10 random uncommons/rares for a faction (see class note). */
     private static List<Card> drawRandomUncommonsRares(Faction faction, List<Card> pool,
                                                        Set<String> fixedIds) {
+        Set<String> fixedTitles = new HashSet<String>();
+        for (int i = 0; i < pool.size(); i++) {
+            Card c = pool.get(i);
+            if (fixedIds.contains(c.getId())) fixedTitles.add(c.getTitle());
+        }
         List<Card> candidates = new ArrayList<Card>();
         for (int i = 0; i < pool.size(); i++) {
             Card c = pool.get(i);
-            if (c.getCardSet() != CardSet.PREMIERE) continue;
             Rarity r = c.getRarity();
             if (r != Rarity.UNCOMMON && r != Rarity.RARE) continue;
             if (!c.getFaction().isPlayableBy(faction)) continue;
-            if (fixedIds.contains(c.getId())) continue;
+            if (fixedTitles.contains(c.getTitle())) continue;
             candidates.add(c);
         }
         Random rng = (randomSeed != 0L)
@@ -164,6 +192,28 @@ public final class StarterDeckBuilder {
             deckEntries = DeckLoader.loadFlatObjects(DECK_RESOURCE);
         }
         return deckEntries;
+    }
+
+    /**
+     * Resolve a fixed-list Premiere id to the pool card with the same title
+     * (the Deluxe reprint under the deduped pool). Null if unresolvable.
+     */
+    private static Card findFixedByTitle(Map<String, Card> byTitle, String premiereId) {
+        try {
+            if (premiereTitles == null) {
+                premiereTitles = new HashMap<String, String>();
+                List<Card> premiere = DeckLoader.loadFromResource("/cards/premiere.json");
+                for (int i = 0; i < premiere.size(); i++) {
+                    Card c = premiere.get(i);
+                    premiereTitles.put(c.getId(), c.getTitle());
+                }
+            }
+        } catch (IOException e) {
+            return null;
+        }
+        String title = premiereTitles.get(premiereId);
+        if (title == null) return null;
+        return byTitle.get(title);
     }
 
     private static int parseInt(String s, int def) {

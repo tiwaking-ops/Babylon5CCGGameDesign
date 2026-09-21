@@ -26,11 +26,29 @@ public class DeckLoader {
         }
     }
 
+    /**
+     * Card-pool rule (human ruling 2026-09-21, revokes Q6 no-Premiere default):
+     * the pool is ALL Deluxe cards plus every Premiere card never reprinted.
+     * A Premiere card counts as reprinted (a duplicate) when its title also
+     * appears in Deluxe; the Deluxe version wins. Title and imageKey agree on
+     * 100% of the current overlap (383/383), so title is the operative key.
+     */
     public static List<Card> loadBothSets() throws IOException {
-        List<Card> all = new ArrayList<Card>();
-        all.addAll(loadFromResource("/cards/premiere.json"));
-        all.addAll(loadFromResource("/cards/deluxe.json"));
+        List<Card> premiere = loadFromResource("/cards/premiere.json");
+        List<Card> deluxe = loadFromResource("/cards/deluxe.json");
+        List<Card> all = new ArrayList<Card>(deluxe);
+        for (int i = 0; i < premiere.size(); i++) {
+            Card c = premiere.get(i);
+            if (!hasTitle(deluxe, c.getTitle())) all.add(c);
+        }
         return all;
+    }
+
+    private static boolean hasTitle(List<Card> cards, String title) {
+        for (int i = 0; i < cards.size(); i++) {
+            if (cards.get(i).getTitle().equals(title)) return true;
+        }
+        return false;
     }
 
     /**

@@ -631,3 +631,27 @@ B5-0313 (freebuff-01): harness deck-construction fix, DONE. HeadlessSmokeTest
   type/subtype/rarity/faction/imageKey and base text; deluxe appends only the
   seize-control text change. Participation semantics unchanged. Q5 is now a
   human ruling on equal footing with Q1–Q4/Q6.
+
+## 2026-09-21 — Muse Spark (muse-spark-1.3-contributor-free): Q6 REVOKED — dedup pool (B5-0320 DONE)
+
+* The human revoked Q6 (no-Premiere pool) — motive: fear that Commander
+  Sinclair (premiere Human Ambassador) was never reprinted. CORRECTION: he was
+  — `de_char_jeffrey_sinclair` exists with identical 5/3/0/4 stats and
+  ambassador flag (deluxe appends only the boosters-availability note). No
+  ambassador is premiere-only (checked all). Sinclair is safe under EITHER
+  pool rule, but the revocation stands on the human's word.
+* NEW POOL RULE: card pool = ALL Deluxe (383) + every Premiere card never
+  reprinted (63) = 446 unique titles, deluxe wins ties, title is the dedup
+  key (imageKey agrees 100% on the overlap). Census-verified by overseer.
+* Implementation (overseer-claimed B5-0320, engine/ only — no conflict with
+  Inkling's live deluxe.json B5-0317 claim): DeckLoader.loadBothSets dedups by
+  title; StarterDeckBuilder resolves fixed premiere ids through a cached
+  premiere id→title map (id-derivation rejected: aftermaths use de_am_, not
+  de_), randoms drawn from any set excluding fixed by TITLE (deluxe reprints
+  carry different ids). Verified: pool 446, zero dup titles, Sinclair =
+  deluxe, 4×60 starter decks with ambassadors; compile exit 0; smoke PASS;
+  conformance 45/45; Java 6 grep empty. Claim released.
+* RESIDUAL: pool counts 382 DELUXE + 64 PREMIERE-set until B5-0318 lands —
+  de_agenda_seizing_advantage carries set=PREMIERE (the B5-0318 defect, still
+  OPEN, still ordered behind B5-0317's live claim). Expected post-fix split:
+  383/63.
