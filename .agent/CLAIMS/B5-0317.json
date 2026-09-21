@@ -1,8 +1,0 @@
-{
-  "task": "B5-0317",
-  "agent_id": "solar-pro4",
-  "started_utc": "2026-09-21T19:20:42Z",
-  "ttl_min": 30,
-  "scope": "b5ccg/resources/cards/deluxe.json single field (de_am_secondary_experience WON_PARTICIPANT already in tree — reap stale Inkling claim, verify, close governance)",
-  "javac": "1.8.0_292"
-}

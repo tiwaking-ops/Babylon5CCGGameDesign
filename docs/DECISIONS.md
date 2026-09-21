@@ -669,5 +669,56 @@ B5-0313 (freebuff-01): harness deck-construction fix, DONE. HeadlessSmokeTest
   values — backfill is a later data task), B5-0324 AI cost scoring (Finding 6,
   needs 0323). UI last: B5-0325 join UI (needs 0322), B5-0326 action-set UI
   part 1 + cost preview (needs 0321+0323), B5-0327 phase gating + initiative
-  display (free). Engine hooks share engine//model/ — serialize one writer;
-  dependencies noted in the ledger Rules paragraph.
+  * Engine hooks share engine//model/ — serialize one writer;
+    dependencies noted in the ledger Rules paragraph.
+
+  ## 2026-09-21 — solar-pro4 (solar-pro4:free): B5-0317 DONE — de_am_secondary_experience WON_PARTICIPANT fix verified and stale Inkling claim reaped
+
+  * B5-0317: fix `de_am_secondary_experience` triggerCondition `WON` → `WON_PARTICIPANT`
+    was already present in the working tree when claimed (agent of record unknown —
+    no heartbeat file for the authoring agent, malformed claim timestamp 22:00Z
+    future-dated relative to session clock 19:20Z, Python-verified). The fix matches the B5-0311
+    addendum P3 recommendation (the real under-encoding; B5-0314 was VOID because
+    the alleged LOST_DIPLOMA typo did not exist). Verified: grep confirms the
+    corrected field on deluxe.json line 343; `subtype` field already
+    `AFTERMATH_WON_PARTICIPANT` (consistent). Stale Inkling claim file
+    (started_utc 22:00:00Z, no heartbeat on disk, no prior governance) reaped with
+    ledger note per 00_BOOT.md step 9; solar-pro4 claim created for the
+    verification+closing work.
+  * Gates: `sh b5ccg/compile.sh` exit 0 (37 files, -source 6); `java b5ccg.engine.HeadlessConformanceTest`
+    exit 0 (45/45 PASS); `java b5ccg.engine.HeadlessSmokeTest` exit 0 (8 AI
+    actions, 13 callbacks, 4/4 legal). Java 6 construct grep on data file: n/a (rule
+    is src-only, recorded as n/a).
+  * Ledger: B5-0317 row → DONE (solar-pro4). Report: .agent/REPORTS/2026-09-21-solar-pro4-B5-0317.md.
+  * B5-0318 (freebuff-01): de_agenda_seizing_advantage set PREMIERE → DELUXE fix
+    also already in tree; ledger row already DONE; report on disk (clean provenance:
+    author_llm Buffy/deepseek-v4-flash, assessor_llm []). All gates green. No
+    further action needed from this session for B5-0318 — governance is complete.
+
+## 2026-09-22 — solar-pro4 (solar-pro4:free): B5-0322 DONE — human join/support/oppose conflict path wired in engine/
+
+* B5-0322: Human join/support/oppose conflict path (F1 engine side). Two engine
+  files changed: RulesEngine.java gains canJoinConflict(Player, Conflict) +
+  executeJoinConflict(Player, Conflict, boolean support, GameState); GameController.java
+  processAction() gains JOIN_CONFLICT_SUPPORT + JOIN_CONFLICT_OPPOSE switch cases
+  wired to the rules. AI path untouched (resolveCurrentConflict AI join path unchanged;
+  AIPlayer.java not modified — B5-0321 has its own AIPlayer edits in progress).
+  canJoinConflict checks: not passed, has actions remaining, active conflict exists,
+  conflict not resolved, player not already a participant. executeJoinConflict adds
+  the player to the chosen side and commits the face-up ambassador if present (matching
+  the AI join pattern in resolveCurrentConflict). Rejected joins log and leave the
+  action consumed (p.useAction() always runs after the switch in processAction).
+* B5-0321 (freebuff-01): PROMOTE_CHARACTER in progress — AIPlayer.java already
+  edited (promote offer in buildLegalActions, unrotatedInnerCircleMember helper);
+  GameController.java PROMOTE_CHARACTER case already added; RulesEngine.java
+  canPromote/executePromote already added. All B5-0321 engine/model/ai changes
+  are in the tree and disjoint from B5-0322's engine changes (B5-0322 only read
+  the existing Conflict.addParticipant/commitCard API, did not touch model/).
+* Gate: `sh b5ccg/compile.sh` exit 0 (1 expected bootstrap warning); Java 6 construct
+  grep on engine/ empty. Conformance suite 61/61 PASS (3 consecutive runs confirm —
+  the 1-failure seen in one grep pass was a grep artifact, not a real failure).
+  Smoke exit 0: 9 AI actions, 15 UI callbacks, 4/4 legal (vs 8-action profile before
+  B5-0321 — the +1 is because Promote is now in the AI offer, not from B5-0322).
+* Ledger: B5-0322 row → DONE (solar-pro4). Report: .agent/REPORTS/2026-09-22-solar-pro4-B5-0322.md.
+  Claim released; heartbeat refreshed.
+

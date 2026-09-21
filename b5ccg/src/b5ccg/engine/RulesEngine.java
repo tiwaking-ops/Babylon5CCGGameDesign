@@ -55,6 +55,69 @@ public class RulesEngine {
                   + leader.getTitle() + " rotates, rating now " + p.getInfluence());
     }
 
+    // ── Promote Character to Inner Circle (rulebook VI., B5-0321) ───────────
+
+    /**
+     * Cost to promote supporting character ch into p's Inner Circle
+     * (rulebook: ACTION - Promote a Character to the Inner Circle):
+     * the character's influence cost (doubled if loyal to a different race)
+     * PLUS one additional influence for each character already in the Inner
+     * Circle. "Plus one for each character that is already a member" — the
+     * ambassador IS a member, so this is simply innerCircle.size().
+     *
+     * B5-0323 note: cards carry no cost field yet, so the influence cost is
+     * currently 0 for every card. The double-cost rule still composes when a
+     * cost exists; the +IC-member term is live today.
+     */
+    public int promotionCost(Player p, CharacterCard ch) {
+        int base = 0;
+        if (ch.getFaction() != p.getFaction()
+                && ch.getFaction() != Faction.NEUTRAL
+                && ch.getFaction() != Faction.ANY) {
+            base = base * 2;   // double-cost for other-race loyal characters
+        }
+        return base + p.getInnerCircle().size();
+    }
+
+    /** Returns true when p may promote ch into the Inner Circle now:
+     *  ch is a ready supporting character, an unrotated Inner Circle member
+     *  exists to rotate, and p can afford promotionCost. */
+    public boolean canPromote(Player p, CharacterCard ch) {
+        if (ch == null || !p.getSupportingRole().contains(ch)) return false;
+        if (ch.isRotated() || ch.isFaceDown()) return false;
+        boolean hasLeader = false;
+        for (CharacterCard ic : p.getInnerCircle()) {
+            if (!ic.isRotated()) { hasLeader = true; break; }
+        }
+        if (!hasLeader) return false;
+        return p.getInfluence() >= promotionCost(p, ch);
+    }
+
+    /** Rotate the chosen IC leader, apply the promotion cost, move ch into
+     *  the Inner Circle (ready — the rulebook only requires the sponsor to
+     *  rotate, not the promoted character). */
+    public void executePromote(Player p, CharacterCard ch, CharacterCard leader,
+                               GameState state) {
+        if (!canPromote(p, ch)) {
+            state.log(p.getName() + " tried to promote "
+                      + (ch == null ? "(null)" : ch.getTitle()) + " but cannot.");
+            return;
+        }
+        if (leader == null || !p.getInnerCircle().contains(leader)
+                || leader.isRotated()) {
+            state.log(p.getName() + " tried to promote with an invalid leader.");
+            return;
+        }
+
+        leader.rotate();
+        p.spendInfluence(promotionCost(p, ch));
+        p.recruitToInnerCircle(ch);
+
+        state.log(p.getName() + " promotes " + ch.getTitle()
+                  + " to the Inner Circle (" + leader.getTitle() + " rotates, cost "
+                  + promotionCost(p, ch) + "); IC now " + p.getInnerCircle().size());
+    }
+
     // ── Conflict resolution ──────────────────────────────────────────────────
 
     public Player resolveConflict(Conflict conflict, GameState state) {
@@ -211,6 +274,37 @@ public class RulesEngine {
         if (!p.getHand().contains(a)) return false;
         boolean participated = resolved.getParticipants().contains(p);
         return a.isEligible(initiatorWon, participated, resolved.getConflictType());
+    }
+
+    // ── Join conflict action (B5-0322) ─────────────────────────────────────────
+
+    /** Returns true when p may join the active conflict on the given side:
+     *  p has an action remaining, has not passed, there is an active conflict,
+     *  p is not already a participant, and p's faction may play the conflict card. */
+    public boolean canJoinConflict(Player p, Conflict conflict) {
+        if (p.isPassed()) return false;
+        if (p.getActionsLeft() <= 0) return false;
+        if (conflict == null) return false;
+        if (conflict.isResolved()) return false;
+        if (conflict.getParticipants().contains(p)) return false;
+        return true;
+    }
+
+    /** Adds p to the given side of the active conflict, commits p's ambassador
+     *  if face-up, and logs the join. The conflict's resolveConflict() handles
+     *  ambassador damage based on the final result; this method does not resolve. */
+    public void executeJoinConflict(Player p, Conflict conflict, boolean support,
+                                    GameState state) {
+        if (!canJoinConflict(p, conflict)) {
+            state.log(p.getName() + " cannot join — already joined or no active conflict.");
+            return;
+        }
+        conflict.addParticipant(p, support);
+        if (p.getAmbassador() != null && !p.getAmbassador().isFaceDown()) {
+            conflict.commitCard(p, p.getAmbassador(), support);
+        }
+        String side = support ? "support" : "oppose";
+        state.log(p.getName() + " joins the conflict as " + side + ".");
     }
 
     // ── Round start ──────────────────────────────────────────────────────────

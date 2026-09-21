@@ -155,8 +155,39 @@ public class GameController {
 
             case BUILD_INFLUENCE:
                 if (action.getCard() instanceof CharacterCard) {
-                    CharacterCard leader = (CharacterCard) action.getCard();
-                    rules.executeBuildInfluence(p, leader, state);
+                    CharacterCard leader2 = (CharacterCard) action.getCard();
+                    rules.executeBuildInfluence(p, leader2, state);
+                }
+                break;
+
+            case PROMOTE_CHARACTER: // B5-0321
+                if (action.getCard() instanceof CharacterCard) {
+                    CharacterCard ch = (CharacterCard) action.getCard();
+                    rules.executePromote(p, ch, action.getLeader(), state);
+                }
+                break;
+
+            case JOIN_CONFLICT_SUPPORT:
+                if (state.getActiveConflict() != null) {
+                    if (rules.canJoinConflict(p, state.getActiveConflict())) {
+                        rules.executeJoinConflict(p, state.getActiveConflict(), true, state);
+                    } else {
+                        state.log(p.getName() + " cannot support — join not allowed.");
+                    }
+                } else {
+                    state.log("No active conflict to join.");
+                }
+                break;
+
+            case JOIN_CONFLICT_OPPOSE:
+                if (state.getActiveConflict() != null) {
+                    if (rules.canJoinConflict(p, state.getActiveConflict())) {
+                        rules.executeJoinConflict(p, state.getActiveConflict(), false, state);
+                    } else {
+                        state.log(p.getName() + " cannot oppose — join not allowed.");
+                    }
+                } else {
+                    state.log("No active conflict to join.");
                 }
                 break;
 
