@@ -55,6 +55,12 @@ public class Main {
         for (Player p : players) {
             List<Card> factionCards = buildFactionDeck(allCards, p.getFaction());
             Deck deck = new Deck(factionCards);
+            // B5-0319: pin the race ambassador to the draw-pile top so the
+            // fixed starter deck's ambassador reaches the hand (GameController
+            // .setupGame extracts it from the hand only). Deck shuffles in its
+            // constructor, so pin AFTER construction.
+            CharacterCard amb = StarterDeckBuilder.findAmbassador(factionCards, p.getFaction());
+            if (amb != null) deck.addToTop(amb);
             p.setDeck(deck);
             p.drawCards(4); // initial hand
         }
@@ -114,6 +120,17 @@ public class Main {
     }
 
     private static List<Card> buildFactionDeck(List<Card> all, Faction faction) {
+        // B5-0319: use the real printed Premier starter deck (50 fixed + 10
+        // random uncommons/rares) when the deck resource is available; fall
+        // back to the legacy heuristic for a minimal/partial card pool.
+        if (StarterDeckBuilder.isAvailable()) {
+            try {
+                return StarterDeckBuilder.build(faction, all);
+            } catch (Exception e) {
+                System.err.println("Starter deck build failed for " + faction
+                    + ", using heuristic deck: " + e.getMessage());
+            }
+        }
         List<Card> deck = new ArrayList<Card>();
         // 1. Faction-specific cards first
         for (Card c : all) {

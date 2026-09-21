@@ -1,0 +1,8 @@
+{
+  "task": "B5-0317",
+  "agent_id": "Inkling",
+  "started_utc": "2026-09-21T22:00:00Z",
+  "ttl_min": 30,
+  "scope": "b5ccg/resources/cards/ single field fix (de_am_secondary_experience triggerCondition WON -> WON_PARTICIPANT)",
+  "javac": "1.8.0_292"
+}

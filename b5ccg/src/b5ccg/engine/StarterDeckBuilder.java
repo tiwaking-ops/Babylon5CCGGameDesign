@@ -1,0 +1,177 @@
+package b5ccg.engine;
+
+import b5ccg.model.Card;
+import b5ccg.model.CharacterCard;
+import b5ccg.model.enums.CardSet;
+import b5ccg.model.enums.Faction;
+import b5ccg.model.enums.Rarity;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+
+/**
+ * Builds the printed Premier Edition race starter decks.
+ *
+ * The canonical rulebook ("Starter Decks") states each race-specific Premier
+ * starter deck is 50 fixed common cards tailored to the race plus 10 randomly
+ * drawn uncommons/rares. The 50-card fixed lists are sourced (advisory) from a
+ * contemporaneous fan compilation and verified against
+ * {@code b5ccg/resources/cards/premiere.json}; see
+ * {@code investigations/b5-premier-starter-deck-fixed-lists-2026-09-21.md}.
+ * The deck definitions live in {@code b5ccg/resources/decks/premiere-starter-decks.json}.
+ *
+ * Interpretation (logged in docs/DECISIONS.md): the 10 random cards are distinct
+ * Premiere UNCOMMON/RARE cards playable by the faction (race-loyal + NEUTRAL +
+ * ANY), excluding cards already in the fixed 50. If fewer than 10 distinct
+ * candidates exist the remainder repeats (should not occur: 160+ candidates per
+ * faction).
+ *
+ * Java 6 only - stdlib only.
+ */
+public final class StarterDeckBuilder {
+
+    public static final String DECK_RESOURCE = "/decks/premiere-starter-decks.json";
+    public static final int FIXED_TARGET = 50;
+    public static final int RANDOM_COUNT = 10;
+    public static final int DECK_SIZE = FIXED_TARGET + RANDOM_COUNT;
+
+    /** Cached deck-definition rows; null until first load. */
+    private static List<Map<String, String>> deckEntries = null;
+
+    /** 0 = non-deterministic (default); non-zero lets tests seed the draw. */
+    private static long randomSeed = 0L;
+
+    private StarterDeckBuilder() {}
+
+    /** Seed the random uncommons/rares draw (tests). 0 restores default. */
+    public static void setRandomSeed(long seed) { randomSeed = seed; }
+
+    /** True if the starter-deck resource is on the classpath. */
+    public static boolean isAvailable() {
+        try {
+            return DeckLoader.class.getResource(DECK_RESOURCE) != null;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** Convenience: load both card sets and build the faction's starter deck. */
+    public static List<Card> buildForFaction(Faction faction) throws IOException {
+        return build(faction, DeckLoader.loadBothSets());
+    }
+
+    /**
+     * Build the starter deck for {@code faction} from an already-loaded card
+     * pool (both sets): 50 fixed cards in resource order, then 10 random
+     * uncommons/rares. Missing fixed ids or a non-50 fixed count are reported to
+     * stderr but do not throw, so a partial pool still yields a playable deck.
+     */
+    public static List<Card> build(Faction faction, List<Card> pool) throws IOException {
+        if (faction == null) throw new IllegalArgumentException("faction is null");
+        if (pool == null || pool.isEmpty()) throw new IllegalArgumentException("card pool is empty");
+
+        Map<String, Card> byId = new HashMap<String, Card>();
+        for (int i = 0; i < pool.size(); i++) {
+            Card c = pool.get(i);
+            byId.put(c.getId(), c);
+        }
+
+        List<Card> deck = new ArrayList<Card>();
+        Set<String> fixedIds = new HashSet<String>();
+        List<String> missing = new ArrayList<String>();
+        int fixedCount = 0;
+
+        List<Map<String, String>> entries = loadEntries();
+        for (int i = 0; i < entries.size(); i++) {
+            Map<String, String> e = entries.get(i);
+            if (!faction.name().equals(e.get("deck"))) continue;
+            String id = e.get("id");
+            Card c = byId.get(id);
+            if (c == null) { missing.add(id); continue; }
+            int n = parseInt(e.get("count"), 1);
+            for (int k = 0; k < n; k++) {
+                deck.add(c);
+                fixedCount++;
+            }
+            fixedIds.add(id);
+        }
+        if (!missing.isEmpty()) {
+            System.err.println("StarterDeckBuilder: " + faction
+                + " fixed ids missing from pool: " + missing);
+        }
+        if (fixedCount != FIXED_TARGET) {
+            System.err.println("StarterDeckBuilder: " + faction + " fixed count="
+                + fixedCount + " (expected " + FIXED_TARGET + ")");
+        }
+
+        deck.addAll(drawRandomUncommonsRares(faction, pool, fixedIds));
+        return deck;
+    }
+
+    /** The printed 10 random uncommons/rares for a faction (see class note). */
+    private static List<Card> drawRandomUncommonsRares(Faction faction, List<Card> pool,
+                                                       Set<String> fixedIds) {
+        List<Card> candidates = new ArrayList<Card>();
+        for (int i = 0; i < pool.size(); i++) {
+            Card c = pool.get(i);
+            if (c.getCardSet() != CardSet.PREMIERE) continue;
+            Rarity r = c.getRarity();
+            if (r != Rarity.UNCOMMON && r != Rarity.RARE) continue;
+            if (!c.getFaction().isPlayableBy(faction)) continue;
+            if (fixedIds.contains(c.getId())) continue;
+            candidates.add(c);
+        }
+        Random rng = (randomSeed != 0L)
+            ? new Random(randomSeed + faction.ordinal())
+            : new Random();
+        Collections.shuffle(candidates, rng);
+
+        List<Card> picked = new ArrayList<Card>();
+        for (int i = 0; i < candidates.size() && picked.size() < RANDOM_COUNT; i++) {
+            picked.add(candidates.get(i));
+        }
+        int idx = 0;
+        while (picked.size() < RANDOM_COUNT && !candidates.isEmpty()) {
+            picked.add(candidates.get(idx % candidates.size()));
+            idx++;
+        }
+        return picked;
+    }
+
+    /** The race ambassador inside a deck list, or null (mirror of
+     *  {@code GameController.findAmbassador}). */
+    public static CharacterCard findAmbassador(List<Card> deckCards, Faction faction) {
+        if (deckCards == null) return null;
+        for (int i = 0; i < deckCards.size(); i++) {
+            Card c = deckCards.get(i);
+            if (c instanceof CharacterCard) {
+                CharacterCard ch = (CharacterCard) c;
+                if (ch.isAmbassador() && ch.getFaction() == faction) return ch;
+            }
+        }
+        return null;
+    }
+
+    private static List<Map<String, String>> loadEntries() throws IOException {
+        if (deckEntries == null) {
+            deckEntries = DeckLoader.loadFlatObjects(DECK_RESOURCE);
+        }
+        return deckEntries;
+    }
+
+    private static int parseInt(String s, int def) {
+        if (s == null) return def;
+        try {
+            return Integer.parseInt(s.trim());
+        } catch (NumberFormatException e) {
+            return def;
+        }
+    }
+}

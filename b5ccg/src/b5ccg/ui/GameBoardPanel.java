@@ -49,7 +49,15 @@ public class GameBoardPanel extends JPanel {
                 + "  [" + c.getConflictType() + "]";
             FontMetrics fm = g2.getFontMetrics();
             g2.drawString(msg, (getWidth() - fm.stringWidth(msg)) / 2, getHeight() / 2 + 6);
-        }
+
+            // Sides readout (B5-0309 / D14): committed-supporters vs committed-opposers,
+            // with totals. Blank line added under the banner for separation.
+            g.setFont(new Font("SansSerif", Font.PLAIN, 11));
+            g.setColor(Color.LIGHT_GRAY);
+            g.drawString("sides committed (B5-0309):", (getWidth() - fm.stringWidth("sides committed (B5-0309):")) / 2, (getHeight() / 2) + 30);
+            String sideLine = c.getSupporters().size() + " support (" + c.supportTotal() + ")   |   " + c.getOpposers().size() + " oppose (" + c.oppositionTotal() + ")";
+            g.drawString(sideLine, (getWidth() - fm.stringWidth(sideLine)) / 2, (getHeight() / 2) + 46);
+            }
     }
 
     private void drawZone(Graphics2D g, Player p, int x, int y, int w, int h) {

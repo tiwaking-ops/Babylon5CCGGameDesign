@@ -235,6 +235,18 @@ public class HeadlessSmokeTest {
      *  AI deck, so the run exercises the conflict pipeline. Harness-only:
      *  game-logic files are untouched. */
     private static List<Card> buildFactionDeck(List<Card> all, Faction faction) {
+        // B5-0319: use the real printed Premier starter deck (50 fixed + 10
+        // random uncommons/rares) when the deck resource is available. The
+        // fixed lists already contain conflict cards + an agenda, so the
+        // B5-0313 quota passes are only needed for the heuristic fallback.
+        if (StarterDeckBuilder.isAvailable()) {
+            try {
+                return StarterDeckBuilder.build(faction, all);
+            } catch (Exception e) {
+                System.err.println("Starter deck build failed for " + faction
+                    + ", using heuristic deck: " + e.getMessage());
+            }
+        }
         List<Card> deck = new ArrayList<Card>();
         // 1. Own-faction cards (in file order).
         for (int i = 0; i < all.size() && deck.size() < 60; i++) {

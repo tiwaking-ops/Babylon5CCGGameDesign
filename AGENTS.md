@@ -65,3 +65,16 @@ taken); heartbeat at `.agent/HEARTBEATS/<agent-id>.json`; report to
 `.agent/REPORTS/<date>-<agent-id>-<task-id>.md`. One writer per
 scope (`engine/`, `model/`, `ai/`, `ui/`); 30-min TTL; small diffs; never touch
 another agent's claim or heartbeat. Git is change-tracking only, not authority.
+
+## 6. Self-seeding and file placement (added 2026-09-21 after B5-0319)
+
+* Agents may seed their own tasks ONLY as `OPEN` rows claimed through the
+  normal cycle (OPEN → claim → DONE with report). Never mark work DONE that
+  was never OPEN+claimed, and never touch `engine/`/`model/`/`ai/`/`ui/`
+  outside a claimed scope — including via a self-seeded task.
+* No new `.md` files at the repo root. Incoming/external material goes to
+  `investigations/` (advisory, never canonical); agent proposals to
+  `docs/proposals/`; observations and test results to `.agent/REPORTS/` or
+  `docs/reports/`. Root holds only governance, the rulebook, and code.
+* One stable `agent_id` per agent across sessions. Assessors are self-added
+  only — adding another agent's name is fabrication.

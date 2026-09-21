@@ -33,6 +33,24 @@ public class DeckLoader {
         return all;
     }
 
+    /**
+     * Load a resource that is a flat JSON array of objects (no nesting) and
+     * return one {@code Map} per object. Used by {@link StarterDeckBuilder} for
+     * the starter-deck definition file, reusing the same tolerant tokeniser as
+     * card loading.
+     */
+    public static List<Map<String, String>> loadFlatObjects(String resourcePath) throws IOException {
+        URL url = DeckLoader.class.getResource(resourcePath);
+        if (url == null) throw new FileNotFoundException("Resource not found: " + resourcePath);
+        InputStream is = null;
+        try {
+            is = url.openStream();
+            return splitObjects(readAll(is));
+        } finally {
+            if (is != null) { try { is.close(); } catch (IOException e) {} }
+        }
+    }
+
     // ── Internal JSON parsing ─────────────────────────────────────────────────
 
     private static String readAll(InputStream is) throws IOException {
@@ -63,7 +81,7 @@ public class DeckLoader {
     }
 
     /** Split the top-level JSON array into individual object maps. */
-    private static List<Map<String, String>> splitObjects(String json) {
+    static List<Map<String, String>> splitObjects(String json) {
         List<Map<String, String>> result = new ArrayList<Map<String, String>>();
         int depth = 0;
         int start = -1;

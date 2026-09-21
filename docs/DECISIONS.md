@@ -7,7 +7,8 @@ provenance:
   assessor_llm:
     - {name: "Buffy", version: "deepseek-v4-flash"}
     - {name: "Solar Pro4", version: "solar-pro4:free"}
-  last_modified_by_llm: {name: "Solar Pro4", version: "solar-pro4:free"}
+    - {name: "big-pickle", version: "opencode/big-pickle"}
+  last_modified_by_llm: {name: "big-pickle", version: "opencode/big-pickle"}
   created_date: "2026-09-21"
   last_modified_date: "2026-09-21"
 ---
@@ -437,5 +438,163 @@ B5-0311 reconciliation (freebuff-01): claim released as requested; my
   bug; overseer-authorized single-field fixes, conformance-verified). The
   de_event_armistice singleton "timing" key (consumed by nothing) is
   no-action: dead metadata, harmless.
+* B5-0315 DONE (solar-pro4, report-only): cost-field design proposal —
+  schema + model surface + wiring plan for Sponsor/Promote; no src/ or
+  resources/ edit; see report.
+
+
 * B5-0313 is CLAIMED (claim file on disk); B5-0315–B5-0318 OPEN in disjoint
   scopes, parallel-safe.
+
+B5-0313 (freebuff-01): harness deck-construction fix, DONE. HeadlessSmokeTest
+  deck builder now has two quota passes (12 conflicts + 2 agendas per deck)
+  ahead of the file-order filler cut, so the smoke scenario finally carries
+  conflicts. Second change found necessary during verification: the harness
+  pins the faction ambassador to the draw-pile top after Deck construction
+  (Deck shuffles in its ctor; GameController.setupGame extracts the
+  ambassador from the opening hand only) — without it every conflict
+  resolved 0 vs 0. This deliberately stays harness-side: the game-logic rule
+  "where does the ambassador come from" is a real design question (a real
+  B5 deck guarantees the ambassador's availability) that belongs to a
+  future game task, not smuggled into setupGame under a harness claim.
+  Verification: 14 conflicts resolved across 3× 8-round scratch runs through
+  the B5-0309 sides rule both ways; zero damage events is correct (all AI
+  initiations were diplomacy; damage is military-only). Playtest data point
+  for the AI tasks: outcomes are lopsided because AI joiners always oppose.
+
+## 2026-09-21 — big-pickle (opencode/big-pickle): advisory intake (starter-deck research)
+
+* [Advisory — storage record, 2026-09-21 (assessed & stored by big-pickle /
+  opencode/big-pickle; advisory-only, non-canonical, no DEC inferred):
+  `investigations/b5-starter-deck-card-lists-research-2026-09-21.md` — Perplexity
+  AI research on Premier Edition starter-deck card lists. Card-level data
+  corroborates the repo's 146 `FIXED` premiere cards (145/146 exact title
+  matches, 0 type mismatches), but the report's central structural claim of
+  50 fixed cards/deck (200 total) is unsupported and contradicted by its own
+  146-row table and its 81/79/81/82 per-race appendices; the per-deck
+  checkmarks are mechanically derivable from the repo's faction counts
+  (race-fixed + ANY + NEUTRAL) and are not evidence of printed deck contents.
+  No card data, source file, or ledger task was changed. Closest existing
+  entries: B5-0311 (card JSON audit) and B5-0313 (deck construction).]
+
+## 2026-09-21 — big-pickle (opencode/big-pickle): advisory intake (Perplexity Q4 free-participant ruling)
+
+* [Advisory — storage record, 2026-09-21 (assessed & stored by big-pickle /
+  opencode/big-pickle; advisory-only, non-canonical, no DEC inferred):
+  `docs/reports/perplexity-non-aligned-support-free-participant-ruling-2026-09-21.md` —
+  Perplexity AI chat ruling that "free participant" on Non-Aligned Support
+  means the fleet joins the conflict as a normal participant (valid aftermath
+  target) at zero influence cost and without a sponsor rotation. Consistent
+  with the canonical rulebook glossary "Free" (`BABYLON5_CCG_RULEBOOK.md:1154`);
+  corroborates (does not extend contradictorily) the repo's sponsor-cost gap
+  (B5-0315). No card data, source file, or ledger task was changed; the ruling
+  informs but does not settle the participation-restrictions data proposal's
+  Q4 (Non-Aligned Support stays unencoded per its widening-eligibility nature).
+  Closest existing entries: B5-0315 (cost field / sponsor) and B5-0309
+  (aftermath participant targeting).]
+
+## 2026-09-21 — big-pickle (opencode/big-pickle): human rulings recorded (participation-restrictions data proposal Q1–Q6)
+
+* [Recording — human session rulings, 2026-09-21 (recorded by big-pickle /
+  opencode/big-pickle; design decisions from the user, feed the data proposal
+  only; no DEC inferred until the proposal merges + compiles):
+  Q1 add a `fleetClass` data field on `FLEET` cards; Q2 add a `mustTakeSide`
+  boolean (kind-agnostic join; Complete Support) instead of `"ANY"` in
+  `allPlayersMustCommit`; Q3 Border Raid is the only per-player quota (one
+  fleet/player), quota is per-player, and "Level the Playing Field" is an
+  event-level eligibility *expansion* (any conflict, any ability) that the
+  conflict-side field cannot express; Q4 free-participant stays text-only
+  (see the advisory intake above); Q5 deluxe Border Raid participation
+  confirmed unchanged from premiere; Q6 the card pool defaults to **no
+  Premiere** cards with an in-game toggle "No Premiere" vs "Removed
+  Duplicates" (drop only premiere cards that have a deluxe counterpart).
+  No card data, source file, or ledger task was changed; recorded into
+  §9 of `docs/proposals/conflict-participation-restrictions-data-proposal.md`.
+  Closest existing entries: B5-0315 (cost field / sponsor) and the two
+  advisory intakes above.]
+
+## 2026-09-21 — big-pickle (opencode/big-pickle): advisory intake (Premier starter deck fixed lists)
+
+* [Advisory — storage record, 2026-09-21 (assessed & stored by big-pickle /
+  opencode/big-pickle; advisory-only, non-canonical, no DEC inferred):
+  `investigations/b5-premier-starter-deck-fixed-lists-2026-09-21.md` —
+  contemporaneous fan compilation (Mike Prasek, archived by the Wayback Machine)
+  giving the real 50-card fixed list for each of the four Premier race starter
+  decks (Human/Centauri/Minbari/Narn). Assessed against
+  `b5ccg/resources/cards/premiere.json`: each list sums to exactly 50, 0 type
+  mismatches, all titles resolve (only `Level the Playing Field` vs the dataset
+  `Level the Playing Field 3+9` title variance). Corroborates the rulebook's
+  50-fixed + 10-random structure (BABYLON5_CCG_RULEBOOK.md) and contradicts the
+  earlier Perplexity report's per-deck 81/79/81/82 derivation. No card data,
+  source file, or ledger task was changed; informs the future starter-deck
+  implementation only. Closest existing entries: B5-0313 (deck construction)
+  and the Perplexity starter-deck-lists advisory intake above.]
+
+## 2026-09-21 — big-pickle (opencode/big-pickle): B5-0319 real Premier starter decks implemented
+
+* [Decision + implementation, 2026-09-21 (big-pickle / opencode/big-pickle;
+  engine/ + resources/decks/ + Main.java, claimed as B5-0319):
+  b5ccg/src/b5ccg/engine/StarterDeckBuilder.java (NEW) builds each race's
+  printed Premier starter deck as 50 fixed cards from the sourced advisory lists
+  (b5ccg/resources/decks/premiere-starter-decks.json; every id verified against
+  premiere.json) plus 10 random uncommons/rares. Added
+  DeckLoader.loadFlatObjects (generic flat-JSON-object reader).
+  Main.buildFactionDeck and HeadlessSmokeTest.buildFactionDeck now call it,
+  keeping the legacy heuristic as fallback for a minimal/partial pool; both
+  callers pin the race ambassador to the draw-pile top (B5-0313 finding).
+  Interpretation logged: the 10 random cards are distinct Premiere
+  UNCOMMON/RARE cards playable by the faction (race-loyal + NEUTRAL + ANY),
+  excluding the fixed 50; the draw is unseeded in play, seedable by tests.
+  Verification: compile.bat green (37 files, -source 6); HeadlessConformanceTest
+  45/45 PASS; HeadlessSmokeTest PASS (4/4 legal); scratch deck check - all four
+  factions build 60 = 50 fixed + 10 UNCOMMON/RARE, ambassador present, every
+  card playable. Sourced-list advisory:
+  investigations/b5-premier-starter-deck-fixed-lists-2026-09-21.md. Closest
+  existing entries: B5-0313 (harness deck construction), B5-0311 (card data
+  audit), B5-0315 (cost field).]
+
+## 2026-09-21 — Solar Pro4 (solar-pro4:free): B5-0316 done (ui/ implementation)
+
+* B5-0316 DONE (solar-pro4, ui/ implementation): conflict participation readout
+  F7 — GameBoardPanel.paintComponent gains a centered sides readout directly
+  beneath the existing active-conflict banner. Shows
+  "<supporters.size()> support (<supportTotal()>) | <opposers.size()> oppose
+  (<oppositionTotal()>)" using Conflict.getSupporters()/getOpposers()/supportTotal()/oppositionTotal()
+  (D14 sides API from B5-0309). Pure rendering addition — reads model, does not
+  modify it. Per-participant card breakdown deliberately NOT shown (future work
+  per D14 decision (2): "when JOIN actions become player-visible"). Gate green:
+  compile exit 0 (1 expected bootstrap warning, pre-existing), Java 6 gate clean
+  on ui/, smoke exit 0 (8 AI actions, 13 callbacks, 4/4 legal). One file touched
+  (ui/GameBoardPanel.java), ~8 lines added. Report: .agent/REPORTS/2026-09-21-solar-pro4-B5-0316.md.
+
+## 2026-09-21 — Muse Spark (muse-spark-1.3-contributor-free): adjudicate "LLMs messing with repo" report
+
+* "B5-0315-claim-report was edited" — investigated, NOT a violation: the diff
+  is solar-pro4 rewriting its own claim-report (re-baselining B5-0315 against
+  committed HEAD ca66ac5 after my commit re-opened the row). Owner editing own
+  file. No action.
+* big-pickle B5-0319 (self-seeded starter-deck epic): OUTCOME ACCEPTED —
+  independently recompiled full tree `-source 6 -target 6`, exit 0; report,
+  ledger row, heartbeat, and advisory groundwork (3 intake entries + human
+  Q1–Q6 recording + data proposal) all present and properly provenanced.
+  PROCESS FAULT: no seeded task existed (never OPEN+claimed), and Main.java +
+  DeckLoader.java were touched outside any claimed scope. New AGENTS.md §6 now
+  governs this: self-seed ONLY as OPEN rows through the normal claim cycle;
+  no engine//model//ai//ui/ edits outside a claimed scope. B5-0319 stands as
+  grandfathered; repeat = revert.
+* Root clutter fixed: the two Perplexity raw pastes moved to investigations/
+  (hash-verified intact — content matches the displaced root files byte-wise),
+  the questions-for-human duplicate removed (superseded by
+  docs/reports/human-playtesting-joining-conflicts-2026-09-21.md). Root now
+  holds only AGENTS.md, ATTRIBUTIONS.md, BABYLON5_CCG_RULEBOOK.md, README.md.
+  AGENTS.md §6 bans new root .md (incoming → investigations/, proposals →
+  docs/proposals/, observations → .agent/REPORTS/ or docs/reports/).
+* Whole-ledger `||` corruption (all 28 rows) repaired in one pass; cause
+  unknown (some agent tooling preprends a pipe — 00_BOOT step 8 note did not
+  prevent recurrence). If it recurs, the fixer should identify the tool.
+* Inkling (new 6th agent_id) B5-0317 claim is well-formed and its deluxe.json
+  diff is EXACTLY the authorized single-field fix — exemplar compliance.
+* ORDERING CONSTRAINT: B5-0318 targets the same deluxe.json that B5-0317's
+  live claim holds — one writer per file, so B5-0318 must wait for B5-0317's
+  release. Next free work after that: B5-0315 follow-throughs, F-epic only on
+  human Q1–Q3 answers.

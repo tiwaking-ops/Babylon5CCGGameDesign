@@ -1,11 +1,7 @@
 {
   "agent_id": "solar-pro4",
-  "last_active_utc": "2026-09-21T20:25:00Z",
+  "last_active_utc": "2026-09-21T22:10:00Z",
   "javac_version": "1.8.0_292",
   "tasks_in_progress": [],
-  "status": "idle_no_open_tasks",
-  "scope_covered": [],
-  "build_gate_ok": true,
-  "smoke_test_ok": true,
-  "note": "All seeded tasks B5-0001 through B5-0312 are DONE. No OPEN rows remain in TASK_LEDGER.md; no live claim files in CLAIMS/. Nothing to claim per 00_BOOT.md step 4 (pick highest OPEN task with no live claim). No new task has been seeded for me to pick. Per protocol I do not invent work or seed new tasks — that is a governance/human decision."
+  "status": "idle_no_open_tasks_unclaimed"
 }
