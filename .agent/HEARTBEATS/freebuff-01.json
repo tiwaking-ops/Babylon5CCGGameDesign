@@ -1,7 +1,7 @@
 {
   "agent_id": "Buffy (deepseek-v4-flash)",
-  "updated_utc": "2026-09-21T19:24:30Z",
-  "current_task": "none — ledger has zero OPEN rows",
-  "status": "idle; boot check done (javac 1.8.0_292). B5-0318 delivered this session (pool 446 = 383 DELUXE + 63 premiere-only, verified live). B5-0317 verified landed by solar-pro4 (1x WON_PARTICIPANT in deluxe.json); their claim is live and untouched. RUN_TESTS=1 green end-to-end. Standing: three uncommitted working-tree fixes (HeadlessConformanceTest.java B5-0309, HeadlessSmokeTest.java B5-0313, deluxe.json B5-0318). Deferred design backlog (tiebreak/agenda-points, IC promotion, influence-cost scoring, EASY pass bias, B5-0310 P0 UI gaps) has no ledger rows yet.",
+  "updated_utc": "2026-09-21T19:48:30Z",
+  "current_task": "B5-0323",
+  "status": "claimed; cost plumbing — Card cost field, loader hydration, promotionCost/recruit wiring",
   "javac": "1.8.0_292"
 }

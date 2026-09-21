@@ -11,17 +11,26 @@ public class GameAction {
         PLAY_AFTERMATH,
         RECRUIT_CHARACTER,
         BUILD_INFLUENCE,
+        PROMOTE_CHARACTER,
         PASS
     }
 
     private final Type   type;
     private final Card   card;
     private final Player target;
+    // B5-0321: the rotating Inner Circle member that performs the action
+    // (promotion needs BOTH the promoted character and the rotating member).
+    private final CharacterCard leader;
 
     public GameAction(Type type, Card card, Player target) {
+        this(type, card, target, null);
+    }
+
+    public GameAction(Type type, Card card, Player target, CharacterCard leader) {
         this.type   = type;
         this.card   = card;
         this.target = target;
+        this.leader = leader;
     }
 
     // ── Factory methods ──────────────────────────────────────────────────────
@@ -33,12 +42,17 @@ public class GameAction {
     public static GameAction joinOppose()                        { return new GameAction(Type.JOIN_CONFLICT_OPPOSE, null, null); }
     public static GameAction recruitCharacter(Card c)            { return new GameAction(Type.RECRUIT_CHARACTER, c, null); }
     public static GameAction buildInfluence(CharacterCard leader){ return new GameAction(Type.BUILD_INFLUENCE, leader, null); }
+    /** B5-0321: promote ch into the Inner Circle, rotating the IC member leader. */
+    public static GameAction promoteCharacter(CharacterCard ch, CharacterCard leader) {
+        return new GameAction(Type.PROMOTE_CHARACTER, ch, null, leader);
+    }
 
     // ── Accessors ────────────────────────────────────────────────────────────
 
     public Type   getType()   { return type; }
     public Card   getCard()   { return card; }
     public Player getTarget() { return target; }
+    public CharacterCard getLeader() { return leader; }
 
     @Override
     public String toString() {
@@ -49,6 +63,9 @@ public class GameAction {
         }
         if (target != null) {
             sb.append(" -> ").append(target.getName());
+        }
+        if (leader != null) {
+            sb.append(" (leader: ").append(leader.getTitle()).append(")");
         }
         return sb.toString();
     }

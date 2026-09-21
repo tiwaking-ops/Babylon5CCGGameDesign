@@ -70,7 +70,7 @@ public class RulesEngine {
      * cost exists; the +IC-member term is live today.
      */
     public int promotionCost(Player p, CharacterCard ch) {
-        int base = 0;
+        int base = ch.getCost();   // B5-0323: the card's influence cost
         if (ch.getFaction() != p.getFaction()
                 && ch.getFaction() != Faction.NEUTRAL
                 && ch.getFaction() != Faction.ANY) {
@@ -116,6 +116,30 @@ public class RulesEngine {
         state.log(p.getName() + " promotes " + ch.getTitle()
                   + " to the Inner Circle (" + leader.getTitle() + " rotates, cost "
                   + promotionCost(p, ch) + "); IC now " + p.getInnerCircle().size());
+    }
+
+    // ── Recruit (sponsor) a supporting character (B5-0323) ────────────────
+
+    /** Cost to recruit (sponsor) supporting character ch from hand
+     *  (rulebook §Sponsor): the character's influence cost, doubled when the
+     *  character is loyal to a different race; neutral characters at no
+     *  additional cost. */
+    public int recruitCost(Player p, CharacterCard ch) {
+        int base = ch.getCost();
+        if (ch.getFaction() != p.getFaction()
+                && ch.getFaction() != Faction.NEUTRAL
+                && ch.getFaction() != Faction.ANY) {
+            base = base * 2;
+        }
+        return base;
+    }
+
+    /** True when p may recruit ch from hand now: the card is in hand and
+     *  the faction can apply its influence cost (rulebook: "apply the
+     *  required influence cost ... or this action may not be performed"). */
+    public boolean canRecruit(Player p, CharacterCard ch) {
+        if (ch == null || !p.getHand().contains(ch)) return false;
+        return p.getInfluence() >= recruitCost(p, ch);
     }
 
     // ── Conflict resolution ──────────────────────────────────────────────────

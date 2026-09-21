@@ -56,6 +56,13 @@ public class GameController {
             if (amb != null) {
                 p.getHand().remove(amb);
                 p.setAmbassador(amb);
+                // B5-0321: the ambassador IS an Inner Circle member
+                // (rulebook: "your ambassador is always considered a member
+                // of your faction's Inner Circle"). Without this seat,
+                // canBuildInfluence and canPromote see an empty Inner Circle
+                // and those actions are never legal — the root cause of
+                // B5-0202 Finding 7's unreachable Build Influence.
+                p.getInnerCircle().add(amb);
             }
             p.drawCards(3);
         }
@@ -147,9 +154,18 @@ public class GameController {
             case RECRUIT_CHARACTER:
                 if (action.getCard() instanceof CharacterCard) {
                     CharacterCard ch = (CharacterCard) action.getCard();
-                    p.removeFromHand(ch);
-                    p.placeInSupportingRole(ch);
-                    state.log(p.getName() + " recruits " + ch.getTitle());
+                    // B5-0323: the faction must apply the card's influence
+                    // cost (rulebook §Sponsor) — free cards (cost 0, the
+                    // current data) behave exactly as before.
+                    if (rules.canRecruit(p, ch)) {
+                        p.spendInfluence(rules.recruitCost(p, ch));
+                        p.removeFromHand(ch);
+                        p.placeInSupportingRole(ch);
+                        state.log(p.getName() + " recruits " + ch.getTitle());
+                    } else {
+                        state.log(p.getName() + " cannot recruit " + ch.getTitle()
+                                  + " — influence cost not affordable.");
+                    }
                 }
                 break;
 

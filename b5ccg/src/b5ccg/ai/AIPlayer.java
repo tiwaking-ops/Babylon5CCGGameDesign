@@ -1,5 +1,6 @@
 package b5ccg.ai;
 
+import b5ccg.engine.RulesEngine;
 import b5ccg.model.*;
 import b5ccg.model.enums.*;
 import java.util.*;
@@ -14,8 +15,16 @@ import java.util.*;
  *  Build Influence (rulebook V): offered as a legal action whenever this
  *  player's Influence Rating is 9 or below and at least one Inner Circle
  *  character is unrotated. Scored as a positive value by MEDIUM/HARD.
+ *
+ *  Promote Character (rulebook VI., B5-0321): offered for every affordable,
+ *  ready supporting character, rotating an unrotated IC member. This is what
+ *  makes Build Influence reachable: recruiting alone never grows the Inner
+ *  Circle, and Build Influence needs IC characters to rotate.
  */
 public class AIPlayer {
+
+    /** Stateless helper for legality/cost checks inside the offer builder. */
+    private final RulesEngine rules = new RulesEngine();
 
     private final Player       player;
     private final AIDifficulty difficulty;
@@ -75,7 +84,9 @@ public class AIPlayer {
                     }
                 }
             } else if (c instanceof CharacterCard) {
-                actions.add(GameAction.recruitCharacter(c));
+                if (rules.canRecruit(p, (CharacterCard) c)) { // B5-0323: affordability
+                    actions.add(GameAction.recruitCharacter(c));
+                }
             } else {
                 actions.add(GameAction.playCard(c));
             }
@@ -93,7 +104,25 @@ public class AIPlayer {
             }
         }
 
+        // ── Promote Character (B5-0321, rulebook VI.) ──────────────────────
+        for (CharacterCard ch : p.getSupportingRole()) {
+            if (rules.canPromote(p, ch)) {
+                CharacterCard leader = unrotatedInnerCircleMember(p);
+                if (leader != null) {
+                    actions.add(GameAction.promoteCharacter(ch, leader));
+                }
+            }
+        }
+
         return actions;
+    }
+
+    /** First unrotated Inner Circle character (the rotating leader), or null. */
+    private CharacterCard unrotatedInnerCircleMember(Player p) {
+        for (CharacterCard ch : p.getInnerCircle()) {
+            if (!ch.isRotated()) return ch;
+        }
+        return null;
     }
 
     // ── EASY ──────────────────────────────────────────────────────────────────
@@ -141,6 +170,11 @@ public class AIPlayer {
                 // Score scales with how far below the cap we still are.
                 int remaining = Math.max(0, 10 - p.getInfluence());
                 return 3 + remaining; // 4..13
+            case PROMOTE_CHARACTER:
+                // B5-0321: builds the Inner Circle (more conflict power + the
+                // deck-out buffer). Better early, when the IC-member cost term
+                // is still small.
+                return Math.max(1, 8 - p.getInnerCircle().size());
             case PASS:
                 return 0;
             default:
@@ -200,6 +234,15 @@ public class AIPlayer {
                 // Positive, capped value — avoids over-tinging the score table.
                 int depr = Math.max(0, 10 - p.getInfluence());
                 return 0.25 * depr; // 0..2.25
+            case PROMOTE_CHARACTER: {
+                // B5-0321: value the new member's best stat, discounted by the
+                // influence spent (raw promotion cost).
+                if (!(a.getCard() instanceof CharacterCard)) return 1.0;
+                CharacterCard ch = (CharacterCard) a.getCard();
+                int maxStat = Math.max(Math.max(ch.getDiplomacy(), ch.getIntrigue()),
+                              Math.max(ch.getPsi(), ch.getLeadership()));
+                return 2.0 + maxStat * 0.5 - rules.promotionCost(p, ch);
+            }
             case PASS:
                 return -0.5;
             default:

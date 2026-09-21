@@ -37,6 +37,10 @@ import java.util.List;
  *     wins (B5-0309 / audit D14; rulebook: Conflicts). Also covers the
  *     damage rule: a loser's ambassador is damaged (face-down) on a
  *     military-resolution loss with a >= 3 gap.
+ * CST Card cost field: cards carry an influence cost (default 0, negatives
+ *     clamp), the loader hydrates the optional "cost" key, and recruit and
+ *     promote costs compose from it with the double-for-other-race rule
+ *     (B5-0323; rulebook: Anatomy of a Card, Sponsor, Promote).
  *
  * Run after compile.bat / compile.sh:
  *   java -cp b5ccg/out b5ccg.engine.HeadlessConformanceTest
@@ -439,6 +443,195 @@ public class HeadlessConformanceTest {
                 c5.isSupporting(opp) && !c5.isOpposing(opp));
     }
 
+    // ── B5-0321: Promote Character to the Inner Circle ────────────────────
+
+    private static void resetPromotionState(Player p) {
+        for (CharacterCard ch : p.getInnerCircle())     ch.unrotate();
+        for (CharacterCard ch : p.getSupportingRole())  ch.unrotate();
+        p.getAmbassador().heal();
+        p.loseInfluence(p.getInfluence() - 5);
+    }
+
+    private static void testPromotion() {
+        System.out.println("PRM (B5-0321): Promote Character to the Inner Circle");
+        RulesEngine rules = new RulesEngine();
+
+        Player p  = player("Prom", Faction.NARN);
+        Player p2 = player("Prom2", Faction.MINBARI);
+        GameState st = state(p, p2);
+        CharacterCard cand = new CharacterCard("cand", "Candidate",
+                "CHARACTER_NARN", Rarity.RARE, Faction.NARN, CardSet.PREMIERE,
+                "x", "text", 2, 2, 0, 3, false);
+
+        // 1: a faction whose Inner Circle has no member to rotate cannot
+        //    promote (the suite helper seats the ambassador in the IC, so
+        //    remove it to simulate an empty Inner Circle).
+        p.getSupportingRole().add(cand);
+        p.gainInfluence(5); // 9
+        p.getInnerCircle().remove(p.getAmbassador());
+        check("PRM", "no IC member to rotate: cannot promote",
+                !rules.canPromote(p, cand) && p.getInnerCircle().isEmpty());
+        p.getInnerCircle().add(p.getAmbassador()); // restore (helper convention)
+
+        // 2: cost = character cost 0 + 1 member (ambassador) = 1.
+        check("PRM", "IC-size cost term is live (0-cost char + 1 member = 1)",
+                rules.promotionCost(p, cand) == 1);
+        check("PRM", "affordable + leader available: can promote",
+                rules.canPromote(p, cand));
+
+        // 3: a rotated candidate is not promotable.
+        cand.rotate();
+        check("PRM", "rotated supporting character cannot be promoted",
+                !rules.canPromote(p, cand));
+        cand.unrotate();
+
+        // 4: a damaged (face-down) candidate is not promotable.
+        cand.setFaceDown(true);
+        check("PRM", "damaged (face-down) supporting character cannot be promoted",
+                !rules.canPromote(p, cand));
+        cand.setFaceDown(false);
+
+        // 5: execute with an invalid leader is a logged no-op.
+        CharacterCard savedAmb = p.getAmbassador();
+        rules.executePromote(p, cand, cand, st);
+        check("PRM", "invalid leader: no-op (candidate still supporting)",
+                p.getSupportingRole().contains(cand) && p.getInnerCircle().size() == 1);
+
+        // 6: legal promotion moves zones and rotates the leader only.
+        rules.executePromote(p, cand, p.getAmbassador(), st);
+        check("PRM", "promotion moves the character into the Inner Circle",
+                !p.getSupportingRole().contains(cand) && p.getInnerCircle().contains(cand));
+        check("PRM", "leader rotated, promoted character ready",
+                p.getAmbassador().isRotated() && !cand.isRotated());
+        check("PRM", "influence paid (9 - 1 = 8)", p.getInfluence() == 8);
+
+        // 7: the IC-member cost term now counts 2 members.
+        check("PRM", "cost recomputes with the new IC size (2 members = 2)",
+                rules.promotionCost(p, cand) == 2);
+
+        // 8: an empty faction cannot afford a positive promotion cost.
+        p2.loseInfluence(p2.getInfluence()); // 0
+        CharacterCard cand2 = new CharacterCard("cand2", "Candidate Two",
+                "CHARACTER_MINBARI", Rarity.RARE, Faction.MINBARI, CardSet.PREMIERE,
+                "x", "text", 1, 1, 0, 1, false);
+        p2.getInnerCircle().add(p2.getAmbassador());
+        p2.getSupportingRole().add(cand2);
+        check("PRM", "influence below the cost: cannot promote",
+                !rules.canPromote(p2, cand2) && rules.promotionCost(p2, cand2) > 0);
+
+        // 9: Build Influence becomes reachable once IC members exist — the
+        //    B5-0202 Finding 7 unblock this task delivers.
+        check("PRM", "Build Influence reachable with an IC member present",
+                rules.canBuildInfluence(p));
+
+        // 10: a damaged candidate contributes 0 to conflicts (D1/D14 echo).
+        cand.setFaceDown(true);
+        check("PRM", "promoted-then-damaged character contributes 0",
+                cand.getPrimaryStatValue(ConflictType.DIPLOMACY) == 0);
+        cand.setFaceDown(false);
+
+        // 11: promotion state fully resets at the round boundary.
+        resetPromotionState(p);
+        check("PRM", "promotion state resets for a fresh round",
+                !p.getAmbassador().isRotated() && !cand.isRotated()
+                && !cand.isFaceDown() && p.getInfluence() == 5);
+
+        // 12: a second promotion pays the larger IC-size term.
+        CharacterCard second = new CharacterCard("second", "Second Candidate",
+                "CHARACTER_NARN", Rarity.RARE, Faction.NARN, CardSet.PREMIERE,
+                "x", "text", 2, 2, 0, 2, false);
+        p.getSupportingRole().add(second);
+        rules.executePromote(p, second, cand, st);
+        check("PRM", "second promotion: leader rotates, IC grows to 3",
+                cand.isRotated() && p.getInnerCircle().size() == 3);
+        check("PRM", "second promotion paid cost 2 (0-cost char + 2 members)",
+                p.getInfluence() == 3);
+    }
+
+    // ── B5-0323: card cost field + recruit/promote cost wiring ──────────
+
+    private static CharacterCard charCard(String id, Faction f, int cost) {
+        CharacterCard c = new CharacterCard(id, id, "CHARACTER_" + f,
+                Rarity.RARE, f, CardSet.PREMIERE, "x", "text", 2, 2, 0, 2, false);
+        c.setCost(cost);
+        return c;
+    }
+
+    private static void testCostField() {
+        System.out.println("CST (B5-0323): card cost field + recruit/promote wiring");
+        RulesEngine rules = new RulesEngine();
+
+        Player p = player("Cost", Faction.NARN);
+        CharacterCard freeChar  = charCard("c_free",  Faction.NARN, 0);
+        CharacterCard cheapChar = charCard("c_cheap", Faction.NARN, 2);
+        CharacterCard otherChar = charCard("c_other", Faction.MINBARI, 3);
+
+        // 1: the default is 0 and negatives clamp (loader contract for the
+        //    current data, which carries no cost key — B5-0311 C1).
+        CharacterCard fresh = new CharacterCard("c_fresh", "Fresh",
+                "CHARACTER_NARN", Rarity.RARE, Faction.NARN, CardSet.PREMIERE,
+                "x", "text", 1, 1, 0, 1, false);
+        check("CST", "a card without an explicit cost defaults to 0",
+                fresh.getCost() == 0);
+        fresh.setCost(-5);
+        check("CST", "negative cost clamps to 0", fresh.getCost() == 0);
+
+        // 2: recruit cost = card cost, doubled for other-race loyalty;
+        //    neutral characters at no additional cost.
+        check("CST", "recruit cost = card cost for own faction",
+                rules.recruitCost(p, cheapChar) == 2);
+        check("CST", "recruit cost doubles for other-race loyal characters",
+                rules.recruitCost(p, otherChar) == 6);
+        check("CST", "neutral characters cost no extra to recruit",
+                rules.recruitCost(p, charCard("c_neut", Faction.NEUTRAL, 3)) == 3);
+
+        // 3: canRecruit requires the card in hand and affordable.
+        p.addToHand(cheapChar);
+        p.addToHand(otherChar);
+        p.loseInfluence(p.getInfluence() - 3);   // influence = 3
+        check("CST", "card not in hand: cannot recruit",
+                !rules.canRecruit(p, freeChar));
+        check("CST", "cannot recruit when cost exceeds influence",
+                !rules.canRecruit(p, otherChar));
+        check("CST", "can recruit an affordable in-hand card",
+                rules.canRecruit(p, cheapChar));
+
+        // 4: live recruit path — exact spend + zone move (mirrors the
+        //    controller branch; the branch itself runs in smoke/probes).
+        int before = p.getInfluence();           // 3
+        p.spendInfluence(rules.recruitCost(p, cheapChar));
+        p.removeFromHand(cheapChar);
+        p.placeInSupportingRole(cheapChar);
+        check("CST", "recruiting spends the card cost and seats the character",
+                p.getInfluence() == before - 2
+                && !p.getHand().contains(cheapChar)
+                && p.getSupportingRole().contains(cheapChar));
+
+        // 5: promotion now costs card cost 2 + 1 IC member = 3 > influence 1.
+        check("CST", "promotion unaffordable when cost + IC exceeds influence",
+                !rules.canPromote(p, cheapChar)
+                && rules.promotionCost(p, cheapChar) == 3);
+
+        // 6: restoring influence makes the same promotion legal — the seam
+        //    this task exists to enable.
+        p.gainInfluence(4);                      // 5
+        check("CST", "promotion affordable once influence covers cost + IC",
+                rules.canPromote(p, cheapChar));
+
+        // 7: the loader hydrates an explicit cost key and defaults when absent.
+        List<Card> parsed = DeckLoader.parseCards(
+                "[{\"id\":\"cst1\",\"title\":\"Costly\",\"type\":\"CHARACTER\","
+                + "\"faction\":\"NARN\",\"diplomacy\":1,\"intrigue\":1,"
+                + "\"psi\":0,\"leadership\":1,\"isAmbassador\":false,\"cost\":4},"
+                + "{\"id\":\"cst2\",\"title\":\"Free\",\"type\":\"CHARACTER\","
+                + "\"faction\":\"NARN\",\"diplomacy\":1,\"intrigue\":1,"
+                + "\"psi\":0,\"leadership\":1,\"isAmbassador\":false}]");
+        check("CST", "loader parses an explicit cost",
+                parsed.size() == 2 && parsed.get(0).getCost() == 4);
+        check("CST", "loader defaults an absent cost to 0",
+                parsed.get(1).getCost() == 0);
+    }
+
     public static void main(String[] args) {
         try {
             System.out.println("=== B5 CCG rulebook-conformance suite (B5-0308) ===");
@@ -452,6 +645,10 @@ public class HeadlessConformanceTest {
             testConflictPerTurn();
 
             testConflictSides();
+
+            testPromotion();
+
+            testCostField();
             System.out.println("Still-open findings (no assertion possible yet):");
             System.out.println("  [info] D2/D4-D7/D9-D11/D15 need effect/target"
                     + " plumbing; partially addressed by B5-0307 (see audit report).");

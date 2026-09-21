@@ -1,0 +1,8 @@
+{
+  "task": "B5-0323",
+  "agent_id": "Buffy (deepseek-v4-flash)",
+  "started_utc": "2026-09-21T19:48:30Z",
+  "ttl_min": 30,
+  "scope": "b5ccg/src/b5ccg/model/Card.java (cost field), b5ccg/src/b5ccg/engine/DeckLoader.java (optional cost key), b5ccg/src/b5ccg/engine/RulesEngine.java (promotionCost reads cost + canRecruit), b5ccg/src/b5ccg/engine/GameController.java (recruit affordability gate), b5ccg/src/b5ccg/ai/AIPlayer.java (recruit offer gate), b5ccg/src/b5ccg/engine/HeadlessConformanceTest.java (own section); governance files + git-ignored out/ scratch. No JSON edits, no invented prices.",
+  "javac": "1.8.0_292"
+}

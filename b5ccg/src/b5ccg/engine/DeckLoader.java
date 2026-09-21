@@ -89,7 +89,17 @@ public class DeckLoader {
         List<Map<String, String>> objects = splitObjects(json);
         for (Map<String, String> obj : objects) {
             try {
-                cards.add(buildCard(obj));
+                Card c = buildCard(obj);
+                // B5-0323: optional "cost" key (rulebook §Anatomy item 2).
+                // Absent → 0, preserving current behavior for the existing
+                // data (which carries no cost field — B5-0311 C1). Negative
+                // or unparseable values clamp to the default 0.
+                String costStr = obj.get("cost");
+                if (costStr != null && costStr.length() > 0) {
+                    try { c.setCost(Integer.parseInt(costStr.trim())); }
+                    catch (NumberFormatException nfe) { /* keep default 0 */ }
+                }
+                cards.add(c);
             } catch (Exception e) {
                 System.err.println("Skipping card, parse error: " + e.getMessage()
                     + " | data=" + obj.get("id"));

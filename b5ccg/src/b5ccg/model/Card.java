@@ -16,6 +16,11 @@ public abstract class Card {
     private boolean faceDown = false;
     private boolean rotated  = false;
 
+    // B5-0323: influence cost to bring this card into play (rulebook
+    // §Anatomy item 2). Defaults to 0 — no card currently carries the
+    // key (B5-0311 C1); backfilling prices is a later data task.
+    private int cost = 0;
+
     protected Card(String id, String title, CardType type, String subtype,
                    Rarity rarity, Faction faction, CardSet cardSet,
                    String imageKey, String text) {
@@ -45,6 +50,10 @@ public abstract class Card {
 
     public void setFaceDown(boolean v) { faceDown = v; }
     public void setRotated(boolean v)  { rotated  = v; }
+
+    /** B5-0323: cost accessors. Negative values clamp to 0. */
+    public int  getCost()      { return cost; }
+    public void setCost(int c) { cost = Math.max(0, c); }
 
     public void rotate()   { rotated  = true; }
     public void unrotate() { rotated  = false; }

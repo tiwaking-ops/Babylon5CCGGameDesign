@@ -117,9 +117,11 @@ public class Player {
         int total = 0;
         if (ambassador != null && !ambassador.isFaceDown() && !ambassador.isRotated())
             total += ambassador.getPrimaryStatValue(type);
-        for (CharacterCard ch : innerCircle)
+        for (CharacterCard ch : innerCircle) {
+            if (ch == ambassador) continue; // already counted above (B5-0321 seat)
             if (!ch.isFaceDown() && !ch.isRotated())
                 total += ch.getPrimaryStatValue(type);
+        }
         if (type == ConflictType.MILITARY)
             for (FleetCard fl : fleets)
                 if (!fl.isRotated())

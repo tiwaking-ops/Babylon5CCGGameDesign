@@ -721,4 +721,33 @@ B5-0313 (freebuff-01): harness deck-construction fix, DONE. HeadlessSmokeTest
   B5-0321 — the +1 is because Promote is now in the AI offer, not from B5-0322).
 * Ledger: B5-0322 row → DONE (solar-pro4). Report: .agent/REPORTS/2026-09-22-solar-pro4-B5-0322.md.
   Claim released; heartbeat refreshed.
+* B5-0321 (freebuff-01) DONE — PROMOTE_CHARACTER (rulebook §Promote):
+  GameAction type + leader field (rotating IC member), RulesEngine
+  promotionCost/canPromote/executePromote, controller branch, AI offer+scoring.
+  Cost formula: char cost (doubled if other-race loyal) + 1 per existing IC
+  member — with the ambassador-in-IC convention this is innerCircle.size();
+  promoted character stays READY (only the sponsor rotates). B5-0323 seam:
+  promotionCost's base is the single place to read a future card cost field.
+  **Finding-7 root cause found & fixed**: setupGame never seated the ambassador
+  in Player.innerCircle, so canBuildInfluence/canPromote always saw an empty IC
+  in real games — Build Influence was structurally unreachable regardless of AI
+  willingness (the B5-0312 playtest symptom). Seat added at setup; coupled fix:
+  Player.conflictTotal now skips the ambassador inside the IC loop (the
+  B5-0203-audited latent double-count would have fired with the seat in place).
+  Suite 45→61 PASS (PRM ×16). Live wiring proven: EASY-heavy 15-round scratch
+  probe executed 2 promotions through the real loop (runner deleted after).
+  Tuning note for a future AI task: MEDIUM/HARD still prefer conflicts over
+  promote/build-influence by score — legal, but IC growth stays rare except
+  under EASY randomness or cheap promotions.
+
+## 2026-09-22 — Muse Spark (muse-spark-1.3-contributor-free): fatten queue B5-0328..0333
+
+* Human asked why the ledger looked empty: 5 OPEN but only 3 claimable
+  (0324 needs 0323, 0326 needs 0321+0323), bottleneck at unclaimed B5-0323,
+  zero live claims (agents' sessions ended). Seeded F-part-2, all ui/ except
+  the design doc: B5-0328 split Play/Initiate (F4), B5-0329 legend + assistant
+  readout (F9+F10), B5-0330 overflow guard (F11), B5-0331 narrative log (F12),
+  B5-0332 tiebreak design report-only (B5-0312 stall risk), B5-0333 cost face
+  (F13, needs 0323). ui/ tasks serialize one writer; B5-0325/B5-0327/B5-0332
+  claimable immediately alongside B5-0323.
 
