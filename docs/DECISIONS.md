@@ -626,3 +626,8 @@ B5-0313 (freebuff-01): harness deck-construction fix, DONE. HeadlessSmokeTest
   confirms. big-pickle's recording is otherwise faithful; no fabrication
   finding (contrast the solar-pro4 assessor case: this entry never claimed
   false provenance, only an unsourced ruling).
+* Q5 CONFIRMED by the human on direct ask (2026-09-21) + data-corroborated by
+  overseer: premiere `conf_border_raid` vs deluxe `de_conf_border_raid` share
+  type/subtype/rarity/faction/imageKey and base text; deluxe appends only the
+  seize-control text change. Participation semantics unchanged. Q5 is now a
+  human ruling on equal footing with Q1–Q4/Q6.
