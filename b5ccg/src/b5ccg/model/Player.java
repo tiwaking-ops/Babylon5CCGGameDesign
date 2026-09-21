@@ -24,6 +24,7 @@ public class Player {
 
     private boolean passed       = false;
     private int     actionsLeft  = 1;
+    private boolean hasForfeited = false;
 
     public Player(String name, Faction faction, boolean isHuman) {
         this.name     = name;
@@ -69,13 +70,36 @@ public class Player {
     public void addToHand(Card c)      { hand.add(c); }
     public void removeFromHand(Card c) { hand.remove(c); }
 
+    /**
+     * Draws n cards. When the draw pile is empty, the rulebook (Draw Round,
+     * Step 3) forbids reshuffling: the player must instead discard one Inner
+     * Circle character, and loses the game if he cannot (the ambassador may
+     * never be discarded). Sets hasForfeited() instead of throwing.
+     */
     public void drawCards(int n) {
         for (int i = 0; i < n; i++) {
-            Card c = deck.draw();
-            if (c == null) { deck.recycleDiscard(); c = deck.draw(); }
+            Card c = (deck == null) ? null : deck.draw();
+            if (c == null) {
+                // Deck-out: discard one non-ambassador Inner Circle character.
+                CharacterCard discardMe = null;
+                for (CharacterCard ch : innerCircle) {
+                    if (ch != ambassador) { discardMe = ch; break; }
+                }
+                if (discardMe != null) {
+                    innerCircle.remove(discardMe);
+                    if (deck != null) deck.discard(discardMe);
+                } else {
+                    hasForfeited = true; // no Inner Circle character left to discard
+                    return;
+                }
+            }
             if (c != null) hand.add(c);
         }
     }
+
+    /** True once this player could not draw and had no Inner Circle
+     *  character left to discard (rulebook Draw Round Step 3: he loses). */
+    public boolean hasForfeited() { return hasForfeited; }
 
     // ── Inner Circle management ──────────────────────────────────────────────
     public void recruitToInnerCircle(CharacterCard ch) {

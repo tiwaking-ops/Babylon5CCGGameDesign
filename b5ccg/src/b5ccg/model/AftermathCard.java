@@ -24,6 +24,7 @@ public class AftermathCard extends Card {
         if (t.contains("MILITARY")  && conflictType != ConflictType.MILITARY)  return false;
         if (t.contains("DIPLOMACY") && conflictType != ConflictType.DIPLOMACY) return false;
         if (t.contains("INTRIGUE")  && conflictType != ConflictType.INTRIGUE)  return false;
+        if (t.contains("PSI")       && conflictType != ConflictType.PSI)       return false;
         return true;
     }
 

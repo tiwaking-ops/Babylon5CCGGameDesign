@@ -10,6 +10,7 @@ public class GameState {
     private       GamePhase    phase              = GamePhase.SETUP;
     private       Conflict     activeConflict;
     private       Player       winner;
+    private final Set<Player> conflictsInitiatedThisTurn = new HashSet<Player>();
 
     private final List<String> log = new ArrayList<String>();
 
@@ -33,7 +34,7 @@ public class GameState {
 
     // ── Round ─────────────────────────────────────────────────────────────────
     public int       getRoundNumber() { return roundNumber; }
-    public void      advanceRound()   { roundNumber++; currentPlayerIndex = 0; }
+    public void      advanceRound()   { roundNumber++; currentPlayerIndex = 0; conflictsInitiatedThisTurn.clear(); }
 
     // ── Phase ─────────────────────────────────────────────────────────────────
     public GamePhase getPhase()          { return phase; }
@@ -43,6 +44,11 @@ public class GameState {
     public Conflict getActiveConflict()              { return activeConflict; }
     public void     setActiveConflict(Conflict c)    { activeConflict = c; }
     public void     clearActiveConflict()            { activeConflict = null; }
+
+    // ── One-conflict-per-turn tracking (B5-0302; rulebook "Conflicts":
+    //    "Each faction may normally initiate only one conflict per turn")
+    public boolean hasInitiatedConflictThisTurn(Player p) { return conflictsInitiatedThisTurn.contains(p); }
+    public void    markConflictInitiated(Player p)        { conflictsInitiatedThisTurn.add(p); }
 
     // ── Victory ───────────────────────────────────────────────────────────────
     public Player  getWinner()            { return winner; }

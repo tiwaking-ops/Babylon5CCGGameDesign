@@ -1,1 +1,12 @@
-{"agent_id": "hermes-solar-pro4", "utc": "2026-09-21T17:45:00Z", "current_task": "B5-0202 DONE; next: B5-0203 (OPEN, claimed by freebuff-01)", "javac": "1.8.0_292"}
+{
+  "agent_id": "hermes-solar-pro4",
+  "last_active_utc": "2026-09-21T17:55:00Z",
+  "javac_version": "1.8.0_292",
+  "tasks_in_progress": [],
+  "status": "heartbeat_ok",
+  "scope_covered": [
+    "b5ccg/src/b5ccg/ai/"
+  ],
+  "build_gate_ok": true,
+  "smoke_test_ok": true
+}

@@ -4,26 +4,29 @@ import b5ccg.model.*;
 import b5ccg.model.enums.*;
 import java.util.*;
 
-/**
- * AI player for three difficulty tiers: EASY, MEDIUM, HARD.
+/** AI player for three difficulty tiers: EASY, MEDIUM, HARD.
  *
- * EASY:   Random legal action.
- * MEDIUM: Greedy — prefers actions that maximise immediate Influence gain.
- * HARD:   Evaluative — scores board state, uses opponent awareness,
- *         targets the leading player, protects against threats.
+ *  EASY:   Random legal action.
+ *  MEDIUM: Greedy — prefers actions that maximise immediate Influence gain.
+ *  HARD:   Evaluative — scores board state, uses opponent awareness,
+ *          targets the leading player, protects against threats.
+ *
+ *  Build Influence (rulebook V): offered as a legal action whenever this
+ *  player's Influence Rating is 9 or below and at least one Inner Circle
+ *  character is unrotated. Scored as a positive value by MEDIUM/HARD.
  */
 public class AIPlayer {
 
-    private final Player      player;
+    private final Player       player;
     private final AIDifficulty difficulty;
-    private final Random      rng = new Random();
+    private final Random       rng = new Random();
 
     public AIPlayer(Player player, AIDifficulty difficulty) {
         this.player     = player;
         this.difficulty = difficulty;
     }
 
-    public Player      getPlayer()    { return player; }
+    public Player       getPlayer()     { return player; }
     public AIDifficulty getDifficulty() { return difficulty; }
 
     // ── Main decision entry point ─────────────────────────────────────────────
@@ -33,7 +36,7 @@ public class AIPlayer {
         if (legal.isEmpty()) return GameAction.pass();
 
         switch (difficulty) {
-            case EASY:   return easyChoose(legal);
+            case EASY:   return easyChoose(legal, p);
             case MEDIUM: return mediumChoose(legal, state, p);
             case HARD:   return hardChoose(legal, state, p);
             default:     return GameAction.pass();
@@ -55,13 +58,16 @@ public class AIPlayer {
         List<GameAction> actions = new ArrayList<GameAction>();
         actions.add(GameAction.pass());
 
+        // Rulebook III.: a player that has passed or is out of actions
+        // leaves the action round; do not offer further actions.
+        if (p.isPassed() || p.getActionsLeft() <= 0) return actions;
+
         for (Card c : p.getHand()) {
             if (!c.getFaction().isPlayableBy(p.getFaction())) continue;
 
             if (c instanceof ConflictCard) {
-                // Rulebook §V: "Each faction may normally initiate only one conflict per turn."
-                // Skip conflict initiation if a conflict is already active this turn.
-                if (state.getActiveConflict() == null) {
+                if (state.getActiveConflict() == null
+                        && !state.hasInitiatedConflictThisTurn(p)) { // B5-0302
                     for (Player target : state.getPlayers()) {
                         if (target != p) {
                             actions.add(GameAction.initiateConflict(c, target));
@@ -74,13 +80,25 @@ public class AIPlayer {
                 actions.add(GameAction.playCard(c));
             }
         }
+
+        // ── Build Influence ────────────────────────────────────────────────
+        // Rulebook V.: "Rotate to Build Influence"
+        //   - Faction Influence Rating must be <= 9 (rulebook VI.: >= 10 cannot).
+        //   - An unrotated Inner Circle character serves as the leader.
+        if (p.getInfluence() <= 9) {
+            for (CharacterCard ch : p.getInnerCircle()) {
+                if (!ch.isRotated()) {
+                    actions.add(GameAction.buildInfluence(ch));
+                }
+            }
+        }
+
         return actions;
     }
 
     // ── EASY ──────────────────────────────────────────────────────────────────
 
-    private GameAction easyChoose(List<GameAction> legal) {
-        // 30% chance to pass even if other actions exist
+    private GameAction easyChoose(List<GameAction> legal, Player p) {
         if (legal.size() > 1 && rng.nextInt(10) < 3) return GameAction.pass();
         return legal.get(rng.nextInt(legal.size()));
     }
@@ -106,19 +124,23 @@ public class AIPlayer {
                     int myTotal = p.conflictTotal(cc.getConflictType());
                     int oppTotal = a.getTarget() != null
                         ? a.getTarget().conflictTotal(cc.getConflictType()) : 0;
-                    // Score = reward * probability-proxy
                     return myTotal > oppTotal
                         ? cc.getInfluenceReward() * 10 + (myTotal - oppTotal)
                         : -5;
                 }
                 return 0;
             case RECRUIT_CHARACTER:
-                return 5; // Recruiting is generally good
+                return 5;
             case PLAY_CARD:
                 if (a.getCard() instanceof AgendaCard) return 8;
                 if (a.getCard() instanceof LocationCard) return 6;
                 if (a.getCard() instanceof GroupCard)    return 4;
                 return 2;
+            case BUILD_INFLUENCE:
+                // Positive value: pushing toward the Influence cap.
+                // Score scales with how far below the cap we still are.
+                int remaining = Math.max(0, 10 - p.getInfluence());
+                return 3 + remaining; // 4..13
             case PASS:
                 return 0;
             default:
@@ -129,7 +151,6 @@ public class AIPlayer {
     private boolean mediumJoin(GameState state, Player p, Conflict conflict) {
         int myTotal  = p.conflictTotal(conflict.getConflictType());
         int oppTotal = conflict.getInitiator().conflictTotal(conflict.getConflictType());
-        // Join to support if we'd benefit, oppose if initiator has lead
         return myTotal >= oppTotal / 2;
     }
 
@@ -157,16 +178,13 @@ public class AIPlayer {
                 int oppTotal     = opp != null ? opp.conflictTotal(cc.getConflictType()) : 0;
                 double winProb   = myTotal + 1.0 / (myTotal + oppTotal + 2.0);
                 double base      = winProb * cc.getInfluenceReward();
-                // Bonus for targeting the leader
                 double leaderBonus = (opp == leader) ? 3.0 : 0;
-                // Penalty if likely to lose
                 double lossPenalty = myTotal < oppTotal ? -3.0 : 0;
                 return base + leaderBonus + lossPenalty;
             }
             case RECRUIT_CHARACTER: {
                 if (!(a.getCard() instanceof CharacterCard)) return 3;
                 CharacterCard ch = (CharacterCard) a.getCard();
-                // Score by best stat for our conflict strategy
                 int maxStat = Math.max(Math.max(ch.getDiplomacy(), ch.getIntrigue()),
                               Math.max(ch.getPsi(), ch.getLeadership()));
                 return 4 + maxStat * 0.5;
@@ -178,8 +196,11 @@ public class AIPlayer {
                 if (a.getCard() instanceof EnhancementCard) return 4;
                 if (a.getCard() instanceof EventCard)      return 3;
                 return 2;
+            case BUILD_INFLUENCE:
+                // Positive, capped value — avoids over-tinging the score table.
+                int depr = Math.max(0, 10 - p.getInfluence());
+                return 0.25 * depr; // 0..2.25
             case PASS:
-                // Slight negative: passing concedes initiative
                 return -0.5;
             default:
                 return 1;
@@ -191,7 +212,6 @@ public class AIPlayer {
         int initInfluence = initiator.getInfluence();
         int myInfluence   = p.getInfluence();
 
-        // Always oppose the leader if we can
         Player leader = leadingPlayer(state, p);
         if (initiator == leader) {
             int myTotal  = p.conflictTotal(conflict.getConflictType());
@@ -199,13 +219,11 @@ public class AIPlayer {
             return myTotal >= oppTotal * 0.75;
         }
 
-        // Support initiator if they're far behind and we might benefit
         if (initInfluence < myInfluence - 4) return rng.nextBoolean();
 
         return false;
     }
 
-    /** Returns the player with the most influence (excluding self). */
     private Player leadingPlayer(GameState state, Player self) {
         Player leader = self;
         int bestInf = -1;
@@ -216,16 +234,4 @@ public class AIPlayer {
         }
         return leader;
     }
-
-    // ── Pseudocode summary (comment) ─────────────────────────────────────────
-    /*
-     * HARD AI decision tree:
-     * 1. Identify the leading opponent.
-     * 2. Score every legal action using scoreActionHard().
-     * 3. Conflict score = winProbability × reward + leaderBonus - lossPenalty.
-     * 4. Permanent card plays (Agenda, Location, Group) score 5–9.
-     * 5. Recruiting values characters by their peak stat.
-     * 6. Passing scores slightly negative to discourage early passes.
-     * 7. Choose the highest-scoring action.
-     */
 }

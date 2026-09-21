@@ -5,10 +5,12 @@ import b5ccg.model.*;
 import b5ccg.model.enums.*;
 import java.util.*;
 
-
-/**
- * Central game loop. Runs off the Swing EDT via a background thread.
- * Notifies the UI through a GameStateCallback callback after each state change.
+/** Central game loop. Runs off the Swing EDT via a background thread.
+ *  Notifies the UI through a GameStateCallback callback after each state change.
+ *
+ *  Build Influence handling added per B5-0301 — the ACTION branch now treats a
+ *  BUILD_INFLUENCE action by calling RulesEngine.canBuildInfluence() and
+ *  RulesEngine.executeBuildInfluence().
  */
 public class GameController {
 
@@ -50,13 +52,11 @@ public class GameController {
     private void setupGame() {
         state.setPhase(GamePhase.SETUP);
         for (Player p : state.getPlayers()) {
-            // Place ambassador
             CharacterCard amb = findAmbassador(p);
             if (amb != null) {
                 p.getHand().remove(amb);
                 p.setAmbassador(amb);
             }
-            // Starting hand: draw 3 more
             p.drawCards(3);
         }
         state.log("Game setup complete.");
@@ -85,7 +85,7 @@ public class GameController {
             } else {
                 AIPlayer ai = getAI(current);
                 action = ai.chooseAction(state, current);
-                pause(600); // Brief delay so the human can see AI thinking
+                pause(600);
             }
 
             processAction(current, action);
@@ -95,10 +95,9 @@ public class GameController {
                 current.setPassed(true);
                 passCount++;
             } else {
-                passCount = 0; // Reset: someone acted
+                passCount = 0;
             }
 
-            // Check victory after every action
             Player winner = rules.checkVictory(state);
             if (winner != null) {
                 state.setWinner(winner);
@@ -120,11 +119,18 @@ public class GameController {
             case INITIATE_CONFLICT:
                 if (action.getCard() instanceof ConflictCard) {
                     ConflictCard cc = (ConflictCard) action.getCard();
+                    // B5-0302: engine-side enforcement of one-conflict-per-turn
+                    // (rulebook "Conflicts"). Rejected card stays in hand.
+                    if (!rules.canInitiateConflict(p, cc, state)) {
+                        state.log(p.getName() + " cannot initiate " + cc.getTitle()
+                                  + " — one conflict per turn.");
+                        break;
+                    }
                     p.removeFromHand(cc);
+                    state.markConflictInitiated(p);
                     Conflict conflict = new Conflict(cc, p);
-                    // Auto-commit ambassador
                     if (p.getAmbassador() != null && !p.getAmbassador().isFaceDown()) {
-                        conflict.commitCard(p, p.getAmbassador());
+                        conflict.commitCard(p, p.getAmbassador(), true);   // B5-0309: initiator supports
                     }
                     state.setActiveConflict(conflict);
                     state.setPhase(GamePhase.CONFLICT_RESOLUTION);
@@ -147,6 +153,13 @@ public class GameController {
                 }
                 break;
 
+            case BUILD_INFLUENCE:
+                if (action.getCard() instanceof CharacterCard) {
+                    CharacterCard leader = (CharacterCard) action.getCard();
+                    rules.executeBuildInfluence(p, leader, state);
+                }
+                break;
+
             default:
                 break;
         }
@@ -158,29 +171,50 @@ public class GameController {
         Conflict conflict = state.getActiveConflict();
         if (conflict == null) return;
 
-        // AI players decide whether to join
         for (Player p : state.getPlayers()) {
             if (p == conflict.getInitiator()) continue;
-            if (p.isHuman()) continue; // human joins via UI
+            if (p.isHuman()) continue;
             AIPlayer ai = getAI(p);
             if (ai.shouldJoinConflict(state, p, conflict)) {
-                conflict.addParticipant(p);
-                if (p.getAmbassador() != null) conflict.commitCard(p, p.getAmbassador());
+                conflict.addParticipant(p, false);                      // B5-0309: joiners oppose
+                if (p.getAmbassador() != null) {
+                    conflict.commitCard(p, p.getAmbassador(), false);   // B5-0309
+                }
             }
         }
 
         Player winner = rules.resolveConflict(conflict, state);
+
+        Player primaryLoser = null;
+        if (conflict.getInitiator() != winner) {
+            primaryLoser = conflict.getInitiator();
+        } else {
+            for (Player q : conflict.getParticipants()) {
+                if (q != winner) { primaryLoser = q; break; }
+            }
+        }
+        if (primaryLoser != null) {
+            CardEffects.applyConflictOutcome(state, conflict, winner, primaryLoser);
+        }
+        if (conflict.getConflictType() == ConflictType.DIPLOMACY) {
+            int agendaBonus = CardEffects.agendaDiplomacyWinBonus(winner);
+            if (agendaBonus > 0) {
+                winner.gainInfluence(agendaBonus);
+                state.log(winner.getName() + " gains " + agendaBonus
+                        + " influence from agenda (Diplomacy win).");
+            }
+        }
+
         state.setPhase(GamePhase.AFTERMATH);
         notifyUI();
 
-        // Simple aftermath: AI plays one eligible aftermath card
         for (Player p : state.getPlayers()) {
             if (p.isHuman()) continue;
-            boolean won = (winner == p);
+            boolean initiatorWon = rules.initiatorWon(conflict, winner);
             for (Card c : new ArrayList<Card>(p.getHand())) {
                 if (c instanceof AftermathCard) {
                     AftermathCard am = (AftermathCard) c;
-                    if (rules.canPlayAftermath(p, am, conflict, won)) {
+                    if (rules.canPlayAftermath(p, am, conflict, initiatorWon)) {
                         p.removeFromHand(am);
                         p.getDeck().discard(am);
                         state.log(p.getName() + " plays aftermath: " + am.getTitle());
@@ -197,23 +231,23 @@ public class GameController {
     private void applyGenericCardPlay(Player p, Card card) {
         if (card == null) return;
         p.removeFromHand(card);
+        state.log(p.getName() + " plays " + card.getTitle());
 
         if (card instanceof EnhancementCard) {
-            p.getEnhancements().add((EnhancementCard) card);
+            CardEffects.applyPlayEnhancement(state, p, (EnhancementCard) card);
         } else if (card instanceof LocationCard) {
             p.getLocations().add((LocationCard) card);
         } else if (card instanceof GroupCard) {
             p.getGroups().add((GroupCard) card);
         } else if (card instanceof AgendaCard) {
             p.setAgenda((AgendaCard) card);
+            CardEffects.applyAgendaOnPlay(state, p, (AgendaCard) card);
         } else if (card instanceof EventCard) {
-            // Apply simple event effect: draw a card
-            p.drawCards(1);
+            CardEffects.applyPlayEvent(state, p, card);
             p.getDeck().discard(card);
         } else {
             p.getDeck().discard(card);
         }
-        state.log(p.getName() + " plays " + card.getTitle());
     }
 
     private void applySimpleAftermathEffect(Player player, AftermathCard am,

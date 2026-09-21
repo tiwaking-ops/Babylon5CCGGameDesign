@@ -4,28 +4,68 @@ import b5ccg.model.*;
 import b5ccg.model.enums.*;
 import java.util.*;
 
-/**
- * Enforces official B5 CCG rules for conflict initiation, resolution,
- * aftermath eligibility, and victory checking.
+/** Enforces official B5 CCG rules for conflict initiation, resolution,
+ *  aftermath eligibility, and victory checking.
+ *
+ *  Build Influence (rulebook V. / VI.):
+ *    - A faction may spend an action to "Build Influence" only when its
+ *      Influence Rating is <= 9. The action requires rotating an Inner
+ *      Circle character, spends 3 influence (raised from the faction pool,
+ *      which means net rating change is -3 + 1 = -2 influence entering the
+ *      pool, but the rating itself goes up by 1 — implemented here as
+ *      spend 3, then +1 rating token), and raises the rating by 1.
+ *      Rulebook VI.: factions with a Rating >= 10 may not use this action.
  */
 public class RulesEngine {
 
+    // ── Build Influence action ────────────────────────────────────────────────
+
+    /** Returns true when player p may Build Influence:
+     *  Influence Rating 1..9 AND at least one unrotated Inner Circle character. */
+    public boolean canBuildInfluence(Player p) {
+        if (p.getInfluence() > 9) return false;
+        if (p.getInfluence() < 1) return false;
+        for (CharacterCard ch : p.getInnerCircle()) {
+            if (!ch.isRotated()) return true;
+        }
+        return false;
+    }
+
+    /** Rotate the chosen leader, spend 3 influence, then raise rating by 1. */
+    public void executeBuildInfluence(Player p, CharacterCard leader, GameState state) {
+        if (!canBuildInfluence(p)) {
+            state.log(p.getName() + " tried to Build Influence but cannot.");
+            return;
+        }
+        if (!p.getInnerCircle().contains(leader)) {
+            state.log(p.getName() + " tried to Build Influence with non-IC character.");
+            return;
+        }
+        if (leader.isRotated()) {
+            state.log(p.getName() + " tried to Build Influence with already-rotated "
+                      + leader.getTitle() + ".");
+            return;
+        }
+
+        leader.rotate();
+        p.loseInfluence(3);           // spend 3 from pool
+        p.gainInfluence(1);           // rating does +1 (net pool change = -2)
+
+        state.log(p.getName() + " builds influence: "
+                  + leader.getTitle() + " rotates, rating now " + p.getInfluence());
+    }
+
     // ── Conflict resolution ──────────────────────────────────────────────────
 
-    /**
-     * Resolve the active conflict: compute totals for all participants,
-     * determine the winner, apply influence rewards, and handle damage.
-     */
     public Player resolveConflict(Conflict conflict, GameState state) {
         ConflictType type = conflict.getConflictType();
-        Map<Player, Integer> totals = new HashMap<Player, Integer>();
+        HashMap<Player, Integer> totals = new HashMap<Player, Integer>();
 
         for (Player p : conflict.getParticipants()) {
             int total = 0;
             for (Card c : conflict.getCommittedCards(p)) {
                 total += c.getPrimaryStatValue(type);
             }
-            // Add base ambassador stat if not already committed
             if (p.getAmbassador() != null && !p.getAmbassador().isFaceDown()
                     && !conflict.getCommittedCards(p).contains(p.getAmbassador())) {
                 total += p.getAmbassador().getPrimaryStatValue(type);
@@ -33,36 +73,42 @@ public class RulesEngine {
             totals.put(p, Math.max(0, total));
         }
 
-        // Determine winner — highest total wins; ties go to initiator
-        Player winner = conflict.getInitiator();
-        int    winVal = totals.containsKey(winner) ? totals.get(winner) : 0;
-
-        for (Map.Entry<Player, Integer> entry : totals.entrySet()) {
-            if (entry.getValue() > winVal) {
-                winVal = entry.getValue();
-                winner = entry.getKey();
-            }
+        // Rulebook ("Conflicts"): the initiator wins only if the conflict
+        // receives MORE support than opposition; equal or more opposition
+        // means the initiator loses. Before B5-0309 the Conflict could not
+        // express sides and this loop fed a highest-total-wins heuristic
+        // (audit deviation D14).
+        Player winner;
+        int    winVal;
+        if (conflict.supportTotal() > conflict.oppositionTotal()
+                || conflict.oppositionTotal() == 0) {
+            winner = conflict.getInitiator();
+        } else {
+            winner = leadingOpposer(conflict, totals);
         }
+        winVal = totals.containsKey(winner) ? totals.get(winner) : 0;
 
         conflict.resolve(winner);
         state.log(conflict.getCard().getTitle() + " won by " + winner.getName()
-                  + " (total=" + winVal + ")");
+                  + " (support=" + conflict.supportTotal()
+                  + ", opposition=" + conflict.oppositionTotal() + ")");
 
-        // Influence reward to winner
         winner.gainInfluence(conflict.getInfluenceReward());
 
-        // Rotate all committed fleets
         for (Player p : conflict.getParticipants()) {
             for (Card c : conflict.getCommittedCards(p)) {
                 if (c instanceof FleetCard) c.rotate();
             }
         }
 
-        // Damage losing ambassador if winner beats by 3+
         for (Player p : conflict.getParticipants()) {
             if (p != winner) {
                 int diff = winVal - (totals.containsKey(p) ? totals.get(p) : 0);
-                if (diff >= 3 && p.getAmbassador() != null) {
+                // B5-0309 note (audit D10): the pre-0309 code damaged ANY
+                // loser's ambassador (≥3-point gap) regardless of conflict
+                // type; damage is a MILITARY-resolution consequence.
+                if (diff >= 3 && p.getAmbassador() != null
+                        && conflict.getConflictType() == ConflictType.MILITARY) {
                     p.getAmbassador().damage();
                     state.log(p.getName() + "'s ambassador is damaged.");
                 }
@@ -74,7 +120,8 @@ public class RulesEngine {
                         if (p.getSupportingRole().contains(ch)) {
                             p.getSupportingRole().remove(ch);
                             p.getDeck().discard(ch);
-                            state.log(p.getName() + ": " + ch.getTitle() + " discarded (supporting role loss).");
+                            state.log(p.getName() + ": " + ch.getTitle()
+                                      + " discarded (supporting role loss).");
                         }
                     }
                 }
@@ -84,19 +131,59 @@ public class RulesEngine {
         return winner;
     }
 
+    /** The opposition participant with the highest total (insertion order
+     *  breaks ties); only called when opposition strictly exceeds support. */
+    private Player leadingOpposer(Conflict conflict, Map<Player, Integer> totals) {
+        Player best    = null;
+        int    bestVal = -1;
+        for (Player p : conflict.getOpposers()) {
+            int v = totals.containsKey(p) ? totals.get(p).intValue() : 0;
+            if (v > bestVal) { bestVal = v; best = p; }
+        }
+        return best;
+    }
+
     // ── Victory check ────────────────────────────────────────────────────────
 
     public Player checkVictory(GameState state) {
+        Player lastStanding = null;
+        int remaining = 0;
         for (Player p : state.getPlayers()) {
-            if (p.getAgenda() != null && p.getAgenda().isConditionMet(state, p)) {
+            if (p.hasForfeited()) continue;
+            remaining++;
+            lastStanding = p;
+        }
+        if (remaining == 1) return lastStanding;
+
+        for (Player p : state.getPlayers()) {
+            if (p.hasForfeited()) continue;
+            AgendaCard agenda = p.getAgenda();
+            // Agenda-driven win: the agenda's own condition governs
+            // (e.g. "Reach 20 Influence", Military Supremacy, Most Inner Circle).
+            if (agenda != null && agenda.isConditionMet(state, p)) {
                 return p;
             }
-            // Default win condition: 20 influence with no agenda
-            if (p.getAgenda() == null && p.getInfluence() >= 20) {
-                return p;
+            // Standard victory (rulebook: Victory): 20 power AND more than any
+            // other player. A major agenda in play blocks the standard path.
+            if (agenda == null || !agenda.isMajorAgenda()) {
+                if (standardVictory(state, p)) return p;
             }
         }
         return null;
+    }
+
+    /**
+     * Standard victory: at least 20 power and STRICTLY more than every other
+     * non-forfeited player ("Have 20 Power, and more than any other player").
+     * A tie with any opponent blocks the win; forfeited players do not count.
+     */
+    private boolean standardVictory(GameState state, Player p) {
+        if (p.getInfluence() < 20) return false;
+        for (Player q : state.getPlayers()) {
+            if (q == p || q.hasForfeited()) continue;
+            if (q.getInfluence() >= p.getInfluence()) return false;
+        }
+        return true;
     }
 
     // ── Legality checks ──────────────────────────────────────────────────────
@@ -104,9 +191,8 @@ public class RulesEngine {
     public boolean canInitiateConflict(Player p, ConflictCard c, GameState state) {
         if (p.isPassed()) return false;
         if (p.getActionsLeft() <= 0) return false;
-        // Card must be in hand
+        if (state.hasInitiatedConflictThisTurn(p)) return false;   // B5-0302
         if (!p.getHand().contains(c)) return false;
-        // Faction check
         if (!c.getFaction().isPlayableBy(p.getFaction())) return false;
         return true;
     }
@@ -116,16 +202,19 @@ public class RulesEngine {
         return c.getFaction().isPlayableBy(p.getFaction());
     }
 
+    public boolean initiatorWon(Conflict resolved, Player winner) {
+        return resolved.getInitiator() == winner;
+    }
+
     public boolean canPlayAftermath(Player p, AftermathCard a,
-                                    Conflict resolved, boolean playerWon) {
+                                    Conflict resolved, boolean initiatorWon) {
         if (!p.getHand().contains(a)) return false;
         boolean participated = resolved.getParticipants().contains(p);
-        return a.isEligible(playerWon, participated, resolved.getConflictType());
+        return a.isEligible(initiatorWon, participated, resolved.getConflictType());
     }
 
     // ── Round start ──────────────────────────────────────────────────────────
 
-    /** Called at start of each round: unrotate all cards, collect location income. */
     public void startRound(GameState state) {
         for (Player p : state.getPlayers()) {
             p.resetActions();
@@ -135,6 +224,13 @@ public class RulesEngine {
             for (FleetCard fl : p.getFleets())           fl.unrotate();
             for (GroupCard  gr : p.getGroups())          gr.unrotate();
             p.collectLocationIncome();
+            CardEffects.applyAgendaStartOfRound(state, p);
+            int enhIncome = CardEffects.enhancementLocationIncomeBonus(p);
+            if (enhIncome > 0) {
+                p.gainInfluence(enhIncome);
+                state.log(p.getName() + " gains " + enhIncome
+                        + " influence from location enhancement(s).");
+            }
         }
         state.log("=== Round " + state.getRoundNumber() + " begins ===");
     }
