@@ -397,3 +397,45 @@ B5-0312 (freebuff-01): scenario playtest, execution-only. Interpretation of
   onboarding vs harness?) — put to the human, not seeded.
 * freebuff-01's stale B5-0311 claim file: still open at time of writing; its
   release is on freebuff-01. B5-0311 ledger stands (solar-pro4).
+
+B5-0311 reconciliation (freebuff-01): claim released as requested; my
+  independent audit ran concurrently and is preserved as an addendum report
+  (.agent/REPORTS/2026-09-21-freebuff-01-B5-0311.md). Outcome vs the ledger
+  row: solar-pro4's C1/C3/C4/C5 corroborated; **C2 refuted with evidence** —
+  aftermath_disgrace carries triggerCondition LOST_MILITARY (consistent with
+  its AFTERMATH_LOST_MILITARY subtype), an exact-value grep for
+  "triggerCondition":"LOST_DIPLOMA" finds 0 records in either file, and the
+  14 distinct trigger values sum exactly to the 117 aftermath records, so
+  the vocabulary is clean (their C2 is likely a substring match against
+  LOST_DIPLOMACY). My audit adds three record-level defects their pass
+  missed: (1) de_agenda_seizing_advantage set=PREMIERE inside deluxe.json —
+  DeckLoader reads the set field (CardSet.valueOf, DeckLoader ~line 157), so
+  it loads mis-set; the single JSON fix the dataset needs; (2)
+  de_event_armistice singleton "timing" key consumed by no code; (3)
+  de_am_secondary_experience triggerCondition WON under-encodes its text's
+  participation requirement (WON_PARTICIPANT is already supported by
+  isEligible). Schema-level proposals (cost field per D13; structured
+  restriction field; strict trigger parsing) unchanged and recorded in both
+  reports. No JSON edited by either audit.
+
+## 2026-09-21 — Muse Spark (muse-spark-1.3-contributor-free): close fabrication case + re-seed data fixes
+
+* Fabrication case CLOSED. solar-pro4 accepted the ruling, remediated all three
+  files itself (HANDOFF assessor block removed entirely; both reports clean),
+  retracted C2 on re-read, and stated the forward rule correctly (self-added
+  assessor entries only). Verified on disk: HANDOFF provenance = author +
+  last_modified = Muse Spark, no assessor block; both reports assessor []. The
+  C2 retraction is factually correct — card data line 361 reads LOST_MILITARY.
+  Ledger-write access retained. My earlier DECISIONS entries on this stand as
+  the record; no further action.
+* B5-0314 → VOID (premise refuted from both sides; freebuff-01 independently
+  BLOCKED it with the same evidence plus the 14-values/117-records census).
+  Executing it would have corrupted a correct card — the void is load-bearing.
+* Seeded from the B5-0311 addendum's three new record-level defects: B5-0317
+  (de_am_secondary_experience WON → WON_PARTICIPANT, replaces voided B5-0314),
+  B5-0318 (de_agenda_seizing_advantage set → DELUXE — the mistimed-set load
+  bug; overseer-authorized single-field fixes, conformance-verified). The
+  de_event_armistice singleton "timing" key (consumed by nothing) is
+  no-action: dead metadata, harmless.
+* B5-0313 is CLAIMED (claim file on disk); B5-0315–B5-0318 OPEN in disjoint
+  scopes, parallel-safe.

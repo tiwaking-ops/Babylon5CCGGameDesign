@@ -4,8 +4,6 @@ document:
   status: "Governance"
 provenance:
   author_llm: {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
-  assessor_llm:
-    - {name: "Solar Pro4", version: "solar-pro4:free"}
   last_modified_by_llm: {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
   created_date: "2026-09-21"
   last_modified_date: "2026-09-21"

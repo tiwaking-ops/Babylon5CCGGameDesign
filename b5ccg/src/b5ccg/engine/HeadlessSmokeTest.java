@@ -2,11 +2,13 @@ package b5ccg.engine;
 
 import b5ccg.ai.AIPlayer;
 import b5ccg.model.Card;
+import b5ccg.model.CharacterCard;
 import b5ccg.model.Deck;
 import b5ccg.model.GameAction;
 import b5ccg.model.GameState;
 import b5ccg.model.Player;
 import b5ccg.model.enums.AIDifficulty;
+import b5ccg.model.enums.CardType;
 import b5ccg.model.enums.Faction;
 
 import java.util.ArrayList;
@@ -82,6 +84,13 @@ public class HeadlessSmokeTest {
                 return fail("no cards available for faction " + FACTIONS[i]);
             }
             p.setDeck(new Deck(deckCards));
+            // B5-0313: guarantee the faction ambassador is in the opening
+            // hand — GameController.setupGame() extracts it from the hand
+            // only, and without it every conflict resolves 0 vs 0 (B5-0312
+            // playtest finding). Deck shuffles in its constructor, so pin
+            // the ambassador to the draw pile's top AFTER construction.
+            CharacterCard amb = findAmbassadorCard(deckCards, FACTIONS[i]);
+            if (amb != null) p.getDeck().addToTop(amb);
             p.drawCards(4);
             if (p.getHand().isEmpty()) {
                 return fail("player " + NAMES[i] + " drew an empty opening hand");
@@ -216,13 +225,34 @@ public class HeadlessSmokeTest {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /** Faction cards first, then neutral/ANY fillers, capped at 60 cards. */
+    /** Faction cards first, then quota guarantees, then neutral/ANY fillers,
+     *  capped at 60 cards.
+     *
+     *  B5-0313: the previous file-order filler cut excluded every conflict
+     *  card (all 108 are faction ANY and sit at filler position #42+), so
+     *  the smoke scenario could never produce a conflict (B5-0312 headline
+     *  finding). Quota passes guarantee conflicts and agendas enter each
+     *  AI deck, so the run exercises the conflict pipeline. Harness-only:
+     *  game-logic files are untouched. */
     private static List<Card> buildFactionDeck(List<Card> all, Faction faction) {
         List<Card> deck = new ArrayList<Card>();
+        // 1. Own-faction cards (in file order).
         for (int i = 0; i < all.size() && deck.size() < 60; i++) {
             Card c = all.get(i);
             if (c.getFaction() == faction) deck.add(c);
         }
+        // 2. Quota guarantees: 12 conflicts + 2 agendas per deck.
+        int conflicts = 0;
+        for (int i = 0; i < all.size() && conflicts < 12; i++) {
+            Card c = all.get(i);
+            if (c.getType() == CardType.CONFLICT) { deck.add(c); conflicts++; }
+        }
+        int agendas = 0;
+        for (int i = 0; i < all.size() && agendas < 2; i++) {
+            Card c = all.get(i);
+            if (c.getType() == CardType.AGENDA) { deck.add(c); agendas++; }
+        }
+        // 3. Neutral/ANY fillers, in file order, capped at 60.
         for (int i = 0; i < all.size() && deck.size() < 60; i++) {
             Card c = all.get(i);
             Faction f = c.getFaction();
@@ -231,6 +261,19 @@ public class HeadlessSmokeTest {
             }
         }
         return deck;
+    }
+
+    /** The faction's ambassador card inside a deck list (harness mirror of
+     *  GameController.findAmbassador's rule), or null. */
+    private static CharacterCard findAmbassadorCard(List<Card> deckCards, Faction faction) {
+        for (int i = 0; i < deckCards.size(); i++) {
+            Card c = deckCards.get(i);
+            if (c instanceof CharacterCard) {
+                CharacterCard ch = (CharacterCard) c;
+                if (ch.isAmbassador() && ch.getFaction() == faction) return ch;
+            }
+        }
+        return null;
     }
 
     /** GameState.log() prefixes entries with "[R<round>] "; strip it to find the actor. */
