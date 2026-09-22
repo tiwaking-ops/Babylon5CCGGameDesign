@@ -1,8 +1,0 @@
-{
-  "task": "B5-0333",
-  "agent_id": "solar-pro4",
-  "started_utc": "2026-09-21T20:51:00Z",
-  "ttl_min": 30,
-  "scope": "b5ccg/src/b5ccg/ui/ only: HandPanel — render influence cost on card face in drawCard(); needs B5-0323 Card.getCost() plumbing (already in tree)",
-  "javac": "1.8.0_292"
-}

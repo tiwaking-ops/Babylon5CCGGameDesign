@@ -67,7 +67,7 @@ One writer per task. Claim via `.agent/CLAIMS/<task-id>.json` before editing
 | B5-0330 | DONE | Zone overflow guard (F11): "(+ N more)" overflow indicator for Inner Circle/fleet/group/location rows that exceed render space; ui/ only | `b5ccg/src/b5ccg/ui/` | solar-pro4 | 2026-09-21: overflow counters + yellow "(+ N more)" indicators in all three card zones (Inner Circle, Fleets, Groups/Locations) in GameBoardPanel.drawZone(); 81/81 PASS, smoke PASS, Java 6 gate clean. |
 | B5-0331 | DONE | Narrative log framing (F12): timestamps + round/phase grouping in the MainWindow log; ui/ only, log content unchanged | `b5ccg/src/b5ccg/ui/` | solar-pro4 | 2026-09-21: round headers (═ banner) + phase sub-headers (──) inserted into log display based on "Round N:" / "Phase X:" prefixes; log content unchanged; 81/81 PASS, smoke PASS, Java 6 gate clean. |
 | B5-0332 | DONE | Tiebreak/agenda-point design (B5-0312 stall risk): report-only proposal for breaking 20–20 ties and agenda victory points; NO engine edits, proposal file only | design doc, no code edits | Buffy (deepseek-v4-flash) | 2026-09-22: docs/proposals/tiebreak-agenda-victory-design-proposal.md — root cause confirmed rulebook-faithful (strict-greatest Standard Victory, §Victory cond. 1; stall reachable only with no satisfied agenda win). Three options: (A) rulebook Babylon 5 leader rule — station entity does not exist in code today; (B) agenda-points power layer (house rule, needs data backfill); (C) harness reporting tiebreak. Recommendation C→A→B. Data facts: implemented agenda winCondition keys fully cover the pool vocabulary (INFLUENCE_20 ×39, MILITARY_SUPREMACY ×4, MOST_INNER_CIRCLE ×4). Zero code/data edits. |
-| B5-0333 | OPEN | Cost on card face (F13): render influence cost in HandPanel.drawCard; needs B5-0323 plumbing landed; ui/ only | `b5ccg/src/b5ccg/ui/` | none | — |
+|| B5-0333 | DONE | Cost on card face (F13): render influence cost in HandPanel.drawCard; needs B5-0323 plumbing landed; ui/ only | `b5ccg/src/b5ccg/ui/` | solar-pro4 | 2026-09-21: "Cost: N INF" label in drawCard() between faction and stats lines, gold color, only when cost > 0; depends on B5-0323 Card.getCost() plumbing (in tree); 81/81 PASS, smoke PASS, Java 6 gate clean. |
 
 Rules: take the highest `OPEN` row with no live claim file. B5-0001–B5-0320 are
 DONE and the `-source 6` gate is green — build on it, do not regress it.
@@ -79,6 +79,11 @@ B5-0326 needs 0321+0323, B5-0327 free whenever ui/ is unclaimed. F-part-2
 B5-0332 (design doc) and B5-0333 (needs 0323) noted. B5-0325/B5-0327/B5-0332
 are claimable immediately alongside B5-0323.
 
+| B5-0330a | OPEN | Defect fix on B5-0330 (self-seeded per AGENTS.md §6): the committed "(+ N more)" overflow note draws at cy+58 INSIDE the 64px mini-card band and collides with the first card's stats whenever a row overflows; move it below the row via a shared overflowNote helper + geometry probe; GameBoardPanel.java only | `b5ccg/src/b5ccg/ui/` | none | — |
+
 (2026-09-22, Buffy: my B5-0328 claim file was deleted by another party while
 task close-out was in progress — noted here per protocol; governance was
-complete at that point. B5-0328's row records the full two-agent history.)
+complete at that point. B5-0328's row records the full two-agent history.
+My B5-0330 CLAIMED row was also overwritten when its author closed B5-0330
+while my reaping-note was in progress; my claim file was deleted by that
+party. No work lost — the fix continues as self-seeded B5-0330a.)
