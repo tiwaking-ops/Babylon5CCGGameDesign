@@ -788,6 +788,18 @@ B5-0313 (freebuff-01): harness deck-construction fix, DONE. HeadlessSmokeTest
   introduced.
 
 2026-09-22 — B5-0332 (Buffy, deepseek-v4-flash): Tiebreak/agenda-victory
+
+2026-09-21 — B5-0329 (solar-pro4, solar-pro4:free): Conflict-type legend +
+  assistant status readout (F9+F10). F9: "Conflict Types → Abilities" legend
+  panel in right sidebar (DIPLOMACY→Diplomacy, INTRIGUE→Intrigue,
+  MILITARY→Military Fleets, PSI→Psi) addressing B5-0310 audit finding that
+  no legend exists. F10: dynamic "Assistant Status" readout in right sidebar
+  showing assistant title + rotated/+1 ability state from the human player's
+  Inner Circle; plus a static assistant-role overlay in the conflict banner
+  area listing all 5 assistant roles. Suite 81/81 PASS, smoke PASS, Java 6
+  gate clean.
+
+2026-09-22 — B5-0332 (Buffy, deepseek-v4-flash): Tiebreak/agenda-victory
 design proposal written to docs/proposals/tiebreak-agenda-victory-design-proposal.md
 (report-only; no engine/model/ai/ui/data edits). Confirms the B5-0312 20–20
 endpoint is rulebook-faithful behavior — Standard Victory requires 20 Power
@@ -804,4 +816,25 @@ reporting-only tiebreak in the harness/report layer, leaving checkVictory
 rulebook-pure. Recommendation: C now, A next, B only if playtesting still
 needs it. Pinned data facts: the pool's winCondition vocabulary is exactly the
 three implemented keys (39/4/4), so agenda handling needs no new parsing.
+
+2026-09-22 — B5-0328 (Buffy, deepseek-v4-flash, live claim): the split
+Play/Initiate (F4) drafted in commit 91bc1b7 left three gating defects — the
+hand-selection listener enabled "Play Card" even for conflict cards regardless
+of turn/phase, the target-selector listener enabled the wrong button from a
+stale selectedTarget, and both buttons shared one instanceof dispatch
+(playSelected). Fixed in ui/MainWindow.java (+92/−52) via a single enablement
+authority (updatePlayInitiateButtons: myTurn + card type + no active conflict +
+phase; targetReady keeps "Initiate Conflict" dark until an explicit target is
+picked) and split dispatch (playOnly/initiateOnly with instanceof guards;
+clearSelection also clears a stale selectedTarget). Gates: compile.sh
+RUN_TESTS=1 exit 0 (37 files, -source 6), conformance 81/81, smoke PASS,
+Java 6 grep on ui/ clean. Deferred: initiation is still permitted outside the
+ACTION phase (inherited from the draft, consistent with B5-0327's blanket
+phase gating); tightening would be a behavior change beyond F4. Coordination
+teeth added: solar-pro4 closed the ledger row while Buffy's claim was live and
+the fix in flight; the row now records both agents (draft vs live-claim fix).
+Housekeeping in the same ledger pass, verified against on-disk reports:
+repaired the B5-0325 row corrupted by a literal HERMES-CONTEXT-COMPRESSION
+marker string (restored from its verified report) and completed B5-0326's
+stale claim/verify metadata.
 

@@ -55,8 +55,8 @@ public class MainWindow extends JFrame {
         boardPanel = new GameBoardPanel();
         add(boardPanel, BorderLayout.CENTER);
 
-        // ── Right sidebar: log ────────────────────────────────────────────────
-        logArea = new JTextArea(12, 28);
+        // ── Right sidebar: log + conflict-type legend (F9) ─────────────────────
+        logArea = new JTextArea(10, 24);
         logArea.setEditable(false);
         logArea.setBackground(new Color(10, 15, 30));
         logArea.setForeground(new Color(180, 200, 180));
@@ -68,6 +68,31 @@ public class MainWindow extends JFrame {
             new Color(180, 200, 180)));
         logScroll.getViewport().setBackground(new Color(10, 15, 30));
         add(logScroll, BorderLayout.EAST);
+
+        // B5-0329 F9: conflict-type → ability legend
+        JPanel legendPanel = new JPanel(new GridLayout(4, 2, 4, 2));
+        legendPanel.setBackground(new Color(10, 20, 10));
+        legendPanel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(new Color(80, 130, 80)),
+            "Conflict Types → Abilities", 0, 0, new Font("SansSerif", Font.BOLD, 9),
+            new Color(180, 200, 180)));
+        String[][] legendData = {
+            {"DIPLOMACY", "Diplomacy"},
+            {"INTRIGUE",  "Intrigue"},
+            {"MILITARY",  "Military (Fleets)"},
+            {"PSI",       "Psi"}
+        };
+        for (String[] row : legendData) {
+            JLabel typeLabel = new JLabel(row[0]);
+            typeLabel.setForeground(new Color(220, 180, 100));
+            typeLabel.setFont(new Font("Monospaced", Font.BOLD, 10));
+            JLabel abilLabel = new JLabel("→ " + row[1]);
+            abilLabel.setForeground(new Color(180, 200, 180));
+            abilLabel.setFont(new Font("Monospaced", Font.PLAIN, 10));
+            legendPanel.add(typeLabel);
+            legendPanel.add(abilLabel);
+        }
+        add(legendPanel, BorderLayout.EAST);
 
         // ── Bottom toolbar ────────────────────────────────────────────────────
         JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
@@ -89,11 +114,12 @@ public class MainWindow extends JFrame {
             }
         });
 
-        // B5-0327 F4: split Play/Initiate into two separate buttons
+        // B5-0328 F4: split Play/Initiate into two separate buttons, each with
+        // its own dispatch so a conflict card can never fire playCard().
         playCardOnlyButton = makeButton("Play Card", new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                MainWindow.this.playSelected();
+                MainWindow.this.playOnly();
             }
         });
         playCardOnlyButton.setEnabled(false);
@@ -101,7 +127,7 @@ public class MainWindow extends JFrame {
         initiateConflictButton = makeButton("Initiate Conflict", new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                MainWindow.this.playSelected();
+                MainWindow.this.initiateOnly();
             }
         });
         initiateConflictButton.setEnabled(false);
@@ -165,9 +191,7 @@ public class MainWindow extends JFrame {
                             break;
                         }
                     }
-                    playCardOnlyButton.setEnabled(selectedTarget != null
-                        && !(selectedCard instanceof ConflictCard
-                             && MainWindow.this.controller.getState().getActiveConflict() != null));
+                    updatePlayInitiateButtons();
                 }
             }
         });
@@ -240,7 +264,7 @@ public class MainWindow extends JFrame {
                     fStatusLabel.setText("Selected: " + card.getTitle()
                         + "  |  " + card.getText());
                 }
-                playCardOnlyButton.setEnabled(true);
+                updatePlayInitiateButtons();
                 // B5-0326 F5: refresh cost preview immediately
                 refreshCostPreview();
             }
@@ -331,31 +355,9 @@ public class MainWindow extends JFrame {
 
         passButton.setEnabled(myTurn);
 
-        // B5-0327 F4: split Play/Initiate — two buttons, phase-aware enablement.
-        // Play Card: enabled on my turn, non-conflict card selected, no active conflict
-        //            (or conflict card selected with no active conflict — it gets
-        //             routed to Initiate Conflict instead).
-        boolean cardSelected = (selectedCard != null);
-        boolean conflictSelected = (selectedCard instanceof ConflictCard);
-        boolean phaseAllowsAction = (phase == GamePhase.ACTION
-            || phase == GamePhase.CONFLICT_RESOLUTION
-            || phase == GamePhase.AFTERMATH
-            || phase == GamePhase.DRAW);
-
-        if (conflictSelected && activeConflict) {
-            // Can't start a second conflict while one is active.
-            playCardOnlyButton.setEnabled(false);
-            initiateConflictButton.setEnabled(false);
-        } else if (conflictSelected) {
-            // Conflict card selected — only the Initiate Conflict button is meaningful.
-            playCardOnlyButton.setEnabled(false);
-            initiateConflictButton.setEnabled(myTurn && cardSelected
-                && phaseAllowsAction);
-        } else {
-            // Non-conflict card selected — only Play Card matters.
-            playCardOnlyButton.setEnabled(myTurn && cardSelected && phaseAllowsAction);
-            initiateConflictButton.setEnabled(false);
-        }
+        // B5-0328 F4: split Play/Initiate — enablement lives in one authority,
+        // updatePlayInitiateButtons(); dispatch in playOnly() / initiateOnly().
+        updatePlayInitiateButtons();
 
         // B5-0327 F8: initiative order display — show active player as the current
         // initiative holder. The human player's initiative position is tracked in the
@@ -400,33 +402,71 @@ public class MainWindow extends JFrame {
         }
     }
 
-    private void playSelected() {
-        if (selectedCard == null) return;
-        GameAction action;
-        if (selectedCard instanceof ConflictCard) {
-            // B5-0325 F2: use human-selected target, fall back to auto-target
-            Player target = selectedTarget;
-            if (target == null) {
-                GameState state = MainWindow.this.controller.getState();
-                int bestInfluence = -1;
-                for (Player p : state.getPlayers()) {
-                    if (!p.isHuman() && p.getInfluence() > bestInfluence) {
-                        bestInfluence = p.getInfluence();
-                        target = p;
-                    }
+    /**
+     * B5-0328 F4: single authority for both split buttons' enablement. Reads
+     * live state + current selection; never mutates selection, so it is safe
+     * from state refreshes AND from programmatic selector changes.
+     */
+    private void updatePlayInitiateButtons() {
+        GameState st = MainWindow.this.controller.getState();
+        if (st.isGameOver()) return;
+        boolean myTurn = st.getActivePlayer() == humanPlayer()
+            && MainWindow.this.controller.isWaitingForHuman();
+        boolean activeConflict = st.getActiveConflict() != null;
+        GamePhase phase = st.getPhase();
+        boolean conflictSelected = (selectedCard instanceof ConflictCard);
+        boolean phaseAllowsAction = (phase == GamePhase.ACTION
+            || phase == GamePhase.CONFLICT_RESOLUTION
+            || phase == GamePhase.AFTERMATH
+            || phase == GamePhase.DRAW);
+        boolean canInitiate = myTurn && conflictSelected && !activeConflict
+            && phaseAllowsAction;
+        // B5-0325 F2: when the selector is enabled for a conflict card, require
+        // an explicit target so Initiate can't fire on a stale auto-fallback.
+        boolean targetReady = !conflictSelected || !targetSelector.isEnabled()
+            || selectedTarget != null;
+        boolean canPlay = myTurn && selectedCard != null && !conflictSelected
+            && phaseAllowsAction;
+        playCardOnlyButton.setEnabled(canPlay);
+        initiateConflictButton.setEnabled(canInitiate && targetReady);
+    }
+
+    /** B5-0328 F4: dispatch for the "Play Card" button (never initiates). */
+    private void playOnly() {
+        if (selectedCard == null || selectedCard instanceof ConflictCard) return;
+        MainWindow.this.controller.submitHumanAction(GameAction.playCard(selectedCard));
+        clearSelection();
+    }
+
+    /** B5-0328 F4: dispatch for the "Initiate Conflict" button (never plays). */
+    private void initiateOnly() {
+        if (!(selectedCard instanceof ConflictCard)) return;
+        // B5-0325 F2: human-selected target, auto-target fallback.
+        Player target = selectedTarget;
+        if (target == null) {
+            GameState state = MainWindow.this.controller.getState();
+            int bestInfluence = -1;
+            for (Player p : state.getPlayers()) {
+                if (!p.isHuman() && p.getInfluence() > bestInfluence) {
+                    bestInfluence = p.getInfluence();
+                    target = p;
                 }
             }
-            action = GameAction.initiateConflict(selectedCard, target);
-        } else {
-            action = GameAction.playCard(selectedCard);
         }
+        if (target == null) return;
+        MainWindow.this.controller.submitHumanAction(
+            GameAction.initiateConflict(selectedCard, target));
+        clearSelection();
+    }
+
+    /** B5-0328 F4: drop the selection after a submit; buttons stay disabled. */
+    private void clearSelection() {
         selectedCard = null;
         selectedTarget = null;
         targetSelector.setSelectedIndex(-1);
         targetSelector.setEnabled(false);
         playCardOnlyButton.setEnabled(false);
         initiateConflictButton.setEnabled(false);
-        MainWindow.this.controller.submitHumanAction(action);
     }
 
     private JButton makeButton(String label, ActionListener al) {
