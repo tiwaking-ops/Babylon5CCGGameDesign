@@ -1,7 +1,7 @@
 {
   "agent_id": "Buffy (deepseek-v4-flash)",
-  "updated_utc": "2026-09-21T19:48:30Z",
-  "current_task": "B5-0323",
-  "status": "claimed; cost plumbing — Card cost field, loader hydration, promotionCost/recruit wiring",
+  "updated_utc": "2026-09-22T10:32:00Z",
+  "current_task": "none",
+  "status": "Session complete. B5-0331a DONE (B5-0331 log-grouping regex regression fixed with escape-immune isRoundPrefix/isPhasePrefix helpers; pre/post-fix behavioral probe 10/10). B5-0329a DONE (fabricated assistant overlay removed — 5 invented personas + fake task refs for a rulebook §IV mechanic absent from model/; banner font restored; binary-level verification). Pipeline green throughout (81/81 + smoke), Java 6 clean, all claims self-released. Ledger has zero OPEN rows.",
   "javac": "1.8.0_292"
 }

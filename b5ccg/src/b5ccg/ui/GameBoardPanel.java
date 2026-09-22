@@ -45,26 +45,10 @@ public class GameBoardPanel extends JPanel {
             g2.fillRoundRect(getWidth() / 4, getHeight() / 2 - 20, getWidth() / 2, 40, 10, 10);
             g2.setColor(Color.WHITE);
             g2.setFont(new Font("SansSerif", Font.BOLD, 14));
-            // B5-0329 F10: assistant status overlay
-            g.setFont(new Font("SansSerif", Font.PLAIN, 10));
-            g.setColor(new Color(150, 170, 200));
-            int pageW = getWidth();
-            int pageH = getHeight();
-            g.drawString("B5-0329 ASSISTANTS (F10):", pageW - 112, 14);
-            g.setFont(new Font("Monospaced", Font.PLAIN, 8));
-            int ay = 26;
-            String[] assistants = {
-                "Ambassador — advisor on diplomacy/intrigue (B5-0325 F9)",
-                "Lokai-Commander — conflict type threats (B5-0325 F11)",
-                "Refer-Consultant — command set summary (B5-0325 F12)",
-                "Strategy-Analyst — hand valuation (B5-0325 F10)",
-                "Sanction-Interpreter — card ability guide (B5-0325 F13)"
-            };
-            for (String txt : assistants) {
-                if (ay > pageH - 20) break;
-                g.drawString(txt, pageW - 112, ay);
-                ay += 10;
-            }
+            // B5-0329a: the "assistant status overlay" that stood here was
+            // removed — it invented five personas and fake task references for
+            // the rulebook §IV assistant mechanic, which is not implemented
+            // anywhere in model/ (its 8pt font also corrupted this banner).
             String msg = "CONFLICT: " + c.getCard().getTitle()
                 + "  [" + c.getConflictType() + "]";
             FontMetrics fm = g2.getFontMetrics();

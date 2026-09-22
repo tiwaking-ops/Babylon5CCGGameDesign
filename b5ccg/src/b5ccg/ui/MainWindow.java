@@ -350,10 +350,11 @@ public class MainWindow extends JFrame {
             int colonIdx = line.indexOf(':');
             if (colonIdx > 0 && colonIdx < 20) {
                 String candidate = line.substring(0, colonIdx).trim();
-                if (candidate.matches("Round \\\\d+")) {
-                    prefix = candidate + ":";
-                    content = line.substring(colonIdx + 1).trim();
-                } else if (candidate.matches("Phase \\\\w+")) {
+                // B5-0331a: escape-immune prefix tests. The regex literals
+                // previously here ended up double-escaped (matching a literal
+                // backslash) so round/phase grouping could never fire.
+                if (MainWindow.isRoundPrefix(candidate)
+                    || MainWindow.isPhasePrefix(candidate)) {
                     prefix = candidate + ":";
                     content = line.substring(colonIdx + 1).trim();
                 }
@@ -507,6 +508,40 @@ public class MainWindow extends JFrame {
         targetSelector.setEnabled(false);
         playCardOnlyButton.setEnabled(false);
         initiateConflictButton.setEnabled(false);
+    }
+
+    /**
+     * B5-0331a: true when candidate is a "Round N" log prefix (N = digits).
+     * Char-scanning instead of a regex literal so backslash escaping can
+     * never silently disable it.
+     */
+    public static boolean isRoundPrefix(String candidate) {
+        if (candidate == null || !candidate.startsWith("Round ")) return false;
+        String rest = candidate.substring(6).trim();
+        if (rest.length() == 0) return false;
+        for (int i = 0; i < rest.length(); i++) {
+            char c = rest.charAt(i);
+            if (c < '0' || c > '9') return false;
+        }
+        return true;
+    }
+
+    /**
+     * B5-0331a: true when candidate is a "Phase X" log prefix (X = word
+     * characters). Char-scanning instead of a regex literal so backslash
+     * escaping can never silently disable it.
+     */
+    public static boolean isPhasePrefix(String candidate) {
+        if (candidate == null || !candidate.startsWith("Phase ")) return false;
+        String rest = candidate.substring(6).trim();
+        if (rest.length() == 0) return false;
+        for (int i = 0; i < rest.length(); i++) {
+            char c = rest.charAt(i);
+            boolean wordChar = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+                || (c >= '0' && c <= '9') || c == '_';
+            if (!wordChar) return false;
+        }
+        return true;
     }
 
     private JButton makeButton(String label, ActionListener al) {

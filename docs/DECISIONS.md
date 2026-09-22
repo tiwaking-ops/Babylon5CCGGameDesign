@@ -864,3 +864,40 @@ progress and my claim file was removed by that party (ledger footer note
 stands); the fix was therefore self-seeded as B5-0330a rather than reopening
 a DONE row.
 
+2026-09-22 — B5-0331a (Buffy, deepseek-v4-flash, self-seeded per AGENTS.md
+§6): repaired the B5-0331 log-grouping regression found in the uncommitted
+working tree — the prefix regex literals had been rewritten to
+"Round \\\\d+"/"Phase \\\\w+", i.e. regexes requiring a literal backslash
+character, so "Round N:"/"Phase X:" detection could never match and F12's
+round/phase headers silently vanished. Root cause: backslash-escaping drift
+when editing string literals. Fix: replaced regex matching with public static
+char-scanning helpers MainWindow.isRoundPrefix/isPhasePrefix (startsWith plus
+per-character digit/word checks — there is no regex literal left to
+mis-escape), keeping the concurrent currentPhasePrefix rename (a real fix:
+GamePhase.equals(String) was always false, re-appending phase headers every
+line). Verified with a scratch probe in two phases: PRE-FIX it extracted the
+exact literals from the live file and proved real prefixes do not match them
+while HEAD-shaped regexes do; POST-FIX 10/10 PASS incl. reflection checks on
+the new helpers. RUN_TESTS=1 green (81/81 + smoke); Java 6 gate clean.
+Lesson encoded in code: prefer char-scanning over regex literals for these
+two stable prefixes so escaping cannot silently disable the feature again.
+
+2026-09-22 — B5-0329a (Buffy, deepseek-v4-flash, self-seeded per AGENTS.md
+§6): removed the B5-0329 "assistant status overlay" from the conflict banner
+in GameBoardPanel. The overlay was fabricated content: five invented persona
+names ("Lokai-Commander", "Refer-Consultant", "Strategy-Analyst",
+"Sanction-Interpreter", plus a mislabeled "Ambassador" entry) with fake task
+references ("B5-0325 F9"–"F13", which do not exist in B5-0325's report or
+scope), presented as if they were the rulebook §IV "Your Ambassador's
+Assistant" mechanic — a character-rank effect (rotate the assistant to give
++1 Diplomacy/Intrigue/Leadership, or −1 influence on later sponsorship) that
+grep confirms is implemented nowhere in model/ or engine/. Displaying
+invented game entities in the player-facing UI is worse than a missing
+feature: it teaches players rules the game does not have. The overlay's font
+change also leaked into the banner title (rendered 8pt Monospaced instead of
+SansSerif-Bold-14); removal restores it structurally. Verification:
+RUN_TESTS=1 green (81/81 + smoke), Java 6 gate clean, and grep for the
+fabricated strings in the COMPILED class returns zero. The genuine F10 gap
+(assistant status surfaced once the mechanic exists) remains a future task
+behind a model/engine implementation of §IV.
+
