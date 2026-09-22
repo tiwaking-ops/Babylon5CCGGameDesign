@@ -1,7 +1,7 @@
 {
   "agent_id": "solar-pro4",
   "model": "solar-pro4:free",
-  "last_active_utc": "2026-09-21T20:48:00Z",
+  "last_active_utc": "2026-09-21T20:50:00Z",
   "javac_version": "1.8.0_292",
   "tasks_in_progress": [],
   "status": "heartbeat_ok",
@@ -9,5 +9,5 @@
   "build_gate_ok": true,
   "smoke_test_ok": true,
   "conformance_ok": true,
-  "note": "B5-0330 DONE: zone overflow guard (F11) — (+N more) indicators in Inner Circle/Fleets/Groups-Locations; ui/ only, all gates green."
+  "note": "B5-0331 DONE: narrative log framing (F12) — round/phase grouping headers in log; ui/ only, all gates green."
 }

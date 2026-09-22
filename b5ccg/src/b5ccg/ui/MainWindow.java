@@ -341,7 +341,47 @@ public class MainWindow extends JFrame {
         // Append new log lines
         java.util.List<String> log = state.getLog();
         logArea.setText("");
-        for (String line : log) logArea.append(line + "\n");
+        GamePhase currentPhase = null;
+        int currentRound = -1;
+        for (String line : log) {
+            // B5-0331 F12: detect round/phase grouping from log prefixes
+            String prefix = "";
+            String content = line;
+            int colonIdx = line.indexOf(':');
+            if (colonIdx > 0 && colonIdx < 20) {
+                String candidate = line.substring(0, colonIdx).trim();
+                if (candidate.matches("Round \\d+")) {
+                    prefix = candidate + ":";
+                    content = line.substring(colonIdx + 1).trim();
+                } else if (candidate.matches("Phase \\w+")) {
+                    prefix = candidate + ":";
+                    content = line.substring(colonIdx + 1).trim();
+                }
+            }
+            // Insert phase/group headers when they change
+            if (!prefix.isEmpty()) {
+                if (!prefix.startsWith("Round")) {
+                    // Phase line — insert phase header before this line
+                    if (currentPhase == null || !currentPhase.equals(prefix)) {
+                        logArea.append("\n── " + prefix + " ──\n");
+                        currentPhase = prefix;
+                    }
+                } else {
+                    // Round line — insert round header before this line
+                    if (currentRound == -1 || !prefix.equals("Round " + currentRound)) {
+                        logArea.append("\n═══════════════════════════════\n");
+                        logArea.append(prefix + "\n");
+                        logArea.append("═══════════════════════════════\n");
+                        try {
+                            currentRound = Integer.parseInt(prefix.substring(6).trim());
+                        } catch (NumberFormatException e) {
+                            currentRound = -1;
+                        }
+                    }
+                }
+            }
+            logArea.append(content + "\n");
+        }
         logArea.setCaretPosition(logArea.getDocument().getLength());
 
         boolean myTurn = state.getActivePlayer() == human
