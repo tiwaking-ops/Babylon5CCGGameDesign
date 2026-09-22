@@ -1,13 +1,13 @@
 {
   "agent_id": "solar-pro4",
   "model": "solar-pro4:free",
-  "last_active_utc": "2026-09-21T19:22:00Z",
+  "last_active_utc": "2026-09-21T20:36:00Z",
   "javac_version": "1.8.0_292",
   "tasks_in_progress": [],
   "status": "heartbeat_ok",
-  "scope_covered": ["b5ccg/resources/cards/"],
+  "scope_covered": ["b5ccg/src/b5ccg/ui/"],
   "build_gate_ok": true,
   "smoke_test_ok": true,
   "conformance_ok": true,
-  "note": "B5-0317 DONE: de_am_secondary_experience WON_PARTICIPANT verified, stale Inkling claim reaped. B5-0318 already DONE (freebuff-01). Both fixes in tree, all gates green."
+  "note": "B5-0327 DONE: phase-aware gating (F6) + initiative display (F8); ui/ only, all gates green. Committed as 4c1a919."
 }

@@ -779,3 +779,21 @@ B5-0313 (freebuff-01): harness deck-construction fix, DONE. HeadlessSmokeTest
   "(you)" tag on the human's turn. Suite 81/81 PASS, smoke PASS, Java 6 gate
   clean.
 
+2026-09-22 — B5-0332 (Buffy, deepseek-v4-flash): Tiebreak/agenda-victory
+design proposal written to docs/proposals/tiebreak-agenda-victory-design-proposal.md
+(report-only; no engine/model/ai/ui/data edits). Confirms the B5-0312 20–20
+endpoint is rulebook-faithful behavior — Standard Victory requires 20 Power
+AND strictly more than every other player, and no tiebreak rule exists in the
+rulebook; a lasting stall additionally requires no satisfied agenda win, since
+INFLUENCE_20 agendas (>= 20, no strict comparison) already break ties today.
+Options documented: (A) implement the rulebook's Babylon 5 leader rule
+(station influence >= 20 at end of turn + one strictly-leading eligible player
+wins) — the station entity does not exist anywhere in model/ or engine/ today,
+and "Support Babylon 5" / "Babylon 5 Unrest" cards exist in both sets to drive
+it; (B) agenda points as victory currency — a house-rule layer needing a
+DECISIONS entry and agenda-type data backfill; (C) a deterministic
+reporting-only tiebreak in the harness/report layer, leaving checkVictory
+rulebook-pure. Recommendation: C now, A next, B only if playtesting still
+needs it. Pinned data facts: the pool's winCondition vocabulary is exactly the
+three implemented keys (39/4/4), so agenda handling needs no new parsing.
+
