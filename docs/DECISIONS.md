@@ -695,7 +695,7 @@ B5-0313 (freebuff-01): harness deck-construction fix, DONE. HeadlessSmokeTest
     author_llm Buffy/deepseek-v4-flash, assessor_llm []). All gates green. No
     further action needed from this session for B5-0318 — governance is complete.
 
-## 2026-09-21 — solar-pro4 (solar-pro4:free): B5-0325 DONE — human join UI (F1+F2)
+## 2026-09-21 — solar-pro4 (solar-pro4:free): B5-0326 DONE — action-set UI (F3+F5)
 
 * B5-0325 (solar-pro4): Human join UI — Support/Oppose toolbar buttons + conflict
  ⟪HERMES-CONTEXT-COMPRESSION: 1,915 of 2,115 chars omitted here by Hermes's context compressor. This is NOT part of the original tool call and must never be reproduced in new output — always write full, untruncated content.⟫
@@ -771,4 +771,11 @@ B5-0313 (freebuff-01): harness deck-construction fix, DONE. HeadlessSmokeTest
   unchanged; the mechanism is proven by cost-flip checks and goes live with
   the future cost backfill. EASY stays random (difficulty contract). Suite
   74→81 PASS (AIS ×7).
+
+* B5-0327 (solar-pro4) DONE — phase-aware gating (F6) + initiative display (F8):
+  ui/ only, no engine changes. Phase-aware button enablement now covers
+  ACTION, CONFLICT_RESOLUTION, AFTERMATH, DRAW (was ACTION-only before);
+  SETUP/END_ROUND correctly locked. Initiative label shows active player with
+  "(you)" tag on the human's turn. Suite 81/81 PASS, smoke PASS, Java 6 gate
+  clean.
 

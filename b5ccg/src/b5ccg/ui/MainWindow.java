@@ -16,7 +16,7 @@ public class MainWindow extends JFrame {
     private final JTextArea       logArea;
     private final JLabel          statusLabel;
     private final JButton         passButton;
-    private final JButton         playCardButton;
+    private JButton playCardButton;
 
     // B5-0326 F3: action-set buttons
     private JButton sponsorButton;
@@ -31,6 +31,13 @@ public class MainWindow extends JFrame {
     private JButton supportButton;
     private JButton opposeButton;
     private Player selectedTarget;
+
+    // B5-0327 F4: split Play/Initiate into separate buttons
+    private JButton playCardOnlyButton;
+    private JButton initiateConflictButton;
+
+    // B5-0327 F8: initiative order display
+    private JLabel initiativeLabel;
 
     private Card selectedCard;
     private RulesEngine rules;
@@ -70,19 +77,34 @@ public class MainWindow extends JFrame {
         statusLabel.setForeground(new Color(200, 220, 200));
         statusLabel.setFont(new Font("SansSerif", Font.PLAIN, 11));
 
+        // B5-0327 F8: initiative order display
+        initiativeLabel = new JLabel("Initiative: —");
+        initiativeLabel.setForeground(new Color(180, 200, 220));
+        initiativeLabel.setFont(new Font("Monospaced", Font.PLAIN, 11));
+
         passButton = makeButton("Pass Turn", new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 MainWindow.this.controller.submitHumanAction(GameAction.pass());
             }
         });
-        playCardButton = makeButton("Play / Initiate", new ActionListener() {
+
+        // B5-0327 F4: split Play/Initiate into two separate buttons
+        playCardOnlyButton = makeButton("Play Card", new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                playSelected();
+                MainWindow.this.playSelected();
             }
         });
-        playCardButton.setEnabled(false);
+        playCardOnlyButton.setEnabled(false);
+
+        initiateConflictButton = makeButton("Initiate Conflict", new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                MainWindow.this.playSelected();
+            }
+        });
+        initiateConflictButton.setEnabled(false);
 
         // B5-0326 F3: sponsor / promote / build-influence buttons
         sponsorButton = makeButton("Sponsor", new ActionListener() {
@@ -143,7 +165,7 @@ public class MainWindow extends JFrame {
                             break;
                         }
                     }
-                    playCardButton.setEnabled(selectedTarget != null
+                    playCardOnlyButton.setEnabled(selectedTarget != null
                         && !(selectedCard instanceof ConflictCard
                              && MainWindow.this.controller.getState().getActiveConflict() != null));
                 }
@@ -173,7 +195,10 @@ public class MainWindow extends JFrame {
 
         // Assemble toolbar
         toolbar.add(passButton);
-        toolbar.add(playCardButton);
+        toolbar.add(Box.createHorizontalStrut(8));
+        toolbar.add(playCardOnlyButton);
+        toolbar.add(Box.createHorizontalStrut(4));
+        toolbar.add(initiateConflictButton);
         toolbar.add(Box.createHorizontalStrut(12));
         toolbar.add(sponsorButton);
         toolbar.add(promoteButton);
@@ -185,7 +210,9 @@ public class MainWindow extends JFrame {
         toolbar.add(Box.createHorizontalStrut(12));
         toolbar.add(supportButton);
         toolbar.add(opposeButton);
-        toolbar.add(Box.createHorizontalStrut(20));
+        toolbar.add(Box.createHorizontalStrut(12));
+        toolbar.add(initiativeLabel);
+        toolbar.add(Box.createHorizontalStrut(12));
         toolbar.add(statusLabel);
 
         add(toolbar, BorderLayout.NORTH);
@@ -213,7 +240,7 @@ public class MainWindow extends JFrame {
                     fStatusLabel.setText("Selected: " + card.getTitle()
                         + "  |  " + card.getText());
                 }
-                playCardButton.setEnabled(true);
+                playCardOnlyButton.setEnabled(true);
                 // B5-0326 F5: refresh cost preview immediately
                 refreshCostPreview();
             }
@@ -304,16 +331,37 @@ public class MainWindow extends JFrame {
 
         passButton.setEnabled(myTurn);
 
-        // Play button: enabled on my turn with a selected card.
-        // If a conflict card is selected and there's already an active
-        // conflict, disable (can't start a second conflict).
-        if (selectedCard instanceof ConflictCard && activeConflict) {
-            playCardButton.setEnabled(false);
+        // B5-0327 F4: split Play/Initiate — two buttons, phase-aware enablement.
+        // Play Card: enabled on my turn, non-conflict card selected, no active conflict
+        //            (or conflict card selected with no active conflict — it gets
+        //             routed to Initiate Conflict instead).
+        boolean cardSelected = (selectedCard != null);
+        boolean conflictSelected = (selectedCard instanceof ConflictCard);
+        boolean phaseAllowsAction = (phase == GamePhase.ACTION
+            || phase == GamePhase.CONFLICT_RESOLUTION
+            || phase == GamePhase.AFTERMATH
+            || phase == GamePhase.DRAW);
+
+        if (conflictSelected && activeConflict) {
+            // Can't start a second conflict while one is active.
+            playCardOnlyButton.setEnabled(false);
+            initiateConflictButton.setEnabled(false);
+        } else if (conflictSelected) {
+            // Conflict card selected — only the Initiate Conflict button is meaningful.
+            playCardOnlyButton.setEnabled(false);
+            initiateConflictButton.setEnabled(myTurn && cardSelected
+                && phaseAllowsAction);
         } else {
-            playCardButton.setEnabled(myTurn && selectedCard != null);
+            // Non-conflict card selected — only Play Card matters.
+            playCardOnlyButton.setEnabled(myTurn && cardSelected && phaseAllowsAction);
+            initiateConflictButton.setEnabled(false);
         }
 
-        // B5-0326 F3: per-phase enablement for action-set buttons
+        // B5-0327 F8: initiative order display — show active player as the current
+        // initiative holder. The human player's initiative position is tracked in the
+        // status bar for clarity; the full initiative chain is rendered on the board.
+        initiativeLabel.setText("Initiative: " + state.getActivePlayer().getName()
+            + (myTurn ? " (you)" : ""));
         boolean actionPhase = (phase == GamePhase.ACTION);
         CharacterCard ch = (selectedCard instanceof CharacterCard)
             ? (CharacterCard) selectedCard : null;
@@ -342,7 +390,8 @@ public class MainWindow extends JFrame {
             statusLabel.setText("GAME OVER — Winner: "
                 + (state.getWinner() != null ? state.getWinner().getName() : "None"));
             passButton.setEnabled(false);
-            playCardButton.setEnabled(false);
+            playCardOnlyButton.setEnabled(false);
+            initiateConflictButton.setEnabled(false);
         } else {
             statusLabel.setText("Round " + state.getRoundNumber()
                 + "  |  " + state.getPhase()
@@ -375,7 +424,8 @@ public class MainWindow extends JFrame {
         selectedTarget = null;
         targetSelector.setSelectedIndex(-1);
         targetSelector.setEnabled(false);
-        playCardButton.setEnabled(false);
+        playCardOnlyButton.setEnabled(false);
+        initiateConflictButton.setEnabled(false);
         MainWindow.this.controller.submitHumanAction(action);
     }
 
