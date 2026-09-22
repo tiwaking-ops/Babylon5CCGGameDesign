@@ -111,6 +111,14 @@ public class HandPanel extends JPanel {
         g.setColor(new Color(180, 180, 180));
         g.drawString(card.getFaction().toString(), x + 3, y + 37);
 
+        // B5-0333 F13: influence cost on card face
+        int cost = card.getCost();
+        if (cost > 0) {
+            g.setFont(new Font("SansSerif", Font.PLAIN, 8));
+            g.setColor(new Color(220, 200, 100));
+            g.drawString("Cost: " + cost + " INF", x + 3, y + 46);
+        }
+
         // Stats
         g.setFont(new Font("SansSerif", Font.BOLD, 9));
         g.setColor(new Color(160, 220, 160));
