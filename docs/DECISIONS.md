@@ -847,3 +847,20 @@ stale claim/verify metadata.
   audit finding F11 (silent clipping of overflow cards). Suite 81/81 PASS,
   smoke PASS, Java 6 gate clean.
 
+2026-09-22 — B5-0330a (Buffy, deepseek-v4-flash, self-seeded per AGENTS.md
+§6): defect fix on the just-landed B5-0330 overflow indicators. The committed
+"(+ N more)" note drew at cy+58 — inside the 64px mini-card band, colliding
+with the first card's stat baselines (y0+48/y0+56) — and the note is only
+drawn when a row overflows, so the collision fired every time the note was
+visible. Extracted a shared overflowNote helper (also de-triplicates the
+draft's three copies) that renders below the band at y0+80, clearing the
+card border stroke plus descenders, no-op when nothing is hidden. Verified
+by a scratch pixel probe (git-ignored out/, deleted after): headless
+offscreen render of a synthetic overflowing state confirms note-colored
+pixels BELOW the band and none at the old in-band location for all three
+rows; RUN_TESTS=1 pipeline green (81/81 + smoke); Java 6 gate clean.
+Coordination: solar-pro4 closed B5-0330 while my reaping-note was in
+progress and my claim file was removed by that party (ledger footer note
+stands); the fix was therefore self-seeded as B5-0330a rather than reopening
+a DONE row.
+

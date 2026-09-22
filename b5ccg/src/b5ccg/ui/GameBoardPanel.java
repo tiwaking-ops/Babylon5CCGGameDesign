@@ -124,11 +124,9 @@ public class GameBoardPanel extends JPanel {
             cx += 52;
             icDrawn++;
         }
-        if (icDrawn < p.getInnerCircle().size()) {
-            g.setColor(new Color(200, 180, 100));
-            g.setFont(new Font("SansSerif", Font.PLAIN, 8));
-            g.drawString("(+ " + (p.getInnerCircle().size() - icDrawn) + " more)", x + 8, cy + 58);
-        }
+        // B5-0330a: note below the card band — the draft drew it inside the
+        // 64px mini-card, colliding with the first card's stats.
+        overflowNote(g, p.getInnerCircle().size() - icDrawn, x, cy);
 
         // Fleets
         cx = x + 8;
@@ -142,11 +140,7 @@ public class GameBoardPanel extends JPanel {
             cx += 52;
             flDrawn++;
         }
-        if (flDrawn < p.getFleets().size()) {
-            g.setColor(new Color(200, 180, 100));
-            g.setFont(new Font("SansSerif", Font.PLAIN, 8));
-            g.drawString("(+ " + (p.getFleets().size() - flDrawn) + " more)", x + 8, cy + 58);
-        }
+        overflowNote(g, p.getFleets().size() - flDrawn, x, cy);
 
         // Groups / Locations
         cx = x + 8;
@@ -167,11 +161,7 @@ public class GameBoardPanel extends JPanel {
             cx += 52;
             glDrawn++;
         }
-        if (glDrawn < glTotal) {
-            g.setColor(new Color(200, 180, 100));
-            g.setFont(new Font("SansSerif", Font.PLAIN, 8));
-            g.drawString("(+ " + (glTotal - glDrawn) + " more)", x + 8, cy + 58);
-        }
+        overflowNote(g, glTotal - glDrawn, x, cy);
 
         // Deck count
         g.setColor(Color.LIGHT_GRAY);
@@ -187,6 +177,20 @@ public class GameBoardPanel extends JPanel {
             if (aName.length() > 18) aName = aName.substring(0, 17) + "…";
             g.drawString("Agenda: " + aName, x + 8, y + h - 22);
         }
+    }
+
+    /**
+     * B5-0330a: shared "(+ N more)" overflow note, drawn BELOW the row's card
+     * band. Mini-cards occupy y0 .. y0+64 and their stat baselines sit at
+     * y0+48 / y0+56 (drawMiniCard), so the note's baseline sits at y0+80 —
+     * below the card border stroke plus descender clearance. No-op when
+     * nothing is hidden.
+     */
+    private void overflowNote(Graphics2D g, int hiddenCount, int x, int y0) {
+        if (hiddenCount <= 0) return;
+        g.setColor(new Color(200, 180, 100));
+        g.setFont(new Font("SansSerif", Font.PLAIN, 8));
+        g.drawString("(+ " + hiddenCount + " more)", x + 8, y0 + 80);
     }
 
     private void drawMiniCard(Graphics2D g, Card card, int x, int y, boolean large) {

@@ -252,7 +252,8 @@ public class AIPlayer {
                 return base - a.getCard().getCost();
             }
             case BUILD_INFLUENCE:
-                // Positive, capped value — avoids over-tinging the score table.
+                // B5-0324: capped value — HARD avoids over-tinging the score table.
+                // Still positive since pushing toward the Influence cap is useful.
                 int depr = Math.max(0, 10 - p.getInfluence());
                 return 0.25 * depr; // 0..2.25
             case PROMOTE_CHARACTER: {

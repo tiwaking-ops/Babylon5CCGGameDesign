@@ -341,7 +341,7 @@ public class MainWindow extends JFrame {
         // Append new log lines
         java.util.List<String> log = state.getLog();
         logArea.setText("");
-        GamePhase currentPhase = null;
+        String currentPhasePrefix = null;
         int currentRound = -1;
         for (String line : log) {
             // B5-0331 F12: detect round/phase grouping from log prefixes
@@ -350,10 +350,10 @@ public class MainWindow extends JFrame {
             int colonIdx = line.indexOf(':');
             if (colonIdx > 0 && colonIdx < 20) {
                 String candidate = line.substring(0, colonIdx).trim();
-                if (candidate.matches("Round \\d+")) {
+                if (candidate.matches("Round \\\\d+")) {
                     prefix = candidate + ":";
                     content = line.substring(colonIdx + 1).trim();
-                } else if (candidate.matches("Phase \\w+")) {
+                } else if (candidate.matches("Phase \\\\w+")) {
                     prefix = candidate + ":";
                     content = line.substring(colonIdx + 1).trim();
                 }
@@ -362,9 +362,9 @@ public class MainWindow extends JFrame {
             if (!prefix.isEmpty()) {
                 if (!prefix.startsWith("Round")) {
                     // Phase line — insert phase header before this line
-                    if (currentPhase == null || !currentPhase.equals(prefix)) {
+                    if (currentPhasePrefix == null || !currentPhasePrefix.equals(prefix)) {
                         logArea.append("\n── " + prefix + " ──\n");
-                        currentPhase = prefix;
+                        currentPhasePrefix = prefix;
                     }
                 } else {
                     // Round line — insert round header before this line
