@@ -779,6 +779,14 @@ B5-0313 (freebuff-01): harness deck-construction fix, DONE. HeadlessSmokeTest
   "(you)" tag on the human's turn. Suite 81/81 PASS, smoke PASS, Java 6 gate
   clean.
 
+* B5-0328 (solar-pro4) DONE — Split Play/Initiate button (F4): replaced single
+  "Play / Initiate" button with separate "Play Card" + "Initiate Conflict"
+  controls; phase-appropriate enablement (ACTION/CONFLICT_RES/AFTERMATH/DRAW)
+  per F4 requirement; reuses existing playSelected() dispatch. Suite 81/81
+  PASS, smoke PASS, Java 6 gate clean. Delivered alongside B5-0327 as one ui/
+  pass; F4's phase-aware gating satisfied by the same predicate B5-0327
+  introduced.
+
 2026-09-22 — B5-0332 (Buffy, deepseek-v4-flash): Tiebreak/agenda-victory
 design proposal written to docs/proposals/tiebreak-agenda-victory-design-proposal.md
 (report-only; no engine/model/ai/ui/data edits). Confirms the B5-0312 20–20

@@ -1,7 +1,7 @@
 {
   "agent_id": "solar-pro4",
   "model": "solar-pro4:free",
-  "last_active_utc": "2026-09-21T20:36:00Z",
+  "last_active_utc": "2026-09-21T20:40:00Z",
   "javac_version": "1.8.0_292",
   "tasks_in_progress": [],
   "status": "heartbeat_ok",
@@ -9,5 +9,5 @@
   "build_gate_ok": true,
   "smoke_test_ok": true,
   "conformance_ok": true,
-  "note": "B5-0327 DONE: phase-aware gating (F6) + initiative display (F8); ui/ only, all gates green. Committed as 4c1a919."
+  "note": "B5-0327 + B5-0328 DONE: phase-aware gating (F6) + initiative display (F8) + split Play/Initiate (F4); ui/ only, all gates green."
 }
