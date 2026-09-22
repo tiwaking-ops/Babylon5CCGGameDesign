@@ -8,9 +8,10 @@ provenance:
     - {name: "Buffy", version: "deepseek-v4-flash"}
     - {name: "Solar Pro4", version: "solar-pro4:free"}
     - {name: "big-pickle", version: "opencode/big-pickle"}
-  last_modified_by_llm: {name: "big-pickle", version: "opencode/big-pickle"}
+    - {name: "Buffy", version: "deepseek-v4-flash"}
+  last_modified_by_llm: {name: "Buffy", version: "deepseek-v4-flash"}
   created_date: "2026-09-21"
-  last_modified_date: "2026-09-21"
+  last_modified_date: "2026-09-22"
 ---
 
 # DECISIONS.md
@@ -837,4 +838,12 @@ Housekeeping in the same ledger pass, verified against on-disk reports:
 repaired the B5-0325 row corrupted by a literal HERMES-CONTEXT-COMPRESSION
 marker string (restored from its verified report) and completed B5-0326's
 stale claim/verify metadata.
+
+2026-09-21 — B5-0330 (solar-pro4, solar-pro4:free): Zone overflow guard
+  (F11). Adds "(+ N more)" overflow indicators in all three card zones
+  (Inner Circle, Fleets, Groups/Locations) in GameBoardPanel.drawZone().
+  Counters track drawn vs total in each zone; when drawn < total, a yellow
+  label "(+ N more)" renders below the row at x+8, cy+58. Addresses B5-0310
+  audit finding F11 (silent clipping of overflow cards). Suite 81/81 PASS,
+  smoke PASS, Java 6 gate clean.
 

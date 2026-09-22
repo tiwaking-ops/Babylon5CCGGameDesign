@@ -117,10 +117,17 @@ public class GameBoardPanel extends JPanel {
         g.setColor(new Color(160, 200, 160));
         g.setFont(new Font("SansSerif", Font.ITALIC, 9));
         g.drawString("Inner Circle:", x + 8, cy - 4);
+        int icDrawn = 0;
         for (CharacterCard ch : p.getInnerCircle()) {
             if (cx + 50 > x + w - 4) break;
             drawMiniCard(g, ch, cx, cy, false);
             cx += 52;
+            icDrawn++;
+        }
+        if (icDrawn < p.getInnerCircle().size()) {
+            g.setColor(new Color(200, 180, 100));
+            g.setFont(new Font("SansSerif", Font.PLAIN, 8));
+            g.drawString("(+ " + (p.getInnerCircle().size() - icDrawn) + " more)", x + 8, cy + 58);
         }
 
         // Fleets
@@ -128,10 +135,17 @@ public class GameBoardPanel extends JPanel {
         cy = y + 310;
         g.setColor(new Color(160, 180, 220));
         g.drawString("Fleets:", x + 8, cy - 4);
+        int flDrawn = 0;
         for (FleetCard fl : p.getFleets()) {
             if (cx + 50 > x + w - 4) break;
             drawMiniCard(g, fl, cx, cy, false);
             cx += 52;
+            flDrawn++;
+        }
+        if (flDrawn < p.getFleets().size()) {
+            g.setColor(new Color(200, 180, 100));
+            g.setFont(new Font("SansSerif", Font.PLAIN, 8));
+            g.drawString("(+ " + (p.getFleets().size() - flDrawn) + " more)", x + 8, cy + 58);
         }
 
         // Groups / Locations
@@ -139,15 +153,24 @@ public class GameBoardPanel extends JPanel {
         cy = y + 430;
         g.setColor(new Color(200, 180, 140));
         g.drawString("Groups/Loc:", x + 8, cy - 4);
+        int glDrawn = 0;
+        int glTotal = p.getGroups().size() + p.getLocations().size();
         for (GroupCard gr : p.getGroups()) {
             if (cx + 50 > x + w - 4) break;
             drawMiniCard(g, gr, cx, cy, false);
             cx += 52;
+            glDrawn++;
         }
         for (LocationCard lc : p.getLocations()) {
             if (cx + 50 > x + w - 4) break;
             drawMiniCard(g, lc, cx, cy, false);
             cx += 52;
+            glDrawn++;
+        }
+        if (glDrawn < glTotal) {
+            g.setColor(new Color(200, 180, 100));
+            g.setFont(new Font("SansSerif", Font.PLAIN, 8));
+            g.drawString("(+ " + (glTotal - glDrawn) + " more)", x + 8, cy + 58);
         }
 
         // Deck count
