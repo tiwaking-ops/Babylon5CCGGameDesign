@@ -22,9 +22,6 @@ public abstract class Card {
     private boolean neutralizedThisTurn = false;
     private int strifeMarks = 0;
 
-    // B5-0323: influence cost to bring this card into play (rulebook
-    // §Anatomy item 2). Defaults to 0 — no card currently carries the
-    // key (B5-0311 C1); backfilling prices is a later data task.
     private int cost = 0;
     private final List<ContingencyCard> contingencies = new ArrayList<ContingencyCard>();
 
@@ -60,13 +57,11 @@ public abstract class Card {
     public int getStrifeMarks() { return strifeMarks; }
     public void setStrifeMarks(int count) { strifeMarks = Math.max(0, count); }
 
-    /** B5-0323: cost accessors. Negative values clamp to 0. */
     public int  getCost()      { return cost; }
     public void setCost(int c) { cost = Math.max(0, c); }
 
     public void rotate()   { rotated  = true; }
     public void unrotate() { rotated  = false; }
-    /** Legacy B5-0309 conflict damage remains a face-down flip, not a token hit. */
     public void damage()   { faceDown = true; neutralized = true; neutralizedThisTurn = true; onNeutralized(); }
     public void heal()     { faceDown = false; neutralized = false; damageTokens = 0; severeDamageTokens = 0; }
 
@@ -77,29 +72,24 @@ public abstract class Card {
     public boolean canActAfterNeutralization() { return !neutralizedThisTurn; }
     public void resetNeutralizedTurnLock() { neutralizedThisTurn = false; }
 
-    /** Highest ability before damage reductions; subclasses supply their live bonus-aware value. */
     public int getGreatestAbility() { return 0; }
 
-    /** Adds normal damage, converting the neutralizing amount to severe overflow. */
     public int applyDamage(int amount) {
         if (amount <= 0 || neutralized) return 0;
         damageTokens += amount;
         return reconcileDamage();
     }
 
-    /** Current damage dealt by an attack using this card's conflict ability. */
     public int getAttackDamage(ConflictType type) {
         return Math.max(0, getPrimaryStatValue(type)) + 2 * strifeMarks;
     }
 
-    /** Apply additional severe damage to a card already neutralized. */
     public int applySevereDamage(int amount) {
         if (amount <= 0 || !neutralized) return 0;
         severeDamageTokens += amount;
         return amount;
     }
 
-    /** Rechecks neutralization after a bonus changes; returns newly severe overflow. */
     public int reconcileDamage() {
         int greatest = Math.max(1, getGreatestAbility());
         if (neutralized || damageTokens < greatest) return 0;
@@ -113,10 +103,8 @@ public abstract class Card {
         return overflow;
     }
 
-    /** Notification for dependent cards (e.g. a character leading a fleet). */
     protected void onNeutralized() { }
 
-    /** Fleet leadership neutralizes a character without transferring damage. */
     public void neutralizeFromFleet() {
         if (neutralized) return;
         neutralized = true;
@@ -125,7 +113,6 @@ public abstract class Card {
         onNeutralized();
     }
 
-    /** Heal normal damage. A neutralized card only flips up once severe damage is gone. */
     public int healDamage() {
         if (neutralized) {
             if (severeDamageTokens > 0) severeDamageTokens--;
@@ -148,8 +135,12 @@ public abstract class Card {
         return repaired;
     }
 
-    /** B5-0365: face-down contingency cards currently placed under this host. */
     public int getContingencyCount() { return contingencies.size(); }
+
+    public List<ContingencyCard> getContingencies() {
+        return Collections.unmodifiableList(contingencies);
+    }
+
     boolean addContingency(ContingencyCard contingency) {
         if (contingency == null || contingencies.contains(contingency)) return false;
         contingencies.add(contingency);
@@ -159,7 +150,6 @@ public abstract class Card {
         return contingencies.remove(contingency);
     }
 
-    /** Returns the stat value used in the given conflict type for this card. */
     public abstract int getPrimaryStatValue(ConflictType type);
 
     @Override
