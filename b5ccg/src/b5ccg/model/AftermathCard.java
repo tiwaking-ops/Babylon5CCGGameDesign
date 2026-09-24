@@ -15,6 +15,15 @@ public class AftermathCard extends Card {
 
     public String getTriggerCondition() { return triggerCondition; }
 
+    /**
+     * B5-0338 (audit D2): true when the card's play conditions include
+     * "Participant" — the rulebook's key that widens targeting from the
+     * initiating faction to "any faction that either Supported, Opposed or
+     * Attacked" (Aftermath Cards / Participant). Non-Participant aftermaths
+     * may target only the faction that initiated the resolved conflict.
+     */
+    public boolean isParticipantCondition() { return triggerCondition.contains("PARTICIPANT"); }
+
     public boolean isEligible(boolean playerWon, boolean playerParticipated,
                               ConflictType conflictType) {
         String t = triggerCondition;

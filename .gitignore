@@ -12,3 +12,4 @@ verify_task.py
 # Python cache
 __pycache__/
 *.pyc
+.aider*

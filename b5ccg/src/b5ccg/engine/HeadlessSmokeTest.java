@@ -205,12 +205,11 @@ public class HeadlessSmokeTest {
             }
             Card card = action.getCard();
             if (card != null) {
-                // BUILD_INFLUENCE and PROMOTE_CHARACTER carry an IC/supporting-role
-                // character as their card — that card lives in the inner circle /
-                // supporting role, not the hand. Skip the hand-membership check for
-                // those types (the GameController/RulesEngine enforce the real rules).
+                // Action payloads for these types are controlled cards, not hand
+                // cards. The GameController/RulesEngine enforce their real gates.
                 if (action.getType() != GameAction.Type.BUILD_INFLUENCE
-                        && action.getType() != GameAction.Type.PROMOTE_CHARACTER) {
+                        && action.getType() != GameAction.Type.PROMOTE_CHARACTER
+                        && action.getType() != GameAction.Type.USE_ROTATE_EFFECT) {
                     if (!p.getHand().contains(card)) {
                         return fail("AIPlayer(" + NAMES[i] + ") chose " + action
                             + " but that card is not in its hand");

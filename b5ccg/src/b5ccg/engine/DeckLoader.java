@@ -99,6 +99,27 @@ public class DeckLoader {
                     try { c.setCost(Integer.parseInt(costStr.trim())); }
                     catch (NumberFormatException nfe) { /* keep default 0 */ }
                 }
+                // B5-0336: optional nested "participation" object on CONFLICT
+                // cards (proposal §3). Absent → null = open participation
+                // (§3.4 backward compatibility — no current card carries it).
+                // Malformed fragments are logged loudly and left open (§5.2).
+                String partStr = obj.get("participation");
+                if (partStr != null && partStr.trim().startsWith("{")
+                        && c instanceof ConflictCard) {
+                    try { ((ConflictCard) c).setParticipation(Participation.parse(partStr)); }
+                    catch (RuntimeException re) {
+                        System.err.println("B5-0336: bad participation for " + obj.get("id")
+                            + " — open participation kept (" + re.getMessage() + ")");
+                    }
+                }
+                // B5-0395: optional boolean "mercenary" flag (rulebook
+                // §Mercenaries). Absent → false, per B5-0386's schema rec —
+                // the current data carries no such flag, so this is purely a
+                // latent surface for fixtures and future data work.
+                String mercStr = obj.get("mercenary");
+                if (mercStr != null) {
+                    c.setMercenary("true".equalsIgnoreCase(mercStr.trim()));
+                }
                 cards.add(c);
             } catch (Exception e) {
                 System.err.println("Skipping card, parse error: " + e.getMessage()
@@ -175,9 +196,30 @@ public class DeckLoader {
                 }
                 value = sb.toString();
             } else {
-                // Primitive (number/boolean)
+                // Primitive (number/boolean) — B5-0336: a value may also be a
+                // nested object/array (e.g. "participation"); scan to the
+                // matching close so the map keeps the raw fragment. DeckLoader
+                // has no tree parser — consumers parse the fragment.
                 int end = i;
-                while (end < obj.length() && obj.charAt(end) != ',' && obj.charAt(end) != '}') end++;
+                int depth = 0;
+                while (end < obj.length()) {
+                    char v = obj.charAt(end);
+                    if (v == '"') {
+                        end++;
+                        while (end < obj.length() && obj.charAt(end) != '"') {
+                            if (obj.charAt(end) == '\\' && end + 1 < obj.length()) end++;
+                            end++;
+                        }
+                        if (end < obj.length()) end++;
+                        continue;
+                    }
+                    if (v == '{' || v == '[') depth++;
+                    else if (v == '}' || v == ']') {
+                        if (depth == 0) break;   // this object's closing brace
+                        depth--;
+                    } else if (v == ',' && depth == 0) break;
+                    end++;
+                }
                 value = obj.substring(i, end).trim();
                 i = end;
             }
@@ -214,8 +256,12 @@ public class DeckLoader {
             }
             case FLEET: {
                 int mil = intVal(m, "military", 1);
-                return new FleetCard(id, title, subtype, rarity, faction, cardSet,
-                                     imgKey, text, mil);
+                FleetCard fleet = new FleetCard(id, title, subtype, rarity, faction, cardSet,
+                                                imgKey, text, mil);
+                // B5-0336: optional fleetClass (proposal §3.6) — consumed by
+                // participation fleetSubtypes filters. Absent → null (unknown).
+                fleet.setFleetClass(getOrDefault(m, "fleetClass", null));
+                return fleet;
             }
             case CONFLICT: {
                 ConflictType ct  = ConflictType.valueOf(
@@ -237,6 +283,11 @@ public class DeckLoader {
             }
             case EVENT:
                 return new EventCard(id, title, subtype, rarity, faction, cardSet, imgKey, text);
+            case CONTINGENCY:
+                return new ContingencyCard(id, title, subtype, rarity, faction,
+                        cardSet, imgKey, text, getOrDefault(m, "validTargetType", "ANY"),
+                        getOrDefault(m, "validTargetRace", "ANY"),
+                        getOrDefault(m, "triggerCondition", ""));
             case ENHANCEMENT: {
                 int dip  = intVal(m, "diplomacyBonus",  0);
                 int intr = intVal(m, "intrigueBonus",   0);
@@ -250,8 +301,9 @@ public class DeckLoader {
                 return new GroupCard(id, title, subtype, rarity, faction, cardSet, imgKey, text);
             case LOCATION: {
                 int income = intVal(m, "influencePerRound", 1);
+                int military = intVal(m, "military", 0);
                 return new LocationCard(id, title, subtype, rarity, faction, cardSet,
-                                        imgKey, text, income);
+                                        imgKey, text, income, military);
             }
             default:
                 throw new IllegalArgumentException("Unknown card type: " + type);

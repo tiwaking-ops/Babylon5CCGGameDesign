@@ -32,6 +32,31 @@ public final class CardEffects {
 
     private CardEffects() { }
 
+    /** Typed free-action waivers dispatched by card id, without text parsing. */
+    public enum WaiverEffect {
+        NONE, FREE_SPONSOR, FREE_PARTICIPANT
+    }
+
+    private static final Map<String, WaiverEffect> WAIVER_EFFECTS =
+            new HashMap<String, WaiverEffect>();
+    static {
+        // B5-0360 E3 / Q4: both set versions grant the same join waiver.
+        WAIVER_EFFECTS.put("conf_non_aligned_support", WaiverEffect.FREE_PARTICIPANT);
+        WAIVER_EFFECTS.put("de_conf_non_aligned_support", WaiverEffect.FREE_PARTICIPANT);
+    }
+
+    public static WaiverEffect sponsorWaiver(Card card) {
+        if (card == null) return WaiverEffect.NONE;
+        WaiverEffect effect = WAIVER_EFFECTS.get(card.getId());
+        return effect == WaiverEffect.FREE_SPONSOR ? effect : WaiverEffect.NONE;
+    }
+
+    public static WaiverEffect participantWaiver(Conflict conflict) {
+        if (conflict == null) return WaiverEffect.NONE;
+        WaiverEffect effect = WAIVER_EFFECTS.get(conflict.getCard().getId());
+        return effect == WaiverEffect.FREE_PARTICIPANT ? effect : WaiverEffect.NONE;
+    }
+
     // ── Events: card id → influence gain for the playing player ─────────────
     // Data: event texts "Gain N Influence."
     private static final Map<String, Integer> EVENT_INFLUENCE = new HashMap<String, Integer>();
@@ -164,6 +189,18 @@ public final class CardEffects {
         }
     }
 
+    /** B5-0365: reveal uses the same id-keyed effect dispatch as an Event. */
+    public static boolean revealContingency(GameState state, Player p,
+                                            ContingencyCard card) {
+        if (card == null || !card.reveal()) return false;
+        state.log(p.getName() + " reveals contingency " + card.getTitle()
+                + " (trigger: " + card.getTriggerCondition() + ").");
+        applyPlayEvent(state, p, card);
+        card.detach();
+        if (p.getDeck() != null) p.getDeck().discard(card);
+        return true;
+    }
+
     /**
      * Plays an Enhancement card: attaches it to the strongest valid live
      * target and applies the JSON bonus fields. Faction/Global/Location/
@@ -182,7 +219,10 @@ public final class CardEffects {
             int delta = card.getMilitaryBonus();
             p.getEnhancements().add(card);
             if (target != null && delta != 0) {
-                target.applyMilitaryDelta(delta);
+                // B5-0366: route the bonus through the registry, not field mutation.
+                target.setOwner(p);
+                p.grantBonus(StatBonus.attached(card.getId(), StatKey.MILITARY, delta,
+                        target.getId(), Expiry.WHILE_IN_PLAY, state.getRoundNumber()));
                 state.log(p.getName() + " attaches " + card.getTitle() + " to "
                         + target.getTitle() + " (Military "
                         + (delta >= 0 ? "+" : "") + delta + ").");
@@ -200,8 +240,16 @@ public final class CardEffects {
             int psi = card.getPsiBonus();
             int lead = card.getLeadershipBonus();
             p.getEnhancements().add(card);
+            int r = state.getRoundNumber();
+            if (target != null) {
+                // B5-0366: route each non-zero bonus through the registry.
+                target.setOwner(p);
+                if (dip != 0)  p.grantBonus(StatBonus.attached(card.getId(), StatKey.DIPLOMACY,   dip,  target.getId(), Expiry.WHILE_IN_PLAY, r));
+                if (inr != 0)  p.grantBonus(StatBonus.attached(card.getId(), StatKey.INTRIGUE,    inr,  target.getId(), Expiry.WHILE_IN_PLAY, r));
+                if (psi != 0)  p.grantBonus(StatBonus.attached(card.getId(), StatKey.PSI,         psi,  target.getId(), Expiry.WHILE_IN_PLAY, r));
+                if (lead != 0) p.grantBonus(StatBonus.attached(card.getId(), StatKey.LEADERSHIP, lead, target.getId(), Expiry.WHILE_IN_PLAY, r));
+            }
             if (target != null && (dip != 0 || inr != 0 || psi != 0 || lead != 0)) {
-                target.applyStatDelta(dip, inr, psi, lead);
                 state.log(p.getName() + " attaches " + card.getTitle() + " to "
                         + target.getTitle() + " (+" + dip + " Dip, +" + inr + " Intr, +"
                         + psi + " Psi, +" + lead + " Lead).");
@@ -215,8 +263,10 @@ public final class CardEffects {
         if ("ENHANCEMENT_FACTION".equals(subtype)) {
             p.getEnhancements().add(card);
             int mil = card.getMilitaryBonus();
+            // B5-066: faction-scope bonus goes through the registry.
             if (mil != 0) {
-                for (FleetCard f : p.getFleets()) f.applyMilitaryDelta(mil);
+                p.grantBonus(StatBonus.faction(card.getId(), StatKey.MILITARY, mil,
+                        p.getName(), Expiry.WHILE_IN_PLAY, state.getRoundNumber()));
                 state.log(p.getName() + " plays " + card.getTitle()
                         + " (all own fleets " + (mil >= 0 ? "+" : "") + mil + " Military).");
             } else {
@@ -238,6 +288,10 @@ public final class CardEffects {
      */
     public static void applyConflictOutcome(GameState state, Conflict conflict,
                                             Player winner, Player loser) {
+        // B5-0366/0376: war conflicts have card == null (no ConflictCard);
+        // their card-specific loser penalties don't apply — the war influence
+        // swing is handled at the resolution site in RulesEngine.
+        if (conflict.getCard() == null) return;
         String id = conflict.getCard().getId();
 
         Integer loseInf = (Integer) CONFLICT_LOSER_INFLUENCE.get(id);
@@ -273,7 +327,9 @@ public final class CardEffects {
     /** Agenda effect when played: fleet-wide Military bonus agendas. */
     public static void applyAgendaOnPlay(GameState state, Player p, AgendaCard agenda) {
         if (AGENDA_FLEET_PLUS1.contains(agenda.getId())) {
-            for (FleetCard f : p.getFleets()) f.applyMilitaryDelta(1);
+            // B5-066: faction-scope bonus in the registry, not field mutation.
+            p.grantBonus(StatBonus.faction(agenda.getId(), StatKey.MILITARY, 1,
+                    p.getName(), Expiry.WHILE_IN_PLAY, state.getRoundNumber()));
             state.log(p.getName() + ": " + agenda.getTitle()
                     + " grants all own fleets +1 Military.");
         }
@@ -282,7 +338,8 @@ public final class CardEffects {
     /** Agenda effect at the start of each round (call from startRound). */
     public static void applyAgendaStartOfRound(GameState state, Player p) {
         AgendaCard agenda = p.getAgenda();
-        if (agenda == null) return;
+        // B5-0364: hidden agendas have no effect on play until revealed (:520).
+        if (agenda == null || agenda.isFaceDown()) return;
         Integer inf = (Integer) AGENDA_ROUND_INFLUENCE.get(agenda.getId());
         if (inf == null) return;
         // de_agenda_servants_of_order text: requires 2+ Inner Circle characters.
@@ -298,7 +355,8 @@ public final class CardEffects {
     /** Extra influence when the agenda owner wins a Diplomacy conflict. */
     public static int agendaDiplomacyWinBonus(Player p) {
         AgendaCard agenda = p.getAgenda();
-        if (agenda == null) return 0;
+        // B5-0364: hidden agendas have no effect on play until revealed (:520).
+        if (agenda == null || agenda.isFaceDown()) return 0;
         Integer bonus = (Integer) AGENDA_DIPLOMACY_WIN.get(agenda.getId());
         return bonus == null ? 0 : bonus.intValue();
     }
@@ -313,13 +371,49 @@ public final class CardEffects {
         return bonus;
     }
 
+    /** B5-0376 Phase B: true when the enhancement augments location income. */
+    public static boolean isLocationIncomeEnhancement(EnhancementCard e) {
+        return e != null && ENH_LOCATION_INCOME.containsKey(e.getId());
+    }
+
+    // ── Mercenaries (B5-0395) ─────────────────────────────────────────────────
+    // A controlled mercenary's effect fires once at the MERCENARY phase for
+    // its controller. The pool carries zero mercenary cards (B5-0386 no-
+    // evidence verdict), so this table holds only the synthetic fixture used
+    // by the conformance suite; real effects arrive when data work lands.
+    // Unknown ids fire a LOUD no-op — never a silent pass, so a future card
+    // added without an effect is caught in play.
+    private static final Map<String, Integer> MERCENARY_FIXTURE_INFLUENCE =
+            new HashMap<String, Integer>();
+    static {
+        MERCENARY_FIXTURE_INFLUENCE.put("mer_metric_fixture", Integer.valueOf(1));
+    }
+
+    /** Executes the controlled mercenary's effect for its controller. */
+    public static void applyMercenaryAction(GameState state, Player controller, Card merc) {
+        if (state == null || controller == null || merc == null) return;
+        Integer inf = (Integer) MERCENARY_FIXTURE_INFLUENCE.get(merc.getId());
+        if (inf != null) {
+            controller.gainInfluence(inf.intValue());
+            state.log(controller.getName() + " controls " + merc.getTitle()
+                    + ", gaining " + inf + " influence.");
+            return;
+        }
+        System.err.println("B5-0395: mercenary " + merc.getId() + " has no "
+                + "registered effect — controller " + controller.getName()
+                + " gets nothing (loud no-op; add an entry when data lands).");
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private static FleetCard bestFleet(Player p) {
         FleetCard best = null;
         int bestMil = -1;
         for (FleetCard f : p.getFleets()) {
-            int mil = f.getMilitary();
+            // B5-066: use effective Military (includes bonuses) for target
+            // selection. setOwner so the read path sees the registry.
+            f.setOwner(p);
+            int mil = f.getEffectiveMilitary();
             if (mil > bestMil) { bestMil = mil; best = f; }
         }
         return best;
@@ -329,11 +423,18 @@ public final class CardEffects {
         CharacterCard best = p.getAmbassador();
         int bestStat = -1;
         if (best != null) {
-            bestStat = best.getDiplomacy() + best.getIntrigue()
-                     + best.getPsi() + best.getLeadership();
+            best.setOwner(p);
+            bestStat = best.getPrimaryStatValue(ConflictType.DIPLOMACY)
+                     + best.getPrimaryStatValue(ConflictType.INTRIGUE)
+                     + best.getPrimaryStatValue(ConflictType.PSI)
+                     + best.getPrimaryStatValue(ConflictType.MILITARY);
         }
         for (CharacterCard ch : p.getInnerCircle()) {
-            int stat = ch.getDiplomacy() + ch.getIntrigue() + ch.getPsi() + ch.getLeadership();
+            ch.setOwner(p);
+            int stat = ch.getPrimaryStatValue(ConflictType.DIPLOMACY)
+                     + ch.getPrimaryStatValue(ConflictType.INTRIGUE)
+                     + ch.getPrimaryStatValue(ConflictType.PSI)
+                     + ch.getPrimaryStatValue(ConflictType.MILITARY);
             if (stat > bestStat) { bestStat = stat; best = ch; }
         }
         return best;

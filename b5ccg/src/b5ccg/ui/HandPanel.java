@@ -1,12 +1,16 @@
 package b5ccg.ui;
 
+import b5ccg.engine.RulesEngine;
 import b5ccg.model.*;
+import b5ccg.model.enums.*;
 import javax.swing.*;
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.List;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 /** Java 6-compatible callback for card-selection events. */
 interface CardSelectedListener {
@@ -23,6 +27,25 @@ public class HandPanel extends JPanel {
     private int             selectedIndex = -1;
     private CardSelectedListener onCardSelected;
 
+    // B5-0348: filtering + sorting + playable highlight
+    private RulesEngine     rules;
+    private Player          humanPlayer;
+    // B5-0361: resolved-conflict context for the eligible-aftermath highlight.
+    // Null conflict/state are handled defensively (never NPE):
+    // no conflict held means aftermaths are simply not eligible.
+    private Conflict        resolvedConflict;
+    private GameState       resolvedState;
+    private boolean[]       typeFilter = new boolean[CardType.values().length];
+    private boolean[]       factionFilter = new boolean[Faction.values().length];
+    private int             sortMode = 0;   // 0=unsorted, 1=cost asc, 2=cost desc
+    private boolean         showUnplayable = true;
+
+    // fill filters with defaults: all types on, all factions on
+    {
+        for (int i = 0; i < typeFilter.length; i++) typeFilter[i] = true;
+        for (int i = 0; i < factionFilter.length; i++) factionFilter[i] = true;
+    }
+
     public HandPanel() {
         setBackground(new Color(10, 25, 10));
         setPreferredSize(new Dimension(1280, 170));
@@ -33,8 +56,69 @@ public class HandPanel extends JPanel {
         });
     }
 
+    // B5-0348: inject rules engine + human faction for affordability/playability checks
+    public void setRules(RulesEngine rules, Faction humanFaction) {
+        this.rules = rules;
+        // humanFaction stored for filter purposes; humanPlayer for affordability
+    }
+
+    public void setHumanPlayer(Player human) { this.humanPlayer = human; }
+
+    // B5-0348: type filter control
+    public void setTypeFilter(CardType type, boolean show) {
+        typeFilter[type.ordinal()] = show;
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override public void run() { repaint(); }
+        });
+    }
+
+    // B5-0348: faction filter control
+    public void setFactionFilter(Faction faction, boolean show) {
+        factionFilter[faction.ordinal()] = show;
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override public void run() { repaint(); }
+        });
+    }
+
+    // B5-0348: sort mode — 0=insertion order, 1=cost ascending, 2=cost descending
+    public void setSortMode(int mode) {
+        sortMode = mode;
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override public void run() { repaint(); }
+        });
+    }
+
+    // B5-0348: toggle dimming of unaffordable cards
+    public void setShowUnplayable(boolean show) {
+        showUnplayable = show;
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override public void run() { repaint(); }
+        });
+    }
+
     public void setOnCardSelected(CardSelectedListener cb) { onCardSelected = cb; }
 
+    // B5-0348: update hand with affordability checks
+    public void update(List<Card> hand, RulesEngine rules, Player human) {
+        this.hand = new ArrayList<Card>(hand);
+        this.rules = rules;
+        this.humanPlayer = human;
+        selectedIndex = -1;
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override public void run() { repaint(); }
+        });
+    }
+
+    /** B5-0361: MainWindow brokers the UI-held conflict + state here each
+     *  refresh; the highlight is an eligibility READOUT against the last
+     *  resolved conflict (the controller's aftermath auto-play is AI-only,
+     *  so this never promises a human play action). */
+    public void setResolvedConflictContext(Conflict c, GameState s) {
+        this.resolvedConflict = c;
+        this.resolvedState = s;
+    }
+
+    // backward-compatible overload for callers that don't pass rules/player
     public void update(List<Card> hand) {
         this.hand = new ArrayList<Card>(hand);
         selectedIndex = -1;
@@ -44,18 +128,80 @@ public class HandPanel extends JPanel {
     }
 
     private void handleClick(int mx, int my) {
-        for (int i = hand.size() - 1; i >= 0; i--) {
-            int x = 10 + i * (CARD_W - OVERLAP);
+        // B5-0348: account for filtered view — only iterate visible cards
+        int x = 10;
+        for (int i = 0; i < hand.size(); i++) {
+            Card card = hand.get(i);
+            if (!cardVisible(card)) { x += (CARD_W - OVERLAP); continue; }
             int y = (getHeight() - CARD_H) / 2;
-            if (mx >= x && mx <= x + CARD_W && my >= y && my <= y + CARD_H) {
-                selectedIndex = i;
-                if (onCardSelected != null) onCardSelected.onCardSelected(hand.get(i));
+            int w = CARD_W;
+            if (mx >= x && mx <= x + w && my >= y && my <= y + CARD_H) {
+                selectedIndex = hand.indexOf(card);
+                if (onCardSelected != null) onCardSelected.onCardSelected(card);
                 repaint();
                 return;
             }
+            x += (CARD_W - OVERLAP);
         }
         selectedIndex = -1;
         repaint();
+    }
+
+    // B5-0348: returns true when card passes all active filters
+    private boolean cardVisible(Card card) {
+        if (!typeFilter[card.getType().ordinal()]) return false;
+        if (!factionFilter[card.getFaction().ordinal()]) return false;
+        return true;
+    }
+
+    // B5-0361: eligible-aftermath readout — true when THIS aftermath has at
+    // least one legal target on the UI-held resolved conflict (6-arg
+    // canPlayAftermath per candidate: non-Participant aftermaths target the
+    // initiator only, Participant aftermaths any participant; D4 registry
+    // consulted via the state). Never a play promise.
+    private boolean aftermathEligible(AftermathCard am) {
+        if (rules == null || humanPlayer == null) return false;
+        Conflict c = resolvedConflict;
+        if (c == null || !c.isResolved() || c.getWinner() == null) return false;
+        boolean initiatorWon = (c.getWinner() == c.getInitiator());
+        for (Player cand : resolvedState.getPlayers()) {
+            if (rules.canPlayAftermath(humanPlayer, am, c, initiatorWon, cand,
+                                       resolvedState)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // B5-0348: returns true when the human player can afford/play this card via a spending action
+    private boolean cardPlayable(Card card) {
+        if (rules == null || humanPlayer == null) return true;
+        // B5-0361: aftermaths are conflict-resolved resources — the engine
+        // never offers humans a voluntary play; "playable" = an eligible
+        // target exists on the UI-held resolved conflict (replaces the old
+        // misleading generic-tail answer of always-true).
+        if (card instanceof AftermathCard) return aftermathEligible((AftermathCard) card);
+        if (card instanceof CharacterCard) {
+            CharacterCard ch = (CharacterCard) card;
+            // Sponsor (recruit from hand) affordability
+            if (humanPlayer.getHand().contains(ch)
+                    && !ch.isRotated() && !ch.isFaceDown()) {
+                if (rules.canRecruit(humanPlayer, ch)) return true;
+            }
+            // Promote affordability (card is in supporting role)
+            if (humanPlayer.getSupportingRole().contains(ch)
+                    && !ch.isRotated() && !ch.isFaceDown()) {
+                if (rules.canPromote(humanPlayer, ch)) return true;
+            }
+            // Build Influence is not card-specific; handled separately
+            return false;
+        }
+        // Non-character cards: conflict cards are playable if faction-legal (checked elsewhere)
+        // Agenda/Event/Enhancement/Group/Location cards: playable via playCard if faction-legal
+        if (card.getFaction().isPlayableBy(humanPlayer.getFaction())) {
+            return humanPlayer.getHand().contains(card);
+        }
+        return false;
     }
 
     @Override
@@ -66,18 +212,49 @@ public class HandPanel extends JPanel {
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
+        // B5-0348: build a sorted+filtered view
+        List<Card> visible = new ArrayList<Card>();
+        for (Card c : hand) {
+            if (cardVisible(c)) visible.add(c);
+        }
+        if (sortMode == 1) {
+            Collections.sort(visible, new Comparator<Card>() {
+                @Override public int compare(Card a, Card b) {
+                    return Integer.compare(a.getCost(), b.getCost());
+                }
+            });
+        } else if (sortMode == 2) {
+            Collections.sort(visible, new Comparator<Card>() {
+                @Override public int compare(Card a, Card b) {
+                    return Integer.compare(b.getCost(), a.getCost());
+                }
+            });
+        }
+
         int startX = 10;
         int baseY  = (getHeight() - CARD_H) / 2;
 
-        for (int i = 0; i < hand.size(); i++) {
-            Card card = hand.get(i);
-            int  x    = startX + i * (CARD_W - OVERLAP);
-            int  y    = baseY - (i == selectedIndex ? 14 : 0);
-            drawCard(g2, card, x, y, i == selectedIndex);
+        for (int i = 0; i < visible.size(); i++) {
+            Card card = visible.get(i);
+            int x = startX + i * (CARD_W - OVERLAP);
+            int y = baseY - (card == getSelectedCard() ? 14 : 0);
+            boolean selected = (card == getSelectedCard());
+            boolean playable = cardPlayable(card);
+            boolean dimmed = !showUnplayable && !playable;
+            drawCard(g2, card, x, y, selected, dimmed);
         }
     }
 
-    private void drawCard(Graphics2D g, Card card, int x, int y, boolean selected) {
+    // B5-0348 helper: is this card the selected one?
+    private Card getSelectedCard() {
+        if (selectedIndex < 0 || selectedIndex >= hand.size()) return null;
+        return hand.get(selectedIndex);
+    }
+
+    private void drawCard(Graphics2D g, Card card, int x, int y, boolean selected,
+                          boolean dimmed) {
+        Color savedColor = g.getColor();
+
         // Shadow
         if (selected) {
             g.setColor(new Color(0, 200, 0, 80));
@@ -89,6 +266,24 @@ public class HandPanel extends JPanel {
         g.fillRoundRect(x, y, CARD_W, 16, 4, 4);
         g.setColor(new Color(20, 20, 50));
         g.fillRoundRect(x, y + 14, CARD_W, CARD_H - 14, 4, 4);
+
+        // B5-0348: dim unaffordable/unplayable cards
+        if (dimmed) {
+            g.setColor(new Color(0, 0, 0, 128));
+            g.fillRoundRect(x, y, CARD_W, CARD_H, 8, 8);
+        }
+
+        // B5-0361: eligible-aftermath highlight — green tag when this
+        // aftermath has a legal target on the last resolved conflict (an
+        // eligibility READOUT; the engine never offers humans a voluntary
+        // aftermath play). Drawn after the dim overlay so it is never hidden.
+        if (card instanceof AftermathCard && aftermathEligible((AftermathCard) card)) {
+            g.setColor(new Color(30, 140, 30));
+            g.fillRoundRect(x + 4, y + CARD_H - 16, CARD_W - 8, 13, 6, 6);
+            g.setColor(Color.WHITE);
+            g.setFont(new Font("SansSerif", Font.BOLD, 9));
+            g.drawString("ELIGIBLE", x + 16, y + CARD_H - 6);
+        }
 
         // Border
         g.setColor(selected ? new Color(100, 220, 100) : new Color(140, 110, 40));
@@ -119,25 +314,31 @@ public class HandPanel extends JPanel {
             g.drawString("Cost: " + cost + " INF", x + 3, y + 46);
         }
 
+        // B5-0348: playable indicator — green dot for affordable cards
+        if (!dimmed && cost > 0 && card instanceof CharacterCard) {
+            g.setColor(new Color(100, 220, 100));
+            g.fillOval(x + CARD_W - 14, y + 8, 6, 6);
+        }
+
         // Stats
         g.setFont(new Font("SansSerif", Font.BOLD, 9));
-        g.setColor(new Color(160, 220, 160));
+        g.setColor(dimmed ? new Color(100, 100, 100) : new Color(160, 220, 160));
         if (card instanceof CharacterCard) {
             CharacterCard ch = (CharacterCard) card;
             g.drawString("D" + ch.getDiplomacy() + " I" + ch.getIntrigue()
                 + " P" + ch.getPsi() + " L" + ch.getLeadership(), x + 3, y + 50);
         } else if (card instanceof FleetCard) {
-            g.setColor(new Color(160, 190, 220));
+            g.setColor(dimmed ? new Color(100, 100, 100) : new Color(160, 190, 220));
             g.drawString("Military: " + ((FleetCard) card).getMilitary(), x + 3, y + 50);
         } else if (card instanceof ConflictCard) {
             ConflictCard cc = (ConflictCard) card;
-            g.setColor(new Color(220, 140, 140));
+            g.setColor(dimmed ? new Color(100, 100, 100) : new Color(220, 140, 140));
             g.drawString(cc.getConflictType() + "  +" + cc.getInfluenceReward() + " INF", x + 3, y + 50);
         }
 
         // Card text (abbreviated)
         g.setFont(new Font("SansSerif", Font.PLAIN, 7));
-        g.setColor(new Color(180, 180, 180));
+        g.setColor(dimmed ? new Color(100, 100, 100) : new Color(180, 180, 180));
         String text = card.getText() != null ? card.getText() : "";
         drawWrappedText(g, text, x + 3, y + 62, CARD_W - 6, CARD_H - 68);
 
@@ -149,6 +350,8 @@ public class HandPanel extends JPanel {
         g.setColor(new Color(100, 100, 100));
         g.setFont(new Font("SansSerif", Font.PLAIN, 7));
         g.drawString(String.valueOf(hand.indexOf(card) + 1 > 0 ? hand.indexOf(card) + 1 : ""), x + 3, y + CARD_H - 3);
+
+        g.setColor(savedColor);
     }
 
     private void drawWrappedText(Graphics2D g, String text, int x, int y, int maxW, int maxH) {

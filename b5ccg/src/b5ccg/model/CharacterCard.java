@@ -3,11 +3,23 @@ package b5ccg.model;
 import b5ccg.model.enums.*;
 
 public class CharacterCard extends Card {
-    private int     diplomacy;
-    private int     intrigue;
-    private int     psi;
-    private int     leadership;
+    private final int diplomacy;
+    private final int intrigue;
+    private final int psi;
+    private final int leadership;
     private final boolean isAmbassador;
+
+    // B5-0339 (rulebook §IV "Your Ambassador's Assistant"): set on a
+    // SUPPORTING-ROLE character while he is rotated to assist his faction's
+    // ambassador. Not a stat mutation — getPrimaryStatValue reads it as
+    // +1 Diplomacy/Intrigue/Leadership while the flag is up and the card is
+    // face-up; Psi is untouched (rulebook: Psi cannot be raised from a base
+    // of 0 by generic ability bonuses). Cleared by RulesEngine.startRound —
+    // the bonus lasts while the assistant remains rotated, and rotations
+    // expire at the round boundary. ("Sustained" bonuses and cross-faction
+    // assistant ownership need a card-ownership model that does not exist
+    // yet; recorded in DECISIONS.)
+    private boolean assistantBonus = false;
 
     public CharacterCard(String id, String title, String subtype,
                          Rarity rarity, Faction faction, CardSet cardSet,
@@ -29,22 +41,75 @@ public class CharacterCard extends Card {
     public int  getLeadership()   { return leadership; }
     public boolean isAmbassador() { return isAmbassador; }
 
-    /** Applies a stat delta (from Enhancements). Floors each stat at 0. */
-    public void applyStatDelta(int dDip, int dInt, int dPsi, int dLead) {
-        diplomacy  = Math.max(0, diplomacy  + dDip);
-        intrigue   = Math.max(0, intrigue   + dInt);
-        psi        = Math.max(0, psi        + dPsi);
-        leadership = Math.max(0, leadership + dLead);
+    /** B5-0339: assistant assist-bonus flag (see field comment). */
+    public boolean isAssistantBonus()          { return assistantBonus; }
+    public void    setAssistantBonus(boolean v) { assistantBonus = v; }
+
+    /** B5-0303: the owning player's bonus registry (set by the loader/
+     *  engine so this card can read its ATTACHED + FACTION bonuses).
+     *  Null until wired; getPrimaryStatValue falls back to printed base when
+     *  absent so isolated card use (tests, UI previews) stays correct. */
+    private Player owner;
+
+    public void setOwner(Player p) { owner = p; }
+
+    /**
+     * B5-0366: returns the printed (unmutated) stat. Enhancement bonuses live
+     * in the owner Player's bonus registry (B5-0357 proposal §3.1), not in
+     * this card's fields — see getPrimaryStatValue for the effective read.
+     * Kept for migration auditing; new code must not call this for combat
+     * resolution.
+     */
+    private int printedDiplomacy()    { return diplomacy; }
+    private int printedIntrigue()     { return intrigue; }
+    private int printedPsi()          { return psi; }
+    private int printedLeadership()   { return leadership; }
+
+    /**
+     * B5-0366: effective stat value — printed base + ATTACHED bonuses from the
+     * owner's registry, with the B5-0339 assistant overlay composed on top.
+     * Final clamp to 0 at the consumer (conflictTotal / getPrimaryStatValue).
+     */
+    @Override
+    public int getPrimaryStatValue(ConflictType type) {
+        reconcileDamage();
+        if (isFaceDown()) return 0;
+        int bonus = (assistantBonus && !isFaceDown()) ? 1 : 0;
+        switch (type) {
+            case DIPLOMACY:  return Math.max(0, effective(diplomacy, StatKey.DIPLOMACY) + bonus - getDamageTokens());
+            case INTRIGUE:   return Math.max(0, effective(intrigue, StatKey.INTRIGUE) + bonus - getDamageTokens());
+            case PSI:        return Math.max(0, effective(psi, StatKey.PSI) - getDamageTokens());
+            case MILITARY:   return Math.max(0, effective(leadership, StatKey.LEADERSHIP) + bonus - getDamageTokens());
+            default:         return 0;
+        }
+    }
+
+    /** Sum of ATTACHED + FACTION bonuses from the owner registry for one stat. */
+    private int effective(int printed, StatKey stat) {
+        if (owner == null) return printed;
+        return owner.effectiveStat(getId(), stat, printed, true);
+    }
+
+    /** Printed base plus active bonuses, before rotation or face-down suppression. */
+    public int getEffectiveStat(StatKey stat) {
+        int base;
+        switch (stat) {
+            case DIPLOMACY: base = diplomacy; break;
+            case INTRIGUE: base = intrigue; break;
+            case PSI: base = psi; break;
+            case LEADERSHIP: base = leadership; break;
+            default: return 0;
+        }
+        reconcileDamage();
+        return Math.max(0, effective(base, stat) - getDamageTokens());
     }
 
     @Override
-    public int getPrimaryStatValue(ConflictType type) {
-        switch (type) {
-            case DIPLOMACY: return isFaceDown() ? 0 : diplomacy;
-            case INTRIGUE:  return isFaceDown() ? 0 : intrigue;
-            case PSI:       return isFaceDown() ? 0 : psi;
-            case MILITARY:  return isFaceDown() ? 0 : leadership;
-            default:        return 0;
-        }
+    public int getGreatestAbility() {
+        int dip = effective(diplomacy, StatKey.DIPLOMACY) + (assistantBonus ? 1 : 0);
+        int intr = effective(intrigue, StatKey.INTRIGUE) + (assistantBonus ? 1 : 0);
+        int ps = effective(psi, StatKey.PSI);
+        int lead = effective(leadership, StatKey.LEADERSHIP) + (assistantBonus ? 1 : 0);
+        return Math.max(Math.max(dip, intr), Math.max(ps, lead));
     }
 }

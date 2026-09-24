@@ -25,12 +25,12 @@ public class AgendaCard extends Card {
         }
         if ("MILITARY_SUPREMACY".equals(winConditionKey)) {
             int ownerMil = 0;
-            for (FleetCard f : owner.getFleets()) ownerMil += f.getMilitary();
+            for (FleetCard f : owner.getFleets()) { f.setOwner(owner); ownerMil += f.getEffectiveMilitary(); }
             boolean supreme = true;
             for (Player p : state.getPlayers()) {
                 if (p == owner) continue;
                 int mil = 0;
-                for (FleetCard f : p.getFleets()) mil += f.getMilitary();
+                for (FleetCard f : p.getFleets()) { f.setOwner(p); mil += f.getEffectiveMilitary(); }
                 if (mil >= ownerMil) { supreme = false; break; }
             }
             return supreme;

@@ -23,14 +23,57 @@ public class MainWindow extends JFrame {
     private JButton promoteButton;
     private JButton buildInfluenceButton;
 
+    // B5-0380: agenda lifecycle actions for the human player's agenda slot.
+    private JButton discardAgendaButton;
+    private JButton replaceAgendaButton;
+    private JButton revealAgendaButton;
+
+// B5-0381: contingency reveal control. The human player gets a dropdown of
+    // their placed (face-down) contingencies plus a Reveal button that submits
+    // REVEAL_CONTINGENCY through the existing human-action pipeline.
+    private JComboBox<String> contingencySelector;
+    private JButton revealContingencyButton;
+
     // B5-0326 F5: cost preview readout
     private JLabel  costLabel;
+
+    // B5-0348: hand filter/sort controls
+    private JCheckBox typeCharBox;
+    private JCheckBox typeFleetBox;
+    private JCheckBox typeConflictBox;
+    private JCheckBox typeAgendaBox;
+    private JCheckBox typeAftermathBox;
+    private JCheckBox typeEventBox;
+    private JCheckBox typeEnhancementBox;
+    private JCheckBox typeGroupBox;
+    private JCheckBox typeLocationBox;
+    private JCheckBox fascHumanBox;
+    private JCheckBox fascMinbariBox;
+    private JCheckBox fascCentauriBox;
+    private JCheckBox fascNarnBox;
+    private JCheckBox fascNeutralBox;
+    private JCheckBox fascNonAlignedBox;
+    private JCheckBox fascVorlonBox;
+    private JCheckBox fascAnyBox;
+    private JRadioButton sortUnsorted;
+    private JRadioButton sortCostAsc;
+    private JRadioButton sortCostDesc;
+    private ButtonGroup sortGroup;
+    private JCheckBox showUnplayable;
 
     // B5-0325 F2: conflict target selector
     private JComboBox<String> targetSelector;
     private JButton supportButton;
     private JButton opposeButton;
     private Player selectedTarget;
+
+    // B5-0379: read-only participant list for the human join window. Rows are
+    // snapshots of the active Conflict's D14 sides API (B5-0309); the panel
+    // never mutates model state Ã¢â‚¬â€ Support/Oppose buttons remain the only
+    // commit path (they submit JOIN_CONFLICT_* into the B5-0363 collect).
+    private DefaultListModel participantListModel;
+    private JList participantList;
+    private JLabel joinPromptLabel;
 
     // B5-0327 F4: split Play/Initiate into separate buttons
     private JButton playCardOnlyButton;
@@ -43,7 +86,7 @@ public class MainWindow extends JFrame {
     private RulesEngine rules;
 
     public MainWindow(GameController controller) {
-        super("Babylon 5 CCG — Single Player");
+        super("Babylon 5 CCG Ã¢â‚¬â€ Single Player");
         this.controller = controller;
         this.rules = new RulesEngine();
 
@@ -51,11 +94,11 @@ public class MainWindow extends JFrame {
         setLayout(new BorderLayout(4, 4));
         getContentPane().setBackground(new Color(10, 20, 10));
 
-        // ── Board ─────────────────────────────────────────────────────────────
+        // Ã¢â€â‚¬Ã¢â€â‚¬ Board Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
         boardPanel = new GameBoardPanel();
         add(boardPanel, BorderLayout.CENTER);
 
-        // ── Right sidebar: log + conflict-type legend (F9) ─────────────────────
+        // Ã¢â€â‚¬Ã¢â€â‚¬ Right sidebar: log + conflict-type legend (F9) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
         logArea = new JTextArea(10, 24);
         logArea.setEditable(false);
         logArea.setBackground(new Color(10, 15, 30));
@@ -67,14 +110,55 @@ public class MainWindow extends JFrame {
             "Game Log", 0, 0, new Font("SansSerif", Font.BOLD, 10),
             new Color(180, 200, 180)));
         logScroll.getViewport().setBackground(new Color(10, 15, 30));
-        add(logScroll, BorderLayout.EAST);
 
-        // B5-0329 F9: conflict-type → ability legend
+        // B5-0379: right sidebar hosts the join-window participant list plus
+        // the log and the legend. One container only Ã¢â‚¬â€ BorderLayout.EAST holds
+        // a single child, so the three panels stack inside this box.
+        JPanel sidebar = new JPanel();
+        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
+        sidebar.setBackground(new Color(10, 20, 10));
+
+        // B5-0379: read-only participant list. Refreshed from refresh() on the
+        // EDT via refreshParticipantList(); never writes model state Ã¢â‚¬â€ the
+        // Support/Oppose buttons stay the sole commit path into the B5-0363
+        // offer-collect sequence.
+        joinPromptLabel = new JLabel("No active conflict.");
+        joinPromptLabel.setForeground(new Color(220, 200, 120));
+        joinPromptLabel.setFont(new Font("SansSerif", Font.BOLD, 10));
+        joinPromptLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        participantListModel = new DefaultListModel();
+        participantList = new JList(participantListModel);
+        participantList.setEnabled(false);
+        participantList.setFocusable(false);
+        participantList.setBackground(new Color(10, 15, 30));
+        participantList.setForeground(new Color(180, 200, 180));
+        participantList.setFont(new Font("Monospaced", Font.PLAIN, 10));
+        participantList.setVisibleRowCount(8);
+        JScrollPane participantScroll = new JScrollPane(participantList);
+        participantScroll.setAlignmentX(Component.LEFT_ALIGNMENT);
+        participantScroll.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(new Color(80, 120, 80)),
+            "Conflict Participants", 0, 0, new Font("SansSerif", Font.BOLD, 10),
+            new Color(180, 200, 180)));
+        participantScroll.getViewport().setBackground(new Color(10, 15, 30));
+        JPanel joinPanel = new JPanel();
+        joinPanel.setLayout(new BoxLayout(joinPanel, BoxLayout.Y_AXIS));
+        joinPanel.setBackground(new Color(10, 20, 10));
+        joinPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        joinPromptLabel.setMaximumSize(new Dimension(280, 20));
+        participantScroll.setMaximumSize(new Dimension(280, 140));
+        participantScroll.setPreferredSize(new Dimension(280, 140));
+        joinPanel.add(joinPromptLabel);
+        joinPanel.add(participantScroll);
+        sidebar.add(joinPanel);
+        sidebar.add(logScroll);
+
+        // B5-0329 F9: conflict-type Ã¢â€ â€™ ability legend
         JPanel legendPanel = new JPanel(new GridLayout(4, 2, 4, 2));
         legendPanel.setBackground(new Color(10, 20, 10));
         legendPanel.setBorder(BorderFactory.createTitledBorder(
             BorderFactory.createLineBorder(new Color(80, 130, 80)),
-            "Conflict Types → Abilities", 0, 0, new Font("SansSerif", Font.BOLD, 9),
+            "Conflict Types Ã¢â€ â€™ Abilities", 0, 0, new Font("SansSerif", Font.BOLD, 9),
             new Color(180, 200, 180)));
         String[][] legendData = {
             {"DIPLOMACY", "Diplomacy"},
@@ -86,24 +170,27 @@ public class MainWindow extends JFrame {
             JLabel typeLabel = new JLabel(row[0]);
             typeLabel.setForeground(new Color(220, 180, 100));
             typeLabel.setFont(new Font("Monospaced", Font.BOLD, 10));
-            JLabel abilLabel = new JLabel("→ " + row[1]);
+            JLabel abilLabel = new JLabel("Ã¢â€ â€™ " + row[1]);
             abilLabel.setForeground(new Color(180, 200, 180));
             abilLabel.setFont(new Font("Monospaced", Font.PLAIN, 10));
             legendPanel.add(typeLabel);
             legendPanel.add(abilLabel);
         }
-        add(legendPanel, BorderLayout.EAST);
+        legendPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        legendPanel.setMaximumSize(new Dimension(280, 120));
+        sidebar.add(legendPanel);
+        add(sidebar, BorderLayout.EAST);
 
-        // ── Bottom toolbar ────────────────────────────────────────────────────
+        // Ã¢â€â‚¬Ã¢â€â‚¬ Bottom toolbar Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
         JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
         toolbar.setBackground(new Color(10, 20, 10));
 
-        statusLabel = new JLabel("Initialising…");
+        statusLabel = new JLabel("InitialisingÃ¢â‚¬Â¦");
         statusLabel.setForeground(new Color(200, 220, 200));
         statusLabel.setFont(new Font("SansSerif", Font.PLAIN, 11));
 
         // B5-0327 F8: initiative order display
-        initiativeLabel = new JLabel("Initiative: —");
+        initiativeLabel = new JLabel("Initiative: Ã¢â‚¬â€");
         initiativeLabel.setForeground(new Color(180, 200, 220));
         initiativeLabel.setFont(new Font("Monospaced", Font.PLAIN, 11));
 
@@ -176,6 +263,73 @@ public class MainWindow extends JFrame {
         });
         buildInfluenceButton.setEnabled(false);
 
+        discardAgendaButton = makeButton("Discard Agenda", new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) {
+                Player hp = humanPlayer();
+                if (hp != null && rules.canDiscardAgenda(hp)) {
+                    MainWindow.this.controller.submitHumanAction(
+                        GameAction.discardAgenda(hp.getAgenda()));
+                }
+            }
+        });
+        discardAgendaButton.setEnabled(false);
+        discardAgendaButton.setToolTipText("Minor agendas may be discarded; Major agendas must be replaced.");
+
+        replaceAgendaButton = makeButton("Replace Agenda", new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) {
+                Player hp = humanPlayer();
+                CharacterCard leader = hp == null ? null : findUnrotatedIC(hp);
+                if (hp != null && selectedCard instanceof AgendaCard
+                        && rules.canReplaceAgenda(hp, (AgendaCard) selectedCard, leader)) {
+                    MainWindow.this.controller.submitHumanAction(
+                        GameAction.replaceAgenda((AgendaCard) selectedCard, leader));
+                    clearSelection();
+                }
+            }
+        });
+        replaceAgendaButton.setEnabled(false);
+        replaceAgendaButton.setToolTipText("Select an eligible agenda in hand; an Inner Circle character rotates.");
+
+        revealAgendaButton = makeButton("Reveal Agenda", new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) {
+                Player hp = humanPlayer();
+                if (hp != null && rules.canRevealAgenda(hp)) {
+                    MainWindow.this.controller.submitHumanAction(
+                        GameAction.revealAgenda(hp.getAgenda()));
+                }
+            }
+        });
+        revealAgendaButton.setEnabled(false);
+        revealAgendaButton.setToolTipText("Reveal your face-down agenda; it takes effect now.");
+
+        // B5-0381: reveal control for face-down contingencies placed under in-play hosts.
+        // The selector lists the human player's unrevealed contingencies via B5-0394
+        // accessors (GameState.getPlacedContingencies); the Reveal button submits
+        // REVEAL_CONTINGENCY for the selected one through the existing human pipeline.
+        String[] empty = new String[] { "(none)" };
+        contingencySelector = new JComboBox<String>(empty);
+        contingencySelector.setEnabled(false);
+        contingencySelector.setMaximumSize(new Dimension(180, 24));
+
+        revealContingencyButton = makeButton("Reveal Contingency", new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) {
+                Player hp = humanPlayer();
+                if (hp == null) return;
+                GameState gs = MainWindow.this.controller.getState();
+                java.util.List<ContingencyCard> placed = gs.getPlacedContingencies(hp);
+                if (placed.isEmpty()) return;
+                int sel = contingencySelector.getSelectedIndex();
+                if (sel < 0 || sel >= placed.size()) return;
+                ContingencyCard cc = placed.get(sel);
+                if (rules.canRevealContingency(hp, cc)) {
+                    MainWindow.this.controller.submitHumanAction(
+                        GameAction.revealContingency(cc));
+                }
+            }
+        });
+        revealContingencyButton.setEnabled(false);
+        revealContingencyButton.setToolTipText("Reveal a face-down contingency placed under one of your in-play hosts.");
+
         // B5-0325 F2: conflict target selector
         targetSelector = new JComboBox<String>();
         targetSelector.setEnabled(false);
@@ -217,6 +371,105 @@ public class MainWindow extends JFrame {
         costLabel.setForeground(new Color(200, 220, 200));
         costLabel.setFont(new Font("Monospaced", Font.PLAIN, 11));
 
+        // B5-0348: hand filter/sort panel
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
+        filterPanel.setBackground(new Color(10, 20, 10));
+        filterPanel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(new Color(80, 120, 80)),
+            "Filter / Sort", 0, 0, new Font("SansSerif", Font.BOLD, 9),
+            new Color(180, 200, 180)));
+
+        // Type filters
+        typeCharBox = makeTinyCheckBox("Char");
+        typeFleetBox = makeTinyCheckBox("Fleet");
+        typeConflictBox = makeTinyCheckBox("Conflict");
+        typeAgendaBox = makeTinyCheckBox("Agenda");
+        typeAftermathBox = makeTinyCheckBox("Aftermath");
+        typeEventBox = makeTinyCheckBox("Event");
+        typeEnhancementBox = makeTinyCheckBox("Enh");
+        typeGroupBox = makeTinyCheckBox("Group");
+        typeLocationBox = makeTinyCheckBox("Loc");
+        typeCharBox.setSelected(true);
+        typeFleetBox.setSelected(true);
+        typeConflictBox.setSelected(true);
+        typeAgendaBox.setSelected(true);
+        typeAftermathBox.setSelected(true);
+        typeEventBox.setSelected(true);
+        typeEnhancementBox.setSelected(true);
+        typeGroupBox.setSelected(true);
+        typeLocationBox.setSelected(true);
+
+        // Faction filters
+        fascHumanBox = makeTinyCheckBox("Human");
+        fascMinbariBox = makeTinyCheckBox("Minbari");
+        fascCentauriBox = makeTinyCheckBox("Centauri");
+        fascNarnBox = makeTinyCheckBox("Narn");
+        fascNeutralBox = makeTinyCheckBox("Neut");
+        fascNonAlignedBox = makeTinyCheckBox("NonAl");
+        fascVorlonBox = makeTinyCheckBox("Vorlon");
+        fascAnyBox = makeTinyCheckBox("ANY");
+        fascHumanBox.setSelected(true);
+        fascMinbariBox.setSelected(true);
+        fascCentauriBox.setSelected(true);
+        fascNarnBox.setSelected(true);
+        fascNeutralBox.setSelected(true);
+        fascNonAlignedBox.setSelected(true);
+        fascVorlonBox.setSelected(true);
+        fascAnyBox.setSelected(true);
+
+        // Sort controls
+        sortUnsorted = new JRadioButton("Order");
+        sortCostAsc = new JRadioButton("CostÃ¢â€ â€˜");
+        sortCostDesc = new JRadioButton("CostÃ¢â€ â€œ");
+        sortUnsorted.setSelected(true);
+        sortUnsorted.setFocusPainted(false);
+        sortCostAsc.setFocusPainted(false);
+        sortCostDesc.setFocusPainted(false);
+        sortGroup = new ButtonGroup();
+        sortGroup.add(sortUnsorted);
+        sortGroup.add(sortCostAsc);
+        sortGroup.add(sortCostDesc);
+        sortUnsorted.setFont(new Font("SansSerif", Font.PLAIN, 9));
+        sortCostAsc.setFont(new Font("SansSerif", Font.PLAIN, 9));
+        sortCostDesc.setFont(new Font("SansSerif", Font.PLAIN, 9));
+
+        // Show unplayable toggle
+        showUnplayable = makeTinyCheckBox("Show dimmed");
+        showUnplayable.setSelected(true);
+
+        filterPanel.add(new JSeparator(JSeparator.VERTICAL));
+        filterPanel.add(new JLabel("Type:"));
+        filterPanel.add(typeCharBox);
+        filterPanel.add(typeFleetBox);
+        filterPanel.add(typeConflictBox);
+        filterPanel.add(typeAgendaBox);
+        filterPanel.add(typeAftermathBox);
+        filterPanel.add(typeEventBox);
+        filterPanel.add(typeEnhancementBox);
+        filterPanel.add(typeGroupBox);
+        filterPanel.add(typeLocationBox);
+        filterPanel.add(new JSeparator(JSeparator.VERTICAL));
+        filterPanel.add(new JLabel("Faction:"));
+        filterPanel.add(fascHumanBox);
+        filterPanel.add(fascMinbariBox);
+        filterPanel.add(fascCentauriBox);
+        filterPanel.add(fascNarnBox);
+        filterPanel.add(fascNeutralBox);
+        filterPanel.add(fascNonAlignedBox);
+        filterPanel.add(fascVorlonBox);
+        filterPanel.add(fascAnyBox);
+        filterPanel.add(new JSeparator(JSeparator.VERTICAL));
+        filterPanel.add(sortUnsorted);
+        filterPanel.add(sortCostAsc);
+        filterPanel.add(sortCostDesc);
+        filterPanel.add(new JSeparator(JSeparator.VERTICAL));
+        filterPanel.add(showUnplayable);
+
+        // B5-0348: hand filter/sort panel
+        toolbar.add(Box.createHorizontalStrut(8));
+        toolbar.add(filterPanel);
+        toolbar.add(Box.createHorizontalStrut(8));
+
         // Assemble toolbar
         toolbar.add(passButton);
         toolbar.add(Box.createHorizontalStrut(8));
@@ -227,6 +480,13 @@ public class MainWindow extends JFrame {
         toolbar.add(sponsorButton);
         toolbar.add(promoteButton);
         toolbar.add(buildInfluenceButton);
+        toolbar.add(Box.createHorizontalStrut(12));
+        toolbar.add(discardAgendaButton);
+        toolbar.add(replaceAgendaButton);
+        toolbar.add(revealAgendaButton);
+        toolbar.add(contingencySelector);
+        toolbar.add(Box.createHorizontalStrut(4));
+        toolbar.add(revealContingencyButton);
         toolbar.add(Box.createHorizontalStrut(12));
         toolbar.add(costLabel);
         toolbar.add(Box.createHorizontalStrut(12));
@@ -241,7 +501,7 @@ public class MainWindow extends JFrame {
 
         add(toolbar, BorderLayout.NORTH);
 
-        // ── Hand ──────────────────────────────────────────────────────────────
+        // Ã¢â€â‚¬Ã¢â€â‚¬ Hand Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
         handPanel = new HandPanel();
         final JLabel fStatusLabel = statusLabel;
         handPanel.setOnCardSelected(new CardSelectedListener() {
@@ -269,7 +529,74 @@ public class MainWindow extends JFrame {
                 refreshCostPreview();
             }
         });
+        // B5-0348: give HandPanel access to rules + human faction for affordability checks
+        handPanel.setRules(rules, controller.getState().getHumanPlayer().getFaction());
         add(handPanel, BorderLayout.SOUTH);
+
+        // B5-0348: wire filter/sort controls
+        typeCharBox.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { handPanel.setTypeFilter(CardType.CHARACTER, typeCharBox.isSelected()); }
+        });
+        typeFleetBox.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { handPanel.setTypeFilter(CardType.FLEET, typeFleetBox.isSelected()); }
+        });
+        typeConflictBox.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { handPanel.setTypeFilter(CardType.CONFLICT, typeConflictBox.isSelected()); }
+        });
+        typeAgendaBox.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { handPanel.setTypeFilter(CardType.AGENDA, typeAgendaBox.isSelected()); }
+        });
+        typeAftermathBox.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { handPanel.setTypeFilter(CardType.AFTERMATH, typeAftermathBox.isSelected()); }
+        });
+        typeEventBox.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { handPanel.setTypeFilter(CardType.EVENT, typeEventBox.isSelected()); }
+        });
+        typeEnhancementBox.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { handPanel.setTypeFilter(CardType.ENHANCEMENT, typeEnhancementBox.isSelected()); }
+        });
+        typeGroupBox.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { handPanel.setTypeFilter(CardType.GROUP, typeGroupBox.isSelected()); }
+        });
+        typeLocationBox.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { handPanel.setTypeFilter(CardType.LOCATION, typeLocationBox.isSelected()); }
+        });
+        fascHumanBox.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { handPanel.setFactionFilter(Faction.HUMAN, fascHumanBox.isSelected()); }
+        });
+        fascMinbariBox.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { handPanel.setFactionFilter(Faction.MINBARI, fascMinbariBox.isSelected()); }
+        });
+        fascCentauriBox.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { handPanel.setFactionFilter(Faction.CENTAURI, fascCentauriBox.isSelected()); }
+        });
+        fascNarnBox.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { handPanel.setFactionFilter(Faction.NARN, fascNarnBox.isSelected()); }
+        });
+        fascNeutralBox.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { handPanel.setFactionFilter(Faction.NEUTRAL, fascNeutralBox.isSelected()); }
+        });
+        fascNonAlignedBox.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { handPanel.setFactionFilter(Faction.NON_ALIGNED, fascNonAlignedBox.isSelected()); }
+        });
+        fascVorlonBox.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { handPanel.setFactionFilter(Faction.VORLON, fascVorlonBox.isSelected()); }
+        });
+        fascAnyBox.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { handPanel.setFactionFilter(Faction.ANY, fascAnyBox.isSelected()); }
+        });
+        sortUnsorted.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { handPanel.setSortMode(0); }
+        });
+        sortCostAsc.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { handPanel.setSortMode(1); }
+        });
+        sortCostDesc.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { handPanel.setSortMode(2); }
+        });
+        showUnplayable.addActionListener(new ActionListener() {
+            @Override public void actionPerformed(ActionEvent e) { handPanel.setShowUnplayable(showUnplayable.isSelected()); }
+        });
 
         pack();
         setLocationRelativeTo(null);
@@ -312,7 +639,7 @@ public class MainWindow extends JFrame {
             int pc = rules.promotionCost(hp, ch);
             sb.append("Promote cost: " + pc + "  |  ");
         }
-        // Build Influence — not card-specific, but show if available
+        // Build Influence Ã¢â‚¬â€ not card-specific, but show if available
         if (rules.canBuildInfluence(hp)) {
             sb.append("Build Inf: -3 (+1 rating)  |  ");
         }
@@ -336,7 +663,11 @@ public class MainWindow extends JFrame {
     private void refresh(GameState state) {
         boardPanel.update(state);
         Player human = state.getHumanPlayer();
-        handPanel.update(human.getHand());
+        // B5-0361: broker the UI-held conflict + state into the hand panel so
+        // the eligible-aftermath highlight consults the real 6-arg legality
+        // (D2 targets + D4 registry) instead of guessing.
+        handPanel.setResolvedConflictContext(boardPanel.getLastHeldConflict(), state);
+        handPanel.update(human.getHand(), rules, human);
 
         // Append new log lines
         java.util.List<String> log = state.getLog();
@@ -362,17 +693,17 @@ public class MainWindow extends JFrame {
             // Insert phase/group headers when they change
             if (!prefix.isEmpty()) {
                 if (!prefix.startsWith("Round")) {
-                    // Phase line — insert phase header before this line
+                    // Phase line Ã¢â‚¬â€ insert phase header before this line
                     if (currentPhasePrefix == null || !currentPhasePrefix.equals(prefix)) {
-                        logArea.append("\n── " + prefix + " ──\n");
+                        logArea.append("\nÃ¢â€â‚¬Ã¢â€â‚¬ " + prefix + " Ã¢â€â‚¬Ã¢â€â‚¬\n");
                         currentPhasePrefix = prefix;
                     }
                 } else {
-                    // Round line — insert round header before this line
+                    // Round line Ã¢â‚¬â€ insert round header before this line
                     if (currentRound == -1 || !prefix.equals("Round " + currentRound)) {
-                        logArea.append("\n═══════════════════════════════\n");
+                        logArea.append("\nÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â\n");
                         logArea.append(prefix + "\n");
-                        logArea.append("═══════════════════════════════\n");
+                        logArea.append("Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â\n");
                         try {
                             currentRound = Integer.parseInt(prefix.substring(6).trim());
                         } catch (NumberFormatException e) {
@@ -390,17 +721,23 @@ public class MainWindow extends JFrame {
         boolean activeConflict = state.getActiveConflict() != null;
         GamePhase phase = state.getPhase();
 
-        // B5-0325 F1: support/oppose buttons enabled during active conflict
-        supportButton.setEnabled(activeConflict);
-        opposeButton.setEnabled(activeConflict);
+        // B5-0363: join controls are enabled only while the controller is
+        // collecting this human seat's side for an active, legal conflict.
+        boolean joiningConflict = activeConflict
+            && MainWindow.this.controller.isWaitingForHumanConflictJoin()
+            && rules.canJoinConflict(human, state.getActiveConflict())
+            && state.getActiveConflict().canJoinConflict(human);
+        supportButton.setEnabled(joiningConflict);
+        opposeButton.setEnabled(joiningConflict);
+        refreshParticipantList(state, human, joiningConflict);
 
         passButton.setEnabled(myTurn);
 
-        // B5-0328 F4: split Play/Initiate — enablement lives in one authority,
+        // B5-0328 F4: split Play/Initiate Ã¢â‚¬â€ enablement lives in one authority,
         // updatePlayInitiateButtons(); dispatch in playOnly() / initiateOnly().
         updatePlayInitiateButtons();
 
-        // B5-0327 F8: initiative order display — show active player as the current
+        // B5-0327 F8: initiative order display Ã¢â‚¬â€ show active player as the current
         // initiative holder. The human player's initiative position is tracked in the
         // status bar for clarity; the full initiative chain is rendered on the board.
         initiativeLabel.setText("Initiative: " + state.getActivePlayer().getName()
@@ -426,22 +763,169 @@ public class MainWindow extends JFrame {
         buildInfluenceButton.setEnabled(actionPhase && myTurn
             && rules.canBuildInfluence(human));
 
+        // B5-0380: lifecycle controls are action-phase-only. The disabled
+        // discard control remains visible for a Major agenda and its tooltip
+        // explains why replacement is the available path.
+        refreshAgendaControls(human, actionPhase && myTurn);
+
+        // B5-0381: contingency reveal control — enabled when the human has
+        // unrevealed contingencies placed under in-play hosts and it is
+        // the human's Action turn.
+        refreshContingencyRevealControl(human, actionPhase && myTurn);
+
         // B5-0326 F5: refresh cost preview
         refreshCostPreview();
 
         if (state.isGameOver()) {
-            statusLabel.setText("GAME OVER — Winner: "
+            statusLabel.setText("GAME OVER Ã¢â‚¬â€ Winner: "
                 + (state.getWinner() != null ? state.getWinner().getName() : "None"));
             passButton.setEnabled(false);
             playCardOnlyButton.setEnabled(false);
             initiateConflictButton.setEnabled(false);
         } else {
-            statusLabel.setText("Round " + state.getRoundNumber()
-                + "  |  " + state.getPhase()
-                + "  |  Active: " + state.getActivePlayer().getName()
-                + (myTurn ? "  ← YOUR TURN" : ""));
+            if (joiningConflict) {
+                statusLabel.setText("Round " + state.getRoundNumber()
+                    + "  |  Conflict: choose Support or Oppose");
+            } else {
+                statusLabel.setText("Round " + state.getRoundNumber()
+                    + "  |  " + state.getPhase()
+                    + "  |  Active: " + state.getActivePlayer().getName()
+                    + (myTurn ? "  Ã¢â€ Â YOUR TURN" : ""));
+            }
         }
     }
+
+    /** B5-0380: refresh the agenda lifecycle affordances from current state. */
+    private void refreshAgendaControls(Player human, boolean actionTurn) {
+        if (human == null) {
+            discardAgendaButton.setEnabled(false);
+            replaceAgendaButton.setEnabled(false);
+            revealAgendaButton.setEnabled(false);
+            revealContingencyButton.setEnabled(false);
+            return;
+        }
+        AgendaCard current = human.getAgenda();
+        boolean major = current != null && current.isMajorAgenda();
+        discardAgendaButton.setText(major ? "Discard Agenda (Major)" : "Discard Agenda");
+        discardAgendaButton.setToolTipText(major
+            ? "Major agendas cannot be discarded; select another Major agenda and use Replace Agenda."
+            : "Discard your current minor agenda.");
+        discardAgendaButton.setEnabled(actionTurn && rules.canDiscardAgenda(human));
+
+        CharacterCard leader = findUnrotatedIC(human);
+        boolean validReplacement = selectedCard instanceof AgendaCard
+            && rules.canReplaceAgenda(human, (AgendaCard) selectedCard, leader);
+        replaceAgendaButton.setEnabled(actionTurn && validReplacement);
+        replaceAgendaButton.setToolTipText(major
+            ? "Select a Major agenda in hand; an Inner Circle character rotates and the current Major is removed from the game."
+            : "Select an eligible agenda in hand; an Inner Circle character rotates and the current agenda is removed from the game.");
+
+        revealAgendaButton.setEnabled(actionTurn && rules.canRevealAgenda(human));
+        revealAgendaButton.setToolTipText("Reveal your face-down agenda; it takes effect now.");
+    }
+
+    /** B5-0381: refresh the contingency reveal control from current state. */
+    private void refreshContingencyRevealControl(Player human, boolean actionTurn) {
+        if (human == null || contingencySelector == null) {
+            if (contingencySelector != null) {
+                contingencySelector.removeAllItems();
+                contingencySelector.addItem("(none)");
+                contingencySelector.setEnabled(false);
+            }
+            revealContingencyButton.setEnabled(false);
+            return;
+        }
+        GameState gs = MainWindow.this.controller.getState();
+        java.util.List<ContingencyCard> placed = gs.getPlacedContingencies(human);
+        boolean hasUnrevealed = false;
+        contingencySelector.removeAllItems();
+        for (int i = 0; i < placed.size(); i++) {
+            ContingencyCard cc = placed.get(i);
+            if (!cc.isRevealed() && rules.canRevealContingency(human, cc)) {
+                hasUnrevealed = true;
+            }
+            String label = cc.getTitle();
+            Card host = cc.getPlacedUnder();
+            if (host != null) label += " (under " + host.getTitle() + ")";
+            contingencySelector.addItem(label);
+        }
+        if (placed.isEmpty()) {
+            contingencySelector.addItem("(none)");
+            revealContingencyButton.setEnabled(false);
+            revealContingencyButton.setToolTipText("No contingencies placed.");
+        } else {
+            contingencySelector.setEnabled(true);
+            revealContingencyButton.setEnabled(actionTurn && hasUnrevealed);
+            int unrevealed = 0;
+            for (ContingencyCard cc : placed) {
+                if (!cc.isRevealed()) unrevealed++;
+            }
+            revealContingencyButton.setToolTipText("Reveal a face-down contingency (" + unrevealed + " remaining).");
+        }
+    }
+
+    /**
+     * B5-0379: rebuild the read-only join-window participant list from the
+     * live Conflict D14 sides API (B5-0309). Runs on the EDT inside
+     * refresh(); reads only, so it never mutates model or engine state.
+     * Committed lists are snapshotted before iteration so a commit landing
+     * mid-refresh cannot throw ConcurrentModificationException.
+     */
+    private void refreshParticipantList(GameState state, Player human, boolean joiningConflict) {
+        if (participantListModel == null || joinPromptLabel == null) return;
+        participantListModel.removeAllElements();
+        Conflict c = state.getActiveConflict();
+        if (c == null) {
+            joinPromptLabel.setText("No active conflict.");
+            return;
+        }
+        StringBuffer title = new StringBuffer();
+        title.append(c.getCard().getTitle());
+        title.append(" [").append(c.getConflictType()).append("]");
+        if (c.getInitiator() != null) {
+            title.append(" by ").append(c.getInitiator().getName());
+        }
+        if (c.getTarget() != null) {
+            title.append(" targets ").append(c.getTarget().getName());
+        }
+        title.append(" : support ").append(c.supportTotal());
+        title.append(" vs oppose ").append(c.oppositionTotal());
+        joinPromptLabel.setText(title.toString());
+        java.util.List players = state.getPlayers();
+        for (int i = 0; i < players.size(); i++) {
+            Player pl = (Player) players.get(i);
+            boolean support = c.isSupporting(pl);
+            boolean oppose = c.isOpposing(pl);
+            if (!support && !oppose) continue;
+            java.util.ArrayList cards = new java.util.ArrayList(c.getCommittedCards(pl));
+            StringBuffer line = new StringBuffer();
+            if (support) {
+                line.append("[support] ");
+            } else {
+                line.append("[oppose]  ");
+            }
+            line.append(pl.getName());
+            if (pl == human) line.append(" (you)");
+            line.append(": ");
+            if (cards.isEmpty()) {
+                line.append("(no cards committed)");
+            } else {
+                for (int j = 0; j < cards.size(); j++) {
+                    if (j > 0) line.append(", ");
+                    line.append(((Card) cards.get(j)).getTitle());
+                }
+                line.append("  (total ").append(c.playerTotal(pl)).append(")");
+            }
+            participantListModel.addElement(line.toString());
+        }
+        if (joiningConflict && human != null && !c.isSupporting(human) && !c.isOpposing(human)) {
+            participantListModel.addElement("-- choose Support or Oppose --");
+        }
+        if (participantListModel.isEmpty()) {
+            participantListModel.addElement("(no participants yet)");
+        }
+    }
+
 
     /**
      * B5-0328 F4: single authority for both split buttons' enablement. Reads
@@ -466,10 +950,13 @@ public class MainWindow extends JFrame {
         // an explicit target so Initiate can't fire on a stale auto-fallback.
         boolean targetReady = !conflictSelected || !targetSelector.isEnabled()
             || selectedTarget != null;
+        boolean agendaNeedsLifecycleAction = selectedCard instanceof AgendaCard
+            && !rules.canSponsorAgenda(humanPlayer(), (AgendaCard) selectedCard);
         boolean canPlay = myTurn && selectedCard != null && !conflictSelected
-            && phaseAllowsAction;
+            && !agendaNeedsLifecycleAction && phaseAllowsAction;
         playCardOnlyButton.setEnabled(canPlay);
         initiateConflictButton.setEnabled(canInitiate && targetReady);
+        refreshAgendaControls(humanPlayer(), myTurn && phase == GamePhase.ACTION);
     }
 
     /** B5-0328 F4: dispatch for the "Play Card" button (never initiates). */
@@ -555,5 +1042,15 @@ public class MainWindow extends JFrame {
             BorderFactory.createEmptyBorder(4, 12, 4, 12)));
         btn.addActionListener(al);
         return btn;
+    }
+
+    // B5-0348: tiny checkbox for filter panel
+    private JCheckBox makeTinyCheckBox(String label) {
+        JCheckBox cb = new JCheckBox(label);
+        cb.setFont(new Font("SansSerif", Font.PLAIN, 9));
+        cb.setFocusPainted(false);
+        cb.setForeground(new Color(200, 220, 200));
+        cb.setBackground(new Color(10, 20, 10));
+        return cb;
     }
 }

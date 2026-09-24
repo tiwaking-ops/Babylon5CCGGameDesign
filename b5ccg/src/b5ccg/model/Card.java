@@ -23,6 +23,13 @@ public abstract class Card {
     private int strifeMarks = 0;
 
     private int cost = 0;
+    // B5-0395 (rulebook §Mercenaries): flagged cards may each turn be used only
+    // by the player who applied the most influence to control them. A boolean
+    // flag per B5-0386's schema rec (absent = false); NO subtype overload — a
+    // mercenary can be any card type. The current data carries zero such cards
+    // (B5-0386 no-evidence verdict), so this is a latent surface for synthetic
+    // fixtures and future data work.
+    private boolean mercenary = false;
     private final List<ContingencyCard> contingencies = new ArrayList<ContingencyCard>();
 
     protected Card(String id, String title, CardType type, String subtype,
@@ -59,6 +66,9 @@ public abstract class Card {
 
     public int  getCost()      { return cost; }
     public void setCost(int c) { cost = Math.max(0, c); }
+
+    public boolean isMercenary() { return mercenary; }
+    public void    setMercenary(boolean v) { mercenary = v; }
 
     public void rotate()   { rotated  = true; }
     public void unrotate() { rotated  = false; }
