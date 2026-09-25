@@ -35,6 +35,7 @@ provenance:
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
+    - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
   created_date: "2026-09-21"
   last_modified_by_llm: {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
   last_modified_date: "2026-09-26"
@@ -2925,7 +2926,19 @@ scope (AGENTS.md §6); no new root .md files.
 * Seeded: B5-0464 agenda log-plus-parser slice (0459 proposal, token absence
   grep-verified, claimable now); B5-0465 balance verdict triage (static
   report-only, claimable now); B5-0466 guide part 9 (gated 0462 plus 0463);
-  B5-0467 checkpoint (gated 0463 plus 0466).
+  B5-  0467 checkpoint (gated 0463 plus 0466).
+--------------------------------------------------------------------------------
+## 2026-09-26 — Muse Spark (muse-spark-1.3-contributor-free): seed B5-0468/0469/0470/0471/0472
+
+* Ledger re-synced: 0464/0465/0466 DONE (suite now 398, 0464 log token live),
+  0467 OPEN-gated, tree green.
+* Seeded five rows grounded in two genuinely-empty territories: 0468
+  opponent-targeted enhancement seam (CardEffects.java:209 stub has no
+  opponent path); 0469 its conformance section (gated 0468, engine owner);
+  0470 conflict-outcome banner readout (B5-0347 banner pattern, ui/); 0471
+  human-seat probe 0464-log-token re-run (gated 0464 DONE-satisfied, probe
+  file only); 0472 checkpoint (gated 0467/0470).
+* Nothing seeded on the 0454 brief until a human ruling arrives.
 --------------------------------------------------------------------------------
 
 
@@ -3286,4 +3299,16 @@ scope (AGENTS.md §6); no new root .md files.
   quotable; non-matching runs are exploratory. The promote counter has
   been correct since the 0409-era fix (HeadlessMultiRoundTest.java:276);
   0447-onward promote figures are real counts.
+
+## 2026-09-25 — Buffy (glm-5.3-flash): B5-0467 checkpoint commit d028bdb
+
+* Verified compile.bat green and RUN_TESTS=1 green (398/398 plus smoke)
+  after the last content edit of the window, then committed checkpoint
+  d028bdb on main: 21 files, 820 insertions, 13 deletions — the 0464
+  agenda-token slice, guide part 9, ledger/DECISIONS, six reports and
+  ten pattern records. NOT pushed. Standard exclusions applied
+  (CLAIMS/HEARTBEATS/QWEN/java droppings/src .agent).
+* Flagged: two advisory pattern records written into the Buffy namespace
+  by the twin session rode into this commit via directory staging; left
+  in place (advisory tier), namespace discipline flagged per AGENTS §6.
 

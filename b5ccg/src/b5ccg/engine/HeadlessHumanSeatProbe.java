@@ -57,6 +57,7 @@ public class HeadlessHumanSeatProbe {
     private static int nRecruit = 0, nPromote = 0, nBuild = 0, nLeadFleet = 0;
     private static int nRotate = 0, nAttack = 0, nHeal = 0, nRepair = 0;
     private static int nAgD = 0, nAgR = 0, nAgRe = 0, nBid = 0, nWar = 0;
+    private static int nAgInstall = 0; // B5-0471: agenda face-up install
     private static int nPass = 0;
 
     public static void main(String[] args) throws Exception {
@@ -228,6 +229,9 @@ public class HeadlessHumanSeatProbe {
             scenarioHealAndRepair(frules, fh, fstate);
             scenarioMercenaryBid(frules, fh, fstate);
             scenarioDeclareWar(frules, fh, fe, fstate);
+            // B5-0471: agenda-face-up install probe (requires its own fixture since
+            // the human player in the real game may not have an agenda in hand).
+            scenarioAgendaFaceUpInstall(fstate, fh, frules);
         } catch (Throwable t) {
             check("SYN: scenarios ran without exception", false);
             t.printStackTrace(System.err);
@@ -246,7 +250,8 @@ public class HeadlessHumanSeatProbe {
         System.out.println("  leadFleet=" + nLeadFleet + " rotate=" + nRotate
                 + " attack=" + nAttack + " heal=" + nHeal + " repair=" + nRepair);
         System.out.println("  agendaD=" + nAgD + " agendaR=" + nAgR
-                + " agendaRep=" + nAgRe + " bid=" + nBid + " war=" + nWar
+                + " agendaRep=" + nAgRe + " agendaInstall=" + nAgInstall
+                + " bid=" + nBid + " war=" + nWar
                 + " pass=" + nPass);
 
         System.out.println();
@@ -482,6 +487,60 @@ public class HeadlessHumanSeatProbe {
                 enemy, null, state);
         check("SYN war: declaration produced a conflict", war != null);
         nWar++;
+    }
+
+    // ── B5-0471: agenda-face-up install token probe ──────────────────────────────
+    // Gated on B5-0464 DONE (the "sets agenda:" emitter is live in applyGenericCardPlay).
+    // Probe file only, no game-logic or suite edits; gate green.
+    private static void scenarioAgendaFaceUpInstall(GameState fstate, Player human,
+                                                     RulesEngine rules) {
+        // Create an agenda (INFLUENCE_20, non-major) and place it in hand.
+        AgendaCard ag = agendaCard("hsp_ag_1", false, Faction.HUMAN);
+        human.getHand().clear();
+        human.getHand().add(ag);
+
+        // Capture the log state before the play.
+        int initialLogSize = fstate.getLog().size();
+
+        // Invoke processAction directly (reflection) with a face-up PLAY_CARD.
+        // GameAction.playCard sets hidden=false by default, so applyGenericCardPlay
+        // will emit the "sets agenda:" token (the B5-0464 fix for the 0459 zero-count).
+        try {
+            java.lang.reflect.Method handler =
+                    GameController.class.getDeclaredMethod(
+                            "processAction", Player.class, GameAction.class);
+            handler.setAccessible(true);
+            // Create a minimal GameController for the processAction call.
+            GameController tempCtrl = new GameController(fstate, new ArrayList<AIPlayer>(),
+                    new GameStateCallback() { public void accept(GameState gs) { } });
+            handler.invoke(tempCtrl, human, GameAction.playCard(ag));
+        } catch (Exception e) {
+            check("SYN agenda: processAction invocation successful", false);
+            e.printStackTrace(System.err);
+            return;
+        }
+
+        check("SYN agenda: agenda is now set on player", human.getAgenda() == ag);
+        check("SYN agenda: agenda left the hand", !human.getHand().contains(ag));
+
+        // Scan the log for the B5-0464 "sets agenda:" token.
+        boolean foundToken = false;
+        for (String line : fstate.getLog()) {
+            if (line.contains(human.getName() + " sets agenda: " + ag.getTitle())) {
+                foundToken = true;
+                break;
+            }
+        }
+        check("SYN agenda: face-up install emits 'sets agenda:' token (B5-0464)", foundToken);
+        nAgInstall++;
+    }
+
+    /** B5-0460 helper: an INFLUENCE_20 agenda, Major or minor, of any faction. */
+    private static AgendaCard agendaCard(String id, boolean major, Faction faction) {
+        return new AgendaCard(id, "Probe Agenda",
+                major ? "AGENDA_MAJOR" : "AGENDA",
+                major ? Rarity.RARE : Rarity.COMMON, faction, CardSet.PREMIERE,
+                "x", "probe", major, "INFLUENCE_20");
     }
 
     // ── Helpers mirrored from HeadlessHumanConflictAttackWindowTest ──────────

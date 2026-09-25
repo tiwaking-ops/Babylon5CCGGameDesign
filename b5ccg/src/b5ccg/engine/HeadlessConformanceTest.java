@@ -1428,6 +1428,86 @@ public class HeadlessConformanceTest {
         check("AGL-LOG", "generic plays line still present alongside the token", generic);
     }
 
+    // ── B5-0469: opponent-targeted enhancement seam shape ──────────────────────
+
+    private static void testOpponentEnhancementSeam() {
+        System.out.println("ENH-SEAM (B5-0468): model seam asserts, no regression");
+
+        EnhancementCard ec = new EnhancementCard(
+                "enh_seam_1", "Censure Test", "ENHANCEMENT",
+                Rarity.UNCOMMON, Faction.ANY, CardSet.PREMIERE, "x", "text",
+                0, 0,  // diplomacy, intrigue
+                0,   // psi
+                -2,  // military (fleet penalty)
+                0    // leadership
+        );
+
+        // Default: no explicit target (legacy self-target semantics).
+        check("ENH-SEAM", "no explicit target by default", !ec.hasExplicitTarget());
+        check("ENH-SEAM", "targetCardId null by default", ec.getTargetCardId() == null);
+        check("ENH-SEAM", "targetOwnerName null by default", ec.getTargetOwnerName() == null);
+        check("ENH-SEAM", "toAttachedBonus returns null without target",
+                ec.toAttachedBonus(StatKey.MILITARY, Expiry.WHILE_IN_PLAY, 1) == null);
+
+        // Set an opponent target.
+        ec.setOpponentTarget("fleet_opp_1", "Gamma");
+        check("ENH-SEAM", "explicit target after set", ec.hasExplicitTarget());
+        check("ENH-SEAM", "targetCardId recorded",
+                "fleet_opp_1".equals(ec.getTargetCardId()));
+        check("ENH-SEAM", "targetOwnerName recorded",
+                "Gamma".equals(ec.getTargetOwnerName()));
+
+        // bonusFor returns the correct per-stat values.
+        check("ENH-SEAM", "military bonus is -2", ec.bonusFor(StatKey.MILITARY) == -2);
+        check("ENH-SEAM", "diplomacy bonus is 0", ec.bonusFor(StatKey.DIPLOMACY) == 0);
+        check("ENH-SEAM", "psi bonus is 0", ec.bonusFor(StatKey.PSI) == 0);
+
+        // toAttachedBonus produces an ATTACHED-scope bonus with the right
+        // fields for the recorded target.
+        StatBonus bonus = ec.toAttachedBonus(StatKey.MILITARY,
+                Expiry.WHILE_IN_PLAY, 3);
+        check("ENH-SEAM", "toAttachedBonus non-null with target", bonus != null);
+        if (bonus != null) {
+            check("ENH-SEAM", "bonus scope is ATTACHED",
+                    bonus.scope == BonusScope.ATTACHED);
+            check("ENH-SEAM", "bonus stat is MILITARY",
+                    bonus.stat == StatKey.MILITARY);
+            check("ENH-SEAM", "bonus delta is -2", bonus.delta == -2);
+            check("ENH-SEAM", "bonus targetCardId matches",
+                    "fleet_opp_1".equals(bonus.targetCardId));
+            check("ENH-SEAM", "bonus sourceCardId is the enhancement id",
+                    "enh_seam_1".equals(bonus.sourceCardId));
+            check("ENH-SEAM", "bonus createdRound is 3", bonus.createdRound == 3);
+            check("ENH-SEAM", "bonus expiry is WHILE_IN_PLAY",
+                    bonus.expiry == Expiry.WHILE_IN_PLAY);
+        }
+
+        // Player.hasAttachedBonusFrom probe: grants the bonus and asserts it.
+        Player owner = player("ENHSEAM-1", Faction.CENTAURI);
+        GameState st = state(owner);
+        owner.grantBonus(bonus);
+        check("ENH-SEAM", "bonus present after grant",
+                owner.hasAttachedBonusFrom("enh_seam_1", "fleet_opp_1"));
+        check("ENH-SEAM", "no false positive on wrong source id",
+                !owner.hasAttachedBonusFrom("other", "fleet_opp_1"));
+        check("ENH-SEAM", "no false positive on wrong target id",
+                !owner.hasAttachedBonusFrom("enh_seam_1", "fleet_other"));
+        check("ENH-SEAM", "null args return false",
+                !owner.hasAttachedBonusFrom(null, "fleet_opp_1")
+                && !owner.hasAttachedBonusFrom("enh_seam_1", null));
+
+        // No regression: an un-targeted (legacy) enhancement still behaves
+        // identically — no explicit target, null bonus.
+        EnhancementCard legacy = new EnhancementCard(
+                "enh_legacy", "Legacy Test", "ENHANCEMENT",
+                Rarity.COMMON, Faction.ANY, CardSet.PREMIERE, "x", "text",
+                1, 1, 1, 1, 1);
+        check("ENH-SEAM", "legacy enhancement has no explicit target",
+                !legacy.hasExplicitTarget());
+        check("ENH-SEAM", "legacy enhancement toAttachedBonus is null",
+                legacy.toAttachedBonus(StatKey.MILITARY, Expiry.END_OF_TURN, 1) == null);
+    }
+
     // ── B5-0453: AI station-aware scoring ──────────────────────────────────────
 
     private static void testAIStationAwareness() {
@@ -3622,7 +3702,8 @@ public class HeadlessConformanceTest {
             testStationHooks();   // B5-0437: station-influence card hooks
             testAIStationAwareness(); // B5-0453: MEDIUM/HARD score station ratings, EASY uniform
             testAgendaInstallLog();   // B5-0464: sets-agenda token emitter paired with the runner parser
-            System.out.println("All B5-0203 deviations D1-D14 resolved; D15 partial by effect-coverage; D6/D7 now have dedicated named assertions (B5-0436). B5-0437 station hooks covered (STH). B5-0453 AI station-awareness covered.");
+            testOpponentEnhancementSeam(); // B5-0469: opponent-targeted enhancement model seam shape
+            System.out.println("All B5-0203 deviations D1-D14 resolved; D15 partial by effect-coverage; D6/D7 now have dedicated named assertions (B5-0436). B5-0437 station hooks covered (STH). B5-0453 AI station-awareness covered. B5-0469 enhancement seam asserted (ESM).");
 
             System.out.println();
             System.out.println(failed == 0
