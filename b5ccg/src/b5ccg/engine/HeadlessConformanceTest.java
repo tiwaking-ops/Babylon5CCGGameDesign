@@ -1392,6 +1392,42 @@ public class HeadlessConformanceTest {
                 hardD.chooseAction(sD, pD).getType() == GameAction.Type.PASS);
     }
 
+    // ── B5-0464: agenda install log line ─────────────────────────────────────
+
+    private static void testAgendaInstallLog() {
+        System.out.println("AGL-LOG (B5-0464): face-up agenda install emits the parser token");
+
+        Player p = player("AGLLOG-1", Faction.CENTAURI);
+        GameState st = state(p);
+        AgendaCard ag = agendaCard("agl_log_a", false, Faction.CENTAURI);
+        p.getHand().clear();
+        p.getHand().add(ag);
+
+        try {
+            java.lang.reflect.Method handler =
+                    GameController.class.getDeclaredMethod(
+                            "processAction", Player.class, GameAction.class);
+            handler.setAccessible(true);
+            handler.invoke(new GameController(st, new ArrayList<AIPlayer>(),
+                    new GameStateCallback() {
+                        public void accept(GameState gs) { }
+                    }), p, GameAction.playCard(ag));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        check("AGL-LOG", "install lands: agenda is set", p.getAgenda() == ag);
+        check("AGL-LOG", "card left the hand", !p.getHand().contains(ag));
+        boolean token = false;
+        boolean generic = false;
+        for (String line : st.getLog()) {
+            if (line.contains(p.getName() + " sets agenda: " + ag.getTitle())) token = true;
+            if (line.contains(p.getName() + " plays " + ag.getTitle())) generic = true;
+        }
+        check("AGL-LOG", "install emits the sets-agenda parser token", token);
+        check("AGL-LOG", "generic plays line still present alongside the token", generic);
+    }
+
     // ── B5-0453: AI station-aware scoring ──────────────────────────────────────
 
     private static void testAIStationAwareness() {
@@ -3585,6 +3621,7 @@ public class HeadlessConformanceTest {
             testD15EffectCoverage();
             testStationHooks();   // B5-0437: station-influence card hooks
             testAIStationAwareness(); // B5-0453: MEDIUM/HARD score station ratings, EASY uniform
+            testAgendaInstallLog();   // B5-0464: sets-agenda token emitter paired with the runner parser
             System.out.println("All B5-0203 deviations D1-D14 resolved; D15 partial by effect-coverage; D6/D7 now have dedicated named assertions (B5-0436). B5-0437 station hooks covered (STH). B5-0453 AI station-awareness covered.");
 
             System.out.println();

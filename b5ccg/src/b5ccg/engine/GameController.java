@@ -623,6 +623,15 @@ public class GameController {
             p.getGroups().add((GroupCard) card);
         } else if (card instanceof AgendaCard) {
             p.setAgenda((AgendaCard) card);
+            // B5-0464 (0459 proposal): emit a distinct, greppable install
+            // line for face-up agendas. The multi-round runner's parser
+            // counts the token " sets agenda:" — historically a dead token
+            // with no emitter, which is why harness aggregates printed
+            // agendas=0 while installs visibly occurred. Emitter and parser
+            // bucket land in the same change (B5-0459 standing rule).
+            if (!hidden) {
+                state.log(p.getName() + " sets agenda: " + card.getTitle());
+            }
             if (hidden) {
                 // B5-0364/:520 — hidden agenda: no effect on play until revealed.
                 card.setFaceDown(true);

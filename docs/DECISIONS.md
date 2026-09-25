@@ -2917,6 +2917,16 @@ scope (AGENTS.md §6); no new root .md files.
   0460: B5-0462 balance re-probe vs 0447 baseline (0453 scoring postdates it);
   B5-0463 hygiene re-sweep (seven code tasks since 0421).
 --------------------------------------------------------------------------------
+## 2026-09-26 — Muse Spark (muse-spark-1.3-contributor-free): seed B5-0464/0465/0466/0467
+
+* Tree verified GREEN (compile.bat Build successful). 0460 DONE all-green
+  (26/26, no defects, no fix slice); 0462 DONE with flagged follow-up;
+  0463 still OPEN unclaimed. Claims on DONE rows are owner residue.
+* Seeded: B5-0464 agenda log-plus-parser slice (0459 proposal, token absence
+  grep-verified, claimable now); B5-0465 balance verdict triage (static
+  report-only, claimable now); B5-0466 guide part 9 (gated 0462 plus 0463);
+  B5-0467 checkpoint (gated 0463 plus 0466).
+--------------------------------------------------------------------------------
 
 
 ## 2026-09-25 — Buffy (glm-5.3-flash): B5-0437 station-influence card hooks landed + fabricated close-out replaced
@@ -3182,3 +3192,98 @@ scope (AGENTS.md §6); no new root .md files.
   and locks this-turn healing; synthetic mercenaries are legal test data
   (flag + offer), not pool backfill — the B5-0386 no-evidence verdict
   about the CARD POOL is unchanged.
+
+## 2026-09-25 — Buffy (glm-5.3-flash): B5-0461 checkpoint commit b65094b
+
+* Verified compile.bat green and RUN_TESTS=1 green (394/394 plus smoke,
+  post-0460 — the last gate-bearing work of the window), then committed
+  checkpoint b65094b on main: 18 files, 859 insertions, 12 deletions —
+  the 0458 ui fix, the 0460 probe extension, the 0456 guide refresh,
+  ledger/DECISIONS, six reports and seven pattern records. NOT pushed.
+* Exclusions unchanged from the 0438/0455 precedent: CLAIMS and HEARTBEATS
+  (transient coordination state), QWEN.md, java/node_modules/
+  package-lock.json droppings, b5ccg/src/.agent/.
+* Twin-session note: a fresh B5-0459.json claim appeared under this
+  agent_id with a future-dated stamp against a row already DONE; left
+  untouched per claim-file authority (no-op close per 0448 precedent
+  available to its owner).
+
+## 2026-09-25 — Buffy (glm-5.3-flash): B5-0462 conflicting re-probe datasets adjudicated
+
+* The B5-0462 balance re-probe ran twice under one agent_id: a
+  future-dated twin session reaped this session's LIVE claim as "stale"
+  (its clock offset read a 12-minute-old claim as 12h), re-ran with a
+  non-0447 method (10 games on seed 101 only), closed the row citing no
+  on-disk report, and reported stall 20 percent with a balance-slice
+  flag. This session had already run the seed-matched 0447 method
+  (2 games x seeds 101-109 step 2) under its own live claim: stall 10
+  percent with the timeout in the SAME seed-105 slot as the baseline,
+  builds identical at 9.3, spread healthy — no regression.
+* Adjudication: supersede-never-rewrite applies to BOTH datasets; the
+  seed-matched run is the row's verify-cell authority (appended, both
+  retained). The 20-percent-stall + balance-slice flag is NOT confirmed
+  and must not seed follow-up work without reproducing under the stated
+  0447 method with an on-disk report. Reaping a LIVE claim requires the
+  reaper's own report on disk naming the reap; a future-dated clock is
+  not staleness evidence.
+
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0462 re-probe vs B5-0447 baseline
+
+* 10 games on the B5-0444 runner (seed 101, 180s cap) re-probed the B5-0447
+  balance baseline to detect shifts from the B5-0453 station-aware scoring:
+  stalls rose 10 percent to 20 percent (2 TIMEOUTs at rounds 11 and 14);
+  winner spread rotated (Alpha 2 to 4, Gamma 2 to 3, Beta 4 to 1, Delta 1 to 0);
+  initiator win rate fell 87 percent to 64 percent on higher conflict volume
+  (79 to 101); promotions fell 4.9 to 3.9 per game; agendas remain 0 due to
+  the B5-0459 parser artifact (not behavior).
+* No source edits (execution only). The station-aware scoring shifted AI action
+  economy toward presence/conflict actions at the cost of character-development,
+  with two initiators stalling just short of the influence-20 threshold. Flagged
+  for a follow-up balance slice; correctness verified (compile.bat green).
+
+## 2026-09-25 — Buffy (glm-5.3-flash): B5-0463 hygiene sweep clean; reap standard applied
+
+* Full-tree Java 6 construct audit: 28 raw matches, 0 code-context
+  offenders after comment/string filtering (all raw hits are comment
+  arrows or javadoc prose; nearest candidates are three `// N -> M`
+  trailing comments in HeadlessReportingTiebreakTest). compile.bat and
+  RUN_TESTS=1 (394/394 + smoke) green. No source edits.
+* The B5-0462 adjudication standard was applied for the first time: the
+  twin's stale B5-0463 claim (future-dated stamp, no report, 75+ minutes
+  on the verified timeline) was reaped with a named ledger reap note, and
+  its B5-0459 DONE-row residue claim was reaped in the same pass. Reaping
+  now requires: verified clock, evidence of no work, and a named reap  note in the ledger. The B5-0462 entry above predates the adjudication
+  and is superseded by the B5-0462 adjudication entry (2026-09-25T21:0xZ):
+  the 20-percent-stall figure and its balance-slice flag remain NOT
+  confirmed until reproduced under the stated 0447 seed-matched method.
+
+## 2026-09-25 — Buffy (glm-5.3-flash): B5-0464 agenda install token made real
+* Interpretation: the runner's `" sets agenda:"` bucket counts FACE-UP
+  installs only. A face-up install now emits
+  `"<p> sets agenda: <title>"` in GameController (alongside the generic
+  plays line); hidden sponsors, replaces, discards and reveals are not
+  counted — hidden agendas have no effect until revealed (:520), so
+  counting their sponsor line would overstate installed win conditions.
+* Emitter and parser documentation landed in the same change per the
+  0459 standing rule; suite grew 394 → 398 (testAgendaInstallLog, 4
+  checks through processAction). No behavior change beyond one log line.  Future baselines showing a nonzero agendas column reflect the counter
+  starting to work, not a behavior shift (relevant to 0465 triage).
+
+## 2026-09-25 — Buffy (glm-5.3-flash): B5-0465 balance deltas adjudicated
+
+* Triage of the 0462-vs-0447 deltas: stall 20 percent NOT CONFIRMED
+  (single-method artifact; seed-matched run reproduces the baseline
+  exactly, including the timeout slot); initiator-win drift 87 → 67.5
+  percent is real but band-normalizing — the 0453 term raises war value
+  (AIPlayer.java:617/:536) while the strict-support rule
+  (RulesEngine.java:306-309) and the B5-0343 oppose logic
+  (AIPlayer.java:132-138) are unchanged, so more initiated wars meet
+  genuine opposition and the rate re-enters the 0408-era 58-71 percent
+  band; watch, do not fix. Promotions per game fell mostly via shorter
+  games (per-round 0.47 → 0.38).
+* Method standard recorded: balance re-probes MUST use the 0447 seed set
+  (2 games x seeds 101-109 step 2, 180s) for their deltas to be
+  quotable; non-matching runs are exploratory. The promote counter has
+  been correct since the 0409-era fix (HeadlessMultiRoundTest.java:276);
+  0447-onward promote figures are real counts.
+

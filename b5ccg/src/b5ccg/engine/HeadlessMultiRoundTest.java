@@ -276,6 +276,11 @@ public class HeadlessMultiRoundTest {
             else if (content.contains(" promotes ")) { pr++; }
             else if (content.contains(" plays aftermath:")) { am++; }
             else if (content.contains(" sets agenda:")) { ag++; }
+            // B5-0464: the token above has a real emitter since B5-0464 --
+            // GameController logs "<p> sets agenda: <title>" on face-up
+            // agenda install (hidden sponsors still log their own line, and
+            // REPLACE/DISCARD/REVEAL are separate actions with separate
+            // emissions; this bucket counts installs only).
         }
 
         return new int[]{ci, cw, cl, pr, bl, am, ag};
