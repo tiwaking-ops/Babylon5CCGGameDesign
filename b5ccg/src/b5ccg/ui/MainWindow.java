@@ -785,46 +785,21 @@ public class MainWindow extends JFrame {
 
         // Ã¢â€â‚¬Ã¢â€â‚¬ Hand Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
         handPanel = new HandPanel();
-        final JLabel fStatusLabel = statusLabel;
         handPanel.setOnCardSelected(new CardSelectedListener() {
             @Override
             public void onCardSelected(Card card) {
-                selectedCard = card;
-                if (card instanceof ConflictCard) {
-                    // B5-0325 F2: populate target selector with non-human players
-                    targetSelector.removeAllItems();
-                    for (Player p : MainWindow.this.controller.getState().getPlayers()) {
-                        if (!p.isHuman()) {
-                            targetSelector.addItem(p.getName());
-                        }
-                    }
-                    targetSelector.setEnabled(true);
-                    fStatusLabel.setText("Selected: " + card.getTitle()
-                        + "  |  Target: choose from dropdown");
-                } else {
-                    targetSelector.setEnabled(false);
-                    fStatusLabel.setText("Selected: " + card.getTitle()
-                        + "  |  " + card.getText());
-                }
-                // B5-0401: Track assistant selection for Use Rotate Effect
-                Player hp = humanPlayer();
-                if (card instanceof CharacterCard) {
-                    CharacterCard ch = (CharacterCard) card;
-                    if (hp != null && hp.getSupportingRole().contains(ch)) {
-                        selectedAssistant = ch;
-                    } else {
-                        selectedAssistant = null;
-                    }
-                } else {
-                    selectedAssistant = null;
-                }
-                updatePlayInitiateButtons();
-                // B5-0326 F5: refresh cost preview immediately
-                refreshCostPreview();
-                // B5-0401: Refresh Tier-1 remainder action UI
-                GameState gs = MainWindow.this.controller.getState();
-                refreshLeadFleetAndRotateEffect(hp, gs.getPhase() == GamePhase.ACTION
-                    && gs.getActivePlayer() == hp && MainWindow.this.controller.isWaitingForHuman());
+                applyCardSelection(card, true);
+            }
+        });
+        // B5-0423: board-side selection. The heal/repair/lead-fleet/rotate-effect
+        // controls read selectedCard, but those cards (IC, supporting, fleets,
+        // locations) never appear in a hand — without this the buttons could
+        // never light for a legal target. Shares applyCardSelection with the
+        // hand so target-population and enablement rules stay identical.
+        boardPanel.setOnBoardCardSelected(new CardSelectedListener() {
+            @Override
+            public void onCardSelected(Card card) {
+                applyCardSelection(card, false);
             }
         });
         // B5-0348: give HandPanel access to rules + human faction for affordability checks
@@ -1203,23 +1178,18 @@ public class MainWindow extends JFrame {
             && selCard.canActAfterNeutralization();
         attackButton.setEnabled(canAttack);
 
-        // Heal: ACTION phase, my turn, selected character in IC/supporting, damaged
-        boolean canHeal = actionPhase && myTurn && ch != null && !ch.isFaceDown()
-            && (human.getInnerCircle().contains(ch) || human.getSupportingRole().contains(ch))
-            && ch.getDamageTokens() > 0;
+        // Heal / Repair: the engine is the authority (B5-0423). The action
+        // handlers already gate on rules.canHealCharacter / canRepairCard, so
+        // duplicating a partial predicate here only let the two drift — the
+        // hand-rolled version omitted !isRotated and the undamaged-IC aid
+        // path, so it disabled a legal move. One predicate, one answer.
+        boolean canHeal = actionPhase && myTurn && ch != null
+            && rules.canHealCharacter(human, ch);
         healButton.setEnabled(canHeal);
 
-        // Repair: ACTION phase, my turn, selected fleet/location with damage, affordable
-        boolean canRepair = false;
-        if (actionPhase && myTurn && selCard instanceof FleetCard) {
-            FleetCard fl = (FleetCard) selCard;
-            canRepair = !fl.isFaceDown() && !fl.isRotated() && fl.getDamageTokens() > 0
-                && rules.canRepairCard(human, fl);
-        } else if (actionPhase && myTurn && selCard instanceof LocationCard) {
-            LocationCard loc = (LocationCard) selCard;
-            canRepair = !loc.isFaceDown() && !loc.isRotated() && loc.getDamageTokens() > 0
-                && rules.canRepairCard(human, loc);
-        }
+        boolean canRepair = actionPhase && myTurn && selCard != null
+            && (selCard instanceof FleetCard || selCard instanceof LocationCard)
+            && rules.canRepairCard(human, selCard);
         repairButton.setEnabled(canRepair);
 
         // B5-0380: lifecycle controls are action-phase-only. The disabled
@@ -1485,7 +1455,14 @@ public class MainWindow extends JFrame {
             || selectedTarget != null;
         boolean agendaNeedsLifecycleAction = selectedCard instanceof AgendaCard
             && !rules.canSponsorAgenda(humanPlayer(), (AgendaCard) selectedCard);
-        boolean canPlay = myTurn && selectedCard != null && !conflictSelected
+        // B5-0423: Play reads a card out of the hand, so require hand
+        // containment. Without it, a board selection (IC / supporting / fleet /
+        // location) is a non-ConflictCard and would light Play and dispatch an
+        // illegal playCard for a card that is not in hand.
+        boolean inHand = selectedCard != null
+            && humanPlayer() != null
+            && humanPlayer().getHand().contains(selectedCard);
+        boolean canPlay = myTurn && inHand && !conflictSelected
             && !agendaNeedsLifecycleAction && phaseAllowsAction;
         playCardOnlyButton.setEnabled(canPlay);
         initiateConflictButton.setEnabled(canInitiate && targetReady);
@@ -1520,6 +1497,53 @@ public class MainWindow extends JFrame {
         clearSelection();
     }
 
+    /**
+     * B5-0423: shared selection handler for hand and board clicks. `fromHand`
+     * only decides whether the human target dropdown is populated — that is a
+     * hand-only affordance (a board card is never a conflict to attack), so a
+     * board selection leaves the dropdown disabled. Everything downstream
+     * (assistant tracking, button enablement, cost preview, Tier-1 remainder
+     * controls) is identical for both sources.
+     */
+    private void applyCardSelection(Card card, boolean fromHand) {
+        selectedCard = card;
+        if (fromHand && card instanceof ConflictCard) {
+            // B5-0325 F2: populate target selector with non-human players
+            targetSelector.removeAllItems();
+            for (Player p : controller.getState().getPlayers()) {
+                if (!p.isHuman()) {
+                    targetSelector.addItem(p.getName());
+                }
+            }
+            targetSelector.setEnabled(true);
+            statusLabel.setText("Selected: " + card.getTitle()
+                + "  |  Target: choose from dropdown");
+        } else {
+            targetSelector.setEnabled(false);
+            statusLabel.setText("Selected: " + card.getTitle()
+                + "  |  " + card.getText());
+        }
+        // B5-0401: Track assistant selection for Use Rotate Effect
+        Player hp = humanPlayer();
+        if (card instanceof CharacterCard) {
+            CharacterCard ch = (CharacterCard) card;
+            if (hp != null && hp.getSupportingRole().contains(ch)) {
+                selectedAssistant = ch;
+            } else {
+                selectedAssistant = null;
+            }
+        } else {
+            selectedAssistant = null;
+        }
+        updatePlayInitiateButtons();
+        // B5-0326 F5: refresh cost preview immediately
+        refreshCostPreview();
+        // B5-0401: Refresh Tier-1 remainder action UI
+        GameState gs = controller.getState();
+        refreshLeadFleetAndRotateEffect(hp, gs.getPhase() == GamePhase.ACTION
+            && gs.getActivePlayer() == hp && controller.isWaitingForHuman());
+    }
+
     /** B5-0328 F4: drop the selection after a submit; buttons stay disabled. */
     private void clearSelection() {
         selectedCard = null;
@@ -1536,6 +1560,30 @@ public class MainWindow extends JFrame {
             rotateEffectKindSelector.setSelectedIndex(0);
             rotateEffectKindSelector.setEnabled(false);
         }
+        // B5-0423: these three were populated by the submit that just resolved
+        // but never reset, so the next turn started showing the previous card's
+        // target / bid amount / contingency. Reset them to a harmless
+        // non-actionable state. Each refresh path already re-derives the list
+        // and re-enables on the next tick, so this is only a stale-display fix.
+        if (warTargetSelector != null) {
+            warTargetSelector.removeAllItems();
+            warTargetSelector.addItem("(select target)");
+            warTargetSelector.setEnabled(false);
+        }
+        if (mercenaryBidAmountSelector != null) {
+            // Index 0, not -1: refreshMercenaryBid parses getSelectedItem()
+            // with no null guard, and a -1 index makes it null.
+            mercenaryBidAmountSelector.setSelectedIndex(0);
+            mercenaryBidAmountSelector.setEnabled(false);
+        }
+        if (contingencySelector != null) {
+            contingencySelector.removeAllItems();
+            contingencySelector.addItem("(none)");
+            contingencySelector.setEnabled(false);
+        }
+        // Drop the board highlight too, or the lime stroke outlives the
+        // selection that produced it.
+        boardPanel.clearSelection();
         playCardOnlyButton.setEnabled(false);
         initiateConflictButton.setEnabled(false);
         leadFleetButton.setEnabled(false);

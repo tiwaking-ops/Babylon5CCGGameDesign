@@ -10,6 +10,9 @@ provenance:
     - {name: "Solar Pro4", version: "solar-pro4:free"}
     - {name: "Qwen (qwen-2.5-coder-32b-instruct)", version: "qwen-2.5-coder-32b-instruct"}
     - {name: "Buffy", version: "glm-5.3-flash"}
+    - {name: "opencode (me-so-poor)", version: "big-pickle"}
+    - {name: "Buffy", version: "glm-5.3-flash"}
+    - {name: "Buffy", version: "glm-5.3-flash"}
   last_modified_by_llm: {name: "Buffy", version: "glm-5.3-flash"}
   last_modified_date: "2026-09-25"
 ---
@@ -79,6 +82,14 @@ there is no separate Resolution Round.
 Main window buttons (enabled contextually; a disabled button is illegal for
 you right now, not broken):
 
+> **B5-0414 audit caveat (P0):** the **Lead Fleet, Use Rotate Effect, Attack,
+> Heal, and Repair** buttons enable from a *selected* card, but today only
+> **hand** cards can be selected — board characters/fleets/locations have no
+> selection hooks. In a real game those five controls stay dark because their
+> eligible targets are board cards. The fix (a board CardSelectedListener) is
+> the B5-0423 slice. The rows below describe the intended behavior once that
+> lands.
+
 | Control | What it does | Notes |
 |---|---|---|
 | **Pass Turn** | Pass your action | Consecutive passes by all players end the Action Round |
@@ -131,6 +142,16 @@ assist-bonus and sponsor-discount states (B5-0339).
   mercenary-bid scoring with a steeper opportunity-cost penalty (B5-0403).
 * Difficulty contracts are pinned by the standalone harness
   `HeadlessAIDifficultyContractTest` (B5-0351).
+* **Pass-bias proposal status (B5-0422):** the ~53% EASY pass bias sits inside
+  its designed 0.35-0.70 band but drags multi-seat games into quiet,
+  low-promotion rounds (B5-0409). Two parallel advisory proposals are on
+  record: solar-pro4:free recommends a harness/Main seat-mix change first,
+  then an EASY retune; Buffy (glm-5.3-flash) recommends a one-line EASY
+  direct-pass-gate retune (observed pass ~0.45-0.50, still in band). No
+  behavior has changed; both await the normal proposal-approval path.
+  Note: default seat mixes already include exactly one EASY seat (Main:
+  MEDIUM/HARD/EASY; harnesses: EASY/MEDIUM/HARD/MEDIUM) — no all-EASY
+  default exists in the tree.
 
 ## 6. Headless testing (no UI)
 
@@ -178,9 +199,15 @@ reflects the working tree as of 2026-09-25:
   360/360 PASS.
 * **Damage subsystem** — characters can be damaged and neutralised; the
   damage/neutralisation model (B5-0368) plus attack (B5-0370) and
-  heal/repair (B5-0371) are all live. You will see neutralised characters
-  and damaged ambassadors during AI-vs-AI play; the AI's damage scoring
-  (B5-0378) drives when it attacks and heals.
+  heal/repair (B5-0371) are all live, with UI controls landed (B5-0402).
+  **But the controls are unreachable in real play** pending B5-0423 (the
+  B5-0414 audit caveat above: board-card selection is missing), **and in
+  AI-vs-AI play they do not fire**: conflicts resolve synchronously inside the initiating
+  action (B5-0409 finding A), so the active-conflict state those actions
+  require never exists when an AI seat picks its action — pure AI-vs-AI
+  rounds observed zero attacks, heals, repairs, and neutralisations across
+  all verification probes. This is a real engine-loop gap (the rulebook's
+  separate Resolution Round is the fix direction), not a UI bug.
 * **Assistant mechanic** — real (B5-0339): rotate your assistant for +1
   Diplomacy/Intrigue/Leadership, or consume a sponsor discount on a later
   recruit. The A+/A$ markers on the ambassador mini-card reflect live state.
@@ -207,13 +234,39 @@ reflects the working tree as of 2026-09-25:
 
 **Honesty notes for playtesters:**
 
-* The AI can stall the game. When all four seats pass consecutively the
-  action phase ends; with the EASY-heavy default seating this can happen
-  quickly and the round advances without much action. The multi-round
-  harness (B5-0349) correctly reports "stalled" when it observes this.
-  (B5-0372 landed the D6-based initiative-cycle rework — un-passing on
-  non-pass actions with the 8×playerCount safety cap as the liveness
-  backstop — but EASY's ~53% pass bias still makes quiet rounds common.)
+* **"Stalled" is mostly a harness-timeout label, not a true hang.** The
+  multi-round runner (B5-0349) labels a game "stalled" when no player has
+  won inside its 60s per-game window. Independent no-timeout verification
+  (B5-0409, both sessions) shows seeded games actually **terminate
+  naturally**: the probe game ended at round 12 (~118s) with a standard
+  victory at Influence Rating 20. Rounds advance steadily (~8-10s each), so
+  the action phase is not hanging — the 60s harness window just closes before
+  low-action games reach a winner. Read any harness "stall rate" that way.
+* **Quiet, pass-heavy rounds are still real.** When all four seats pass
+  consecutively the action phase ends; every default mix has exactly one EASY
+  seat (Main: MEDIUM/HARD/EASY; harnesses: EASY/MEDIUM/HARD/MEDIUM — no
+  all-EASY default exists) at ~53% pass bias, and rounds can advance with
+  sparse action. B5-0372's
+  D6 initiative cycle is live (un-passing on non-pass actions, 8×playerCount
+  liveness backstop), but the EASY bias still makes some rounds quiet.
+* **Zero promotions in harness output is a counting artifact.** The B5-0349
+  `parseLog` counts promotions only for the token `": promotes "`, which no
+  real log line produces: `RulesEngine` logs `"<player> promotes <title>…"`
+  (no colon) and the action line is `"<player>: PROMOTE_CHARACTER: …"`.
+  So promote counts print 0 even when promotions occur (the B5-0409 probe
+  observed Inner Circles growing 1→2 during play). Trust IC size in a live
+  game, not the harness promote figure. (Fix flagged for B5-0413.)
+* **Influence Rating 20 is reachable and standard victory can trigger.**
+  The B5-0409 probe reached Rating 20 in ~2 minutes and ended the game at
+  the round boundary. In the sampled games no agenda won before standard
+  victory did — the agenda economy currently loses that race, not because 20
+  is unreachable but because build-influence has no cap and compounding
+  bonuses outrun agenda conditions.
+* **Agendas ARE being installed and played** — earlier "agendas set: 0"
+  harness output is the same parser-artifact class as the promote count:
+  the runner's agenda token matches no real log line. End-state inspection
+  in the B5-0409 verification found agendas installed in every sampled game
+  (e.g. "As It Was Meant To Be"), plus live DISCARD_AGENDA plays.
 * Deck-out penalty is live (B5-0204/B5-0304): drawing from an empty deck
   discards your non-ambassador Inner Circle character if you have one, else
   signals forfeit for the victory check. Severe-damage overflow can also
@@ -223,6 +276,11 @@ reflects the working tree as of 2026-09-25:
   is active and you are eligible, the Support/Oppose controls light up and
   your click unblocks the controller. Mandatory-participation conflicts
   (B5-0336) still compel your ambassador when the rules require it.
+* **Conflict initiators win more often than not.** B5-0409 reproduction
+  measured ~64% initiator wins on trackable lines (58-71% varied by seed and
+  trackability); 0408 reported 71%. This is consistent with the B5-0309
+  sides rule (initiator wins iff support > opposition at initiation) plus the
+  AI's B5-0343 "initiate when winning" bias — not a pathology.
 * Advisory research (non-authoritative): SNRPG bulk extraction strategy and
   the CCG Trader 2-card pilot are in `investigations/`; they informed the
   cost backfill (B5-0335) and fleet-class plan (B5-0387) but are not

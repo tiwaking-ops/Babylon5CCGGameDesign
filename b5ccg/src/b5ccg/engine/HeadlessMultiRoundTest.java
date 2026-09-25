@@ -200,7 +200,7 @@ public class HeadlessMultiRoundTest {
      * - "X: INITIATE_CONFLICT: CardName -> target"
      * - "CardName won by winner (support=N, opposition=M)"
      * - "X: builds influence: CardName rotates, rating now N"
-     * - "X: promotes CardName"
+     * - "X promotes CardName to the Inner Circle (...)"  (no colon; B5-0409)
      * - "X plays aftermath: CardName on target"
      * - "X sets agenda: CardName"
      * - "X plays CardName"
@@ -239,7 +239,7 @@ public class HeadlessMultiRoundTest {
                 }
             }
             else if (content.contains(" builds influence:")) { bl++; }
-            else if (content.contains(": promotes ")) { pr++; }
+            else if (content.contains(" promotes ")) { pr++; }
             else if (content.contains(" plays aftermath:")) { am++; }
             else if (content.contains(" sets agenda:")) { ag++; }
         }

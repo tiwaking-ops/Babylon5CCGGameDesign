@@ -2,13 +2,24 @@ package b5ccg.ui;
 
 import b5ccg.model.*;
 import b5ccg.model.enums.ConflictType;
+import b5ccg.model.enums.TensionMatrix;
+// B5-0429: tension readout iterates the matrix's Faction keys directly.
+import b5ccg.model.enums.Faction;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.List;
 
 public class GameBoardPanel extends JPanel {
 
     private GameState state;
+
+    // B5-0423: board-side selection. Mirrors HandPanel's callback; feeds the
+    // board-zone controls (heal/repair/lead-fleet/use-rotate-effect) with the
+    // IC / supporting / fleet / location cards that never appear in hand.
+    private Card selectedCard;
+    private CardSelectedListener onBoardCardSelected;
 
     // B5-0347: outcome banner state. The controller clears the active conflict
     // right after resolution (GameController.resolveCurrentConflict), so the
@@ -22,6 +33,11 @@ public class GameBoardPanel extends JPanel {
     public GameBoardPanel() {
         setBackground(new Color(15, 35, 15));
         setPreferredSize(new Dimension(1280, 560));
+        addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) {
+                handleClick(e.getX(), e.getY());
+            }
+        });
     }
 
     /** B5-0361: the UI-held conflict (active, or the last one before the
@@ -29,8 +45,136 @@ public class GameBoardPanel extends JPanel {
      *  eligible-aftermath highlight can consult the real 6-arg legality. */
     public Conflict getLastHeldConflict() { return lastHeldConflict; }
 
+    /**
+     * B5-0423: board click. Mirrors HandPanel.handleClick — a hit on a board
+     * card selects it locally and notifies the controller; a miss only drops
+     * the local highlight (the controller's own selection is untouched, so a
+     * hand selection survives a stray click on empty board space).
+     */
+    private void handleClick(int mx, int my) {
+        Card hit = resolveCardAt(mx, my);
+        selectedCard = hit;
+        if (hit != null && onBoardCardSelected != null) {
+            onBoardCardSelected.onCardSelected(hit);
+        }
+        repaint();
+    }
+
+    /**
+     * B5-0423: translate a panel point to the board card drawn under it. The
+     * geometry MUST stay in lockstep with drawZone: one zone per player,
+     * zoneW = getWidth() / player count, and each row's card origin/step
+     * copied verbatim from its drawMiniCard call. Rows are probed top-down so
+     * an overlap resolves to the higher band, matching what the eye sees.
+     * Face-down cards are skipped — their identity is hidden from the host.
+     */
+    private Card resolveCardAt(int mx, int my) {
+        if (state == null) return null;
+        List<Player> players = state.getPlayers();
+        if (players.isEmpty()) return null;
+        int zoneW = getWidth() / players.size();
+        if (zoneW <= 0) return null;
+        int zoneIndex = mx / zoneW;
+        if (zoneIndex < 0 || zoneIndex >= players.size()) return null;
+        Player p = players.get(zoneIndex);
+        int x = zoneIndex * zoneW;
+        int y = 0;
+
+        // Ambassador: 60x84 large mini-card at (x+8, y+58).
+        if (hit(mx, my, x + 8, y + 58, 60, 84)) {
+            Card amb = p.getAmbassador();
+            if (amb != null && !amb.isFaceDown()) return amb;
+            return null;
+        }
+
+        // Inner Circle: 46x64 at (x+8 + 52*i, y+175).
+        int cx = x + 8;
+        int cy = y + 175;
+        for (CharacterCard ch : p.getInnerCircle()) {
+            if (cx + 50 > x + zoneW - 4) break;
+            if (hit(mx, my, cx, cy, 46, 64)) {
+                return ch.isFaceDown() ? null : ch;
+            }
+            cx += 52;
+        }
+
+        // Supporting role: 46x16 chips at (x+8 + 50*i, y+269).
+        int sx = x + 8;
+        for (CharacterCard sch : p.getSupportingRole()) {
+            if (sx + 46 > x + zoneW - 4) break;
+            if (hit(mx, my, sx, y + 269, 46, 16)) {
+                return sch.isFaceDown() ? null : sch;
+            }
+            sx += 50;
+        }
+
+        // Fleets: 46x64 at (x+8 + 52*i, y+310).
+        cx = x + 8;
+        cy = y + 310;
+        for (FleetCard fl : p.getFleets()) {
+            if (cx + 50 > x + zoneW - 4) break;
+            if (hit(mx, my, cx, cy, 46, 64)) {
+                return fl.isFaceDown() ? null : fl;
+            }
+            cx += 52;
+        }
+
+        // Groups then Locations share one band: 46x64 at (x+8 + 52*i, y+430).
+        cx = x + 8;
+        cy = y + 430;
+        for (GroupCard gr : p.getGroups()) {
+            if (cx + 50 > x + zoneW - 4) break;
+            if (hit(mx, my, cx, cy, 46, 64)) {
+                return gr.isFaceDown() ? null : gr;
+            }
+            cx += 52;
+        }
+        for (LocationCard lc : p.getLocations()) {
+            if (cx + 50 > x + zoneW - 4) break;
+            if (hit(mx, my, cx, cy, 46, 64)) {
+                return lc.isFaceDown() ? null : lc;
+            }
+            cx += 52;
+        }
+        return null;
+    }
+
+    /** B5-0423: point-in-rect test for a card origin. */
+    private boolean hit(int mx, int my, int rx, int ry, int rw, int rh) {
+        return mx >= rx && mx <= rx + rw && my >= ry && my <= ry + rh;
+    }
+
+    /**
+     * B5-0423: highlight the selected card. A 2px lime stroke inset over the
+     * mini-card; the `large` form carries the ambassador's 60x84 footprint.
+     * Identity comparison is by reference so two copies of one card title
+     * never cross-highlight.
+     */
+    private void drawSelectionMark(Graphics2D g, Card card, int x, int y) {
+        drawSelectionMark(g, card, x, y, false);
+    }
+
+    private void drawSelectionMark(Graphics2D g, Card card, int x, int y, boolean large) {
+        if (card == null || card != selectedCard) return;
+        int w = large ? 60 : 46;
+        int h = large ? 84 : 64;
+        g.setColor(new Color(120, 255, 120));
+        g.setStroke(new BasicStroke(2.0f));
+        g.drawRoundRect(x + 1, y + 1, w - 2, h - 2, 6, 6);
+    }
+
+    /** B5-0423: board-side selection callback (mirror of HandPanel.set). */
+    public void setOnBoardCardSelected(CardSelectedListener cb) { onBoardCardSelected = cb; }
+
+    /** B5-0423: drop the local highlight after a submit. */
+    public void clearSelection() {
+        selectedCard = null;
+        repaint();
+    }
+
     public void update(GameState s) {
         this.state = s;
+        selectedCard = null;   // highlight is transient per-refresh (mirrors HandPanel)
         Conflict active = s.getActiveConflict();
         if (active != null) {
             if (active != lastHeldConflict) {   // a new conflict activated
@@ -72,6 +216,49 @@ public class GameBoardPanel extends JPanel {
 
         for (int i = 0; i < players.size(); i++) {
             drawZone(g2, players.get(i), i * zoneW, 0, zoneW, getHeight());
+        }
+
+        // B5-0427: board-level at-war faction-pairs line, read from the
+        // B5-0376 tension matrix. Rendered only when some pair is at war —
+        // the normal pool state has no tension sources, so this stays clear.
+        String warLine = atWarLine();
+        if (warLine.length() > 0) {
+            g2.setFont(new Font("SansSerif", Font.BOLD, 10));
+            FontMetrics wfm = g2.getFontMetrics();
+            int lw = wfm.stringWidth(warLine);
+            int wy = getHeight() - 40;
+            g2.setColor(new Color(120, 10, 10, 200));
+            g2.fillRoundRect((getWidth() - lw) / 2 - 4, wy - 10, lw + 8, 14, 5, 5);
+            g2.setColor(new Color(255, 170, 170));
+            g2.drawString(warLine, (getWidth() - lw) / 2, wy);
+        }
+
+        // B5-0429: station + non-player-forces readout (B5-0340 model API),
+        // always rendered — the ratings exist from round one even while inert.
+        String station = stationLine();
+        g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
+        FontMetrics sfm = g2.getFontMetrics();
+        int sx = (getWidth() - sfm.stringWidth(station)) / 2;
+        int sy = getHeight() - 24;
+        g2.setColor(new Color(150, 190, 230));
+        g2.drawString(station, sx, sy);
+        if (state.isShadowWar()) {
+            g2.setFont(new Font("SansSerif", Font.BOLD, 10));
+            g2.setColor(new Color(255, 120, 120));
+            g2.drawString("  [SHADOW WAR]", sx + sfm.stringWidth(station), sy);
+        }
+
+        // B5-0429: directional tension pairs (B5-0376), only when any pair
+        // is nonzero — the pool has no tension sources, so this stays clear
+        // in normal games. Drawn above the war pill band to keep the bottom
+        // rows distinct from the per-zone deck lines.
+        String tension = tensionLine();
+        if (tension.length() > 0) {
+            g2.setFont(new Font("SansSerif", Font.PLAIN, 9));
+            FontMetrics tfm = g2.getFontMetrics();
+            g2.setColor(new Color(230, 170, 120));
+            g2.drawString(tension, (getWidth() - tfm.stringWidth(tension)) / 2,
+                          getHeight() - 58);
         }
 
         // Active conflict banner
@@ -155,6 +342,71 @@ public class GameBoardPanel extends JPanel {
             }
     }
 
+    /** B5-0429: station + shadow/vorlon readout line from the B5-0340 API
+     *  (getStation().getInfluence(), getShadowInfluence(), getVorlonInfluence()).
+     *  The [SHADOW WAR] marker is appended by the painter, not here, so the
+     *  string stays a pure data readout. Public for headless probes. */
+    public String stationLine() {
+        if (state == null) return "";
+        return "Station: " + state.getStation().getInfluence()
+             + "  |  Shadow " + state.getShadowInfluence()
+             + "  Vorlon " + state.getVorlonInfluence();
+    }
+
+    /** B5-0429: directional tension pairs readout (B5-0376), sorted for
+     *  deterministic order, one label per nonzero directed pair.
+     *  Empty string when every pair is zero. Snapshot-first per the paint-
+     *  thread rule (getTensionMap is a live-map view). Public for probes. */
+    public String tensionLine() {
+        if (state == null) return "";
+        java.util.Map<Faction, java.util.Map<Faction, Integer>> map =
+            state.getTensionMatrix().getTensionMap();
+        java.util.ArrayList<String> labels = new java.util.ArrayList<String>();
+        java.util.ArrayList<Faction> sources =
+            new java.util.ArrayList<Faction>(map.keySet());
+        for (Faction src : sources) {
+            java.util.Map<Faction, Integer> row = map.get(src);
+            java.util.ArrayList<Faction> targets =
+                new java.util.ArrayList<Faction>(row.keySet());
+            for (Faction tgt : targets) {
+                Integer v = row.get(tgt);
+                if (v != null && v.intValue() > 0) {
+                    labels.add(src.toString() + " to " + tgt.toString() + " " + v);
+                }
+            }
+        }
+        if (labels.isEmpty()) return "";
+        java.util.Collections.sort(labels);
+        StringBuilder sb = new StringBuilder("Tension: ");
+        for (int i = 0; i < labels.size(); i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(labels.get(i));
+        }
+        return sb.toString();
+    }
+
+    /** B5-0427: board-level at-war pairs line from the B5-0376 tension
+     *  matrix (getAtWarPairs snapshot, sorted for deterministic order).
+     *  Empty string when no pair is at war. Public so a headless paint
+     *  probe can assert the readout without parsing pixels. */
+    public String atWarLine() {
+        if (state == null) return "";
+        java.util.Set<TensionMatrix.FactionPair> pairs =
+            state.getTensionMatrix().getAtWarPairs();
+        if (pairs.isEmpty()) return "";
+        java.util.ArrayList<String> labels = new java.util.ArrayList<String>();
+        for (TensionMatrix.FactionPair fp : pairs) {
+            labels.add(fp.a.toString() + "-" + fp.b.toString());
+        }
+        java.util.Collections.sort(labels);
+        StringBuilder sb = new StringBuilder("At war: ");
+        for (int i = 0; i < labels.size(); i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(labels.get(i));
+        }
+        return sb.toString();
+    }
+
     /** B5-0376: banner title for a war conflict — the declared kind plus its
      *  target (race or location), since a war conflict carries no ConflictCard. */
     private String warConflictTitle(Conflict c) {
@@ -194,6 +446,7 @@ public class GameBoardPanel extends JPanel {
         // Ambassador
         if (p.getAmbassador() != null) {
             drawMiniCard(g, p.getAmbassador(), x + 8, y + 58, true);
+            drawSelectionMark(g, p.getAmbassador(), x + 8, y + 58, true);
             // B5-0339 assistant state (F10, real mechanic): A+ while the
             // assist bonus is live (assistant rotated), A$ while a sponsor
             // discount is pending. Markers sit over the mini-card's corner.
@@ -256,12 +509,39 @@ public class GameBoardPanel extends JPanel {
         for (CharacterCard ch : p.getInnerCircle()) {
             if (cx + 50 > x + w - 4) break;
             drawMiniCard(g, ch, cx, cy, false);
+            drawSelectionMark(g, ch, cx, cy);
             cx += 52;
-            icDrawn++;
         }
         // B5-0330a: note below the card band — the draft drew it inside the
         // 64px mini-card, colliding with the first card's stats.
         overflowNote(g, p.getInnerCircle().size() - icDrawn, x, cy);
+
+        // B5-0423: supporting-role chip row — supporting chars render nowhere
+        // else, so Use Rotate Effect / Promote had no selectable source. A
+        // compact 46x16 chip band sits between the IC row (ends y+239) and the
+        // fleets header (y+306), clear of both.
+        java.util.List<CharacterCard> supp = p.getSupportingRole();
+        if (!supp.isEmpty()) {
+            g.setFont(new Font("SansSerif", Font.ITALIC, 9));
+            g.setColor(new Color(170, 210, 170));
+            g.drawString("Support:", x + 8, y + 265);
+            int sx = x + 8;
+            for (CharacterCard sch : supp) {
+                if (sx + 46 > x + w - 4) break;
+                boolean sel = sch == selectedCard;
+                g.setColor(sel ? new Color(30, 90, 40) : new Color(30, 50, 30));
+                g.fillRoundRect(sx, y + 269, 46, 16, 5, 5);
+                g.setColor(sel ? new Color(120, 240, 120) : new Color(120, 150, 120));
+                g.setStroke(new BasicStroke(sel ? 2 : 1));
+                g.drawRoundRect(sx, y + 269, 46, 16, 5, 5);
+                String label = sch.getTitle();
+                if (label.length() > 9) label = label.substring(0, 8) + "…";
+                g.setFont(new Font("SansSerif", Font.PLAIN, 7));
+                g.setColor(sel ? new Color(180, 255, 180) : Color.WHITE);
+                g.drawString(label, sx + 3, y + 280);
+                sx += 50;
+            }
+        }
 
         // Fleets
         cx = x + 8;
@@ -272,6 +552,7 @@ public class GameBoardPanel extends JPanel {
         for (FleetCard fl : p.getFleets()) {
             if (cx + 50 > x + w - 4) break;
             drawMiniCard(g, fl, cx, cy, false);
+            drawSelectionMark(g, fl, cx, cy);
             cx += 52;
             flDrawn++;
         }
@@ -284,18 +565,20 @@ public class GameBoardPanel extends JPanel {
         g.drawString("Groups/Loc:", x + 8, cy - 4);
         int glDrawn = 0;
         int glTotal = p.getGroups().size() + p.getLocations().size();
-        for (GroupCard gr : p.getGroups()) {
-            if (cx + 50 > x + w - 4) break;
-            drawMiniCard(g, gr, cx, cy, false);
-            cx += 52;
-            glDrawn++;
-        }
-        for (LocationCard lc : p.getLocations()) {
-            if (cx + 50 > x + w - 4) break;
-            drawMiniCard(g, lc, cx, cy, false);
-            cx += 52;
-            glDrawn++;
-        }
+            for (GroupCard gr : p.getGroups()) {
+                if (cx + 50 > x + w - 4) break;
+                drawMiniCard(g, gr, cx, cy, false);
+                drawSelectionMark(g, gr, cx, cy);
+                cx += 52;
+                glDrawn++;
+            }
+            for (LocationCard lc : p.getLocations()) {
+                if (cx + 50 > x + w - 4) break;
+                drawMiniCard(g, lc, cx, cy, false);
+                drawSelectionMark(g, lc, cx, cy);
+                cx += 52;
+                glDrawn++;
+            }
         overflowNote(g, glTotal - glDrawn, x, cy);
 
         // Deck count
@@ -362,6 +645,21 @@ public class GameBoardPanel extends JPanel {
             } else if (card instanceof LocationCard) {
                 g.setColor(new Color(220, 200, 120));
                 g.drawString("+" + ((LocationCard) card).getInfluencePerRound() + " INF", x + 2, y + h - 8);
+                // B5-0427: captured-by + effects-suppressed readout from the
+                // B5-0376 model API (getCapturedBy, isEffectsSuppressed).
+                // Face-up only: a face-down card's identity stays hidden.
+                LocationCard loc = (LocationCard) card;
+                String capBy = loc.getCapturedBy() != null
+                    ? loc.getCapturedBy().getName() : null;
+                if (capBy != null && capBy.length() > 6) capBy = capBy.substring(0, 6);
+                String mark = (capBy != null ? "CAP:" + capBy : "")
+                            + (loc.isEffectsSuppressed()
+                               ? (capBy != null ? " " : "") + "SUP" : "");
+                if (mark.length() > 0) {
+                    g.setColor(new Color(255, 130, 130));
+                    g.setFont(new Font("SansSerif", Font.BOLD, 7));
+                    g.drawString(mark, x + 2, y + h - 18);
+                }
             }
         }
 

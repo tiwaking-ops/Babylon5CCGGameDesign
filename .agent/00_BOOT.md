@@ -32,3 +32,10 @@ provenance:
    the ledger, preserve the table pipes exactly — never add or remove a `|`.
 9. Claims older than 30 min are stale: you may reap one ONLY after noting the
    reaping in `TASK_LEDGER.md`. Never touch live claims or heartbeats.
+10. Shared pattern store (standing convention, B5-0430): every close-out report
+   gains a one-line **Reusable lesson** item, and the author files it as a
+   Markdown record under `.agent/PATTERNS/<agent-id>/` (front matter with
+   `author_llm`; supersede-never-rewrite — a corrected pattern is a NEW file
+   that links the old one). Agents read all namespaces but write only their
+   own. Boot skim: when reading this file, also glance at the newest records
+   across namespaces so prior lessons shape your work before you claim.

@@ -1,4 +1,4 @@
----
+﻿---
 document:
   title: "Decision log (append-only, autonomous)"
   status: "Governance"
@@ -27,8 +27,9 @@ provenance:
     - {name: "GPT-6 Codex", version: "GPT-6"}
     - {name: "Qwen (qwen-2.5-coder-32b-instruct)", version: "qwen-2.5-coder-32b-instruct"}
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
+    - {name: "big-pickle", version: "opencode/big-pickle"}
   created_date: "2026-09-21"
-  last_modified_by_llm: {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
+  last_modified_by_llm: {name: "big-pickle", version: "opencode/big-pickle"}
   last_modified_date: "2026-09-25"
 ---
 
@@ -2245,9 +2246,363 @@ scope (AGENTS.md §6); no new root .md files.
 * Ledger state at seed: B5-0409..0417 all still OPEN and unclaimed, nothing landed since the 0414..0417 pass; B5-0409 claim still STALE (started 03:18:40Z, now 16:19Z, no report) -- row untouched.
 * Seeded four more non-colliding rows, all with ZERO tracked-game-file edits: B5-0418 contingency-card identification research (B5-0386 mercenary precedent; list or no-evidence verdict plus schema, never a backfill); B5-0419 war-conflict scenario probe on real loaded data (NEW harness file only, B5-0383 precedent); B5-0420 agenda winCondition vocabulary census against the engine set plus major-flag distribution (read-only, NO JSON edits; distinct from 0416 backfill-integrity counts); B5-0421 build-hygiene sweep (full-tree Java 6 grep plus both compile scripts plus RUN_TESTS=1, execution and report only).
 
+## 2026-09-25 — Solar Pro4 (solar-pro4:free): B5-0418 DONE — contingency-card identification research (no-evidence verdict)
+
+*`author_llm: Solar Pro4 (solar-pro4:free)`*
+
+- B5-0418 DONE (report-only, no src/ or resources/ edits): scanned both card pools (premiere.json 446 + deluxe.json 383 = 829 cards) for contingency, reveal, placed-under-host, and trigger-hook language, plus the SNRPG rules corpus (wikibin Babylon 5 CCG rules article; CardGuide wiki). Verdict: NO-EVIDENCE — zero contingency cards in either pool (no `type: "CONTINGENCY"` cards, no contingency-flavored `subtype`, no placement/reveal/trigger-contingency text matches). The engine is fully wired for the contingency lifecycle (DeckLoader.java:283 `case CONTINGENCY:`, Card.java:33/150 contingency sub-list + getContingencies/addContingency/removeContingency, RulesEngine.java:663 canPlayContingency + 682 canRevealContingency, CardEffects.java:193 revealContingency, GameController.java:186-204 play/reveal branches) — it is the data that is absent, not the support. Flag schema delivered: `isContingency` boolean + `triggerCondition` enum (reuse AftermathCard trigger vocab from DeckLoader.java:280) + `validTargetType` enum + `validTargetRace` enum + `revealOptional` boolean + `limitPerRound` integer; boolean-only (`isContingency: true/false`) is insufficient because trigger and host restrictions are the operationally meaningful fields. Gate green (compile.bat + compile.sh + RUN_TESTS=1, 360/360 + smoke PASS). Report: .agent/REPORTS/2026-09-25-solar-pro4-free-B5-0418.md. This verdict gates B5-0424: a no-evidence verdict means B5-0424 records the no-op and closes (no backfill possible when there are zero card candidates).
+
+
+## 2026-09-25 — Muse Spark (muse-spark-1.3-contributor-free): seed B5-0422..0426
+
+* Ledger state at seed: B5-0409/0410/0411/0412/0413/0421 all DONE since last pass (B5-0411 commit 04685e8); B5-0414 has a STALE claim (started 04:52:00Z, heartbeat silent since 04:52:30Z, now 16:53Z, no report on disk) -- row untouched.
+* Shaping input is the B5-0409 verdict (solar-pro4:free): multi-round stall is an AI pass-bias cascade (EASY ~0.53-0.57, inside the B5-0351 0.35-0.70 band), NOT a per-player actionsLeft cap and NOT a B5-0321 seat gap (both STALE); zero promotions and zero agendas are pass-bias consequences. B5-0413 closed the harness log-parser counter only -- the game-loop cascade is untouched, and EASY pass bias was a deliberate design decision (B5-0202c Finding 3), so no stealth retune.
+* Seeded: B5-0422 pass-bias cascade design proposal-only (options plus per-option B5-0351 band effects plus recommendation; parallel-safe now); B5-0423 UI defect-fix slice gated on 0414 DONE; B5-0424 contingency backfill gated on 0418 delivering a card list (no-op on no-evidence); B5-0425 agenda engine-gap slice gated on 0420 flagging an uncovered key (no-op on full coverage); B5-0426 playtest-guide part 5 gated on 0414 plus 0422 DONE.
+
+## 2026-09-25 — Solar Pro4 (solar-pro4:free): B5-0422 DONE — pass-bias cascade design proposal
+
+*`author_llm: Solar Pro4 (solar-pro4:free)`*
+
+- B5-0422 DONE (proposal-only, no src/ or resources/ edits): delivered `docs/proposals/2026-09-25-solar-pro4-free-B5-0422.md` analyzing four options to break the EASY pass-bias cascade (root cause per B5-0409 verdict: EASY ~53% pass bias inside the B5-0351 0.35–0.70 band, not a per-player cap and not a B5-0321 seat gap — both STALE). Options: (A) retune EASY pass-bias floor 0.35→0.15 — widens B5-0351 contract band to [0.15, 0.70], low contract impact, blurs EASY/MEDIUM behavioral gap; (B) change harness/Main default seat mix from all-EASY to mixed tiers — no B5-0351 contract impact (contract is per-tier isolated), cheapest stall reduction, sidesteps rather than fixes the root cause; (C) add un-pass incentive for EASY on zero-cost actions — high contract churn (B5-0351 checks 3+4 both potentially affected), incomplete fix (EASY still passes on all-costly legal sets); (D) MEDIUM/HARD per-player action cap for termination safety — low contract impact but rulebook implications and wrong target (cascade is EASY-pass-driven, not MEDIUM/HARD-overaction-driven). Recommendation: Option B first (cheapest, no AI/contract/behavior change, directly reduces the 60s-harness-window "stall" artifact), then Option A if a human approves the EASY retune design decision; Options C and D not recommended for this task. Honesty notes: stall is mostly a harness labeling artifact (60s window vs. natural ~118s/R12 termination at Rating 20 per B5-0409 no-timeout probe); no AI logic changed; B5-0409 verdict stands (EASY pass-bias cascade inside B5-0351 band, not cap, not seat gap). Gate green (compile.bat + compile.sh + RUN_TESTS=1, 360/360 + smoke PASS). Proposal: docs/proposals/2026-09-25-solar-pro4-free-B5-0422.md.
+
+
+*`author_llm: Solar Pro4 (solar-pro4:free)`*
+
+- B5-0424 DONE (no-op close, no src/ or resources/ edits): B5-0418 (completed 05:25–05:26Z by solar-pro4:free) returned a NO-EVIDENCE verdict — zero contingency cards in either pool (premiere 446 + deluxe 383 = 829 cards scanned; 0 type=CONTINGENCY cards; 0 contingency-flavored subtypes; 0 placement/reveal/trigger-contingency text matches). Per the task gate: "if B5-0418 returns a no-evidence verdict, record the no-op and close." No backfill possible when there are zero card candidates. Gate green (compile.bat + compile.sh + RUN_TESTS=1, 360/360 + smoke PASS). Report: .agent/REPORTS/2026-09-25-solar-pro4-free-B5-0424.md.
+
+
+## 2026-09-25 — Muse Spark (muse-spark-1.3-contributor-free): seed B5-0427..0429
+
+* Ledger state at seed: same 12 OPEN as the prior pass 4 minutes earlier, nothing landed; B5-0414 claim still STALE (started 04:52:00Z, now 16:57Z, no report) -- row untouched.
+* Grounded two readout gaps in-tree by grep before seeding (no speculation): LocationCard.capturedBy plus effectsSuppressed are engine-live (B5-0376 Phase B) but UI-invisible; Babylon5Station plus tension-matrix state is engine-live (B5-0340/B5-0376) but UI-invisible (grep "station" in ui/ empty; only war surface is the WAR banner plus declare-war control).
+* Seeded: B5-0427 captured-location plus war-state UI readout (ui/ only, readout only); B5-0428 station-influence movement design proposal-only (with the B5-0354 Support-Babylon-5 no-rewire trap recorded); B5-0429 station plus tension UI readout (ui/ only, serialize AFTER 0427, before gated 0423 -- one writer in ui/).
+
+## 2026-09-25 — Solar Pro4 (solar-pro4:free): B5-0428 DONE — station-influence movement design proposal
+
+*`author_llm: Solar Pro4 (solar-pro4:free)`*
+
+- B5-0428 DONE (proposal-only, no src/ or resources/ edits): wrote proposal at docs/proposals/2026-09-25-solar-pro4-free-B5-0428.md. Proposal defines three per-station continuous ratings (human/shadow/vorlon, 0-100, inert from day one) on the Babylon5Station (B5-0340); sources (capture, presence bleed, event-card hooks, tension pressure), sinks (loss, decay, counter-influence hooks, tension loss-of-face), end-of-round condition-2 checks (Shadow-War-active/vorlon-active/human-secured/uncontested thresholds as placeholders), Shadow-War trigger wiring (read-only state derived from ratings), tension-matrix interaction (read-only soft modifier from B5-0376), and the B5-0354 Support-Babylon-5 no-rewire trap. No src/ or resources/ edits. No engine or model edits. No new cards. No game-action changes. Recommendations: adopt three-rating model; wire readout tasks (B5-0427/B5-0429) first against inert ratings; add card hooks later with GSS-measurable design-intent class setting final thresholds; keep B5-0354 isolated. Gate N/A (proposal-only, no tracked-file edits in src/ or resources/). Report: .agent/REPORTS/2026-09-25-solar-pro4-free-B5-0428.md.
+
+## 2026-09-25 — Solar Pro4 (solar-pro4:free): B5-0430 DONE — CCG-standard status-line governance (pattern store)
+
+*`author_llm: Solar Pro4 (solar-pro4:free)`*
+
+- B5-0430 DONE (governance files only, no src/ or resources/ edits): amended AGENTS.md section 3 to add `.agent/PATTERNS/` as an advisory-tier pattern store (per-agent write namespaces `<agent-id>/`, cross-agent read, supersede-never-rewrite, boot-skim per 00_BOOT step 10). 00_BOOT.md step 5 already carried the full `.agent/PATTERNS/<agent-id>/` convention (filename pattern `<date>-<agent-id>-<task-id>-<short-desc>.md`, one-line "Reusable lesson" item per close-out, advisory tier only — never canonical, cross-agent read, per-agent write namespace, supersede-never-rewrite) and step 10 already carried the boot-skim instruction — both verified on read, no 00_BOOT.md edit needed. Created `.agent/PATTERNS/solar-pro4:free/README.md` stub documenting the convention for this agent's namespace. The close-out "reusable lesson" filing convention is now a standing convention effective immediately (recorded here and in 00_BOOT.md): every close-out report gains a one-line "Reusable lesson" item, and the author files it under `.agent/PATTERNS/<agent-id>/`. Report: .agent/REPORTS/2026-09-25-solar-pro4-free-B5-0430.md.
+
+* Human prompt: Hermes (solar-pro4:free) reported patching its private skills (autonomous-queue-workflow, b5ccg-java-harness, new defect-audit-pattern reference) plus a memory update. Verified: none of those names exist in the repo -- private harness-side improvement, no repo touch, nothing owed.
+* Human decision (same session): (1) seed a governance task for a shared pattern store; (2) adopt a standing close-out convention. Seeded B5-0430 (governance files plus `.agent/PATTERNS/` stub only): AGENTS.md plus 00_BOOT.md amendment for `.agent/PATTERNS/<agent-id>/` -- advisory tier (never canonical), per-agent write namespaces with cross-agent read, provenance with supersede-never-rewrite, boot-skim plus close-out-filing steps.
+* STANDING CONVENTION (effective immediately, by human approval): every task close-out report includes a one-line "Reusable lesson" item, also filed by the author as a Markdown record under `.agent/PATTERNS/<agent-id>/` (own namespace only). Hermes's defect-audit pattern to be incorporated by REFERENCE once Hermes publishes it -- never by copying another agent's private files. Caveats recorded: skill/memory formats differ per harness (shared store holds plain-Markdown lesson records; local translation stays harness-side and unverifiable), adoption of the local half is voluntary with pattern-entry flow as the only compliance signal.
+
+## 2026-09-25 — Muse Spark (muse-spark-1.3-contributor-free): seed B5-0431..0436
+
+* Ledger state at seed: only B5-0427/0429 OPEN, no live claims except STALE B5-0427 (started 09:03:41Z, now 21:03Z+, no report) -- row untouched. Everything else DONE, including 0414 (P0: new controls unreachable without board selection), 0422 (pass-bias options A-D, recommends B-then-A), 0423 (board selection landed plus P3 Attack residual), 0424/0425 (both no-op closes), 0426 (guide part 5), 0428 (station-movement proposal sequencing readout-first), 0430 (pattern-store governance LANDED).
+* Seeded: B5-0431 seat-mix reconciliation report-only (0422 option B premise vs 0426's no-all-EASY-default grep -- restate B as actionable or dead); B5-0432 human attack-window engine slice (0423 P3 residual plus B5-0409 finding A; B5-0363 join-window precedent; AI untouched); B5-0433 checkpoint commit (captures uncommitted 0413 harness fix, 0423 ui/, 0426 docs, 0430 governance); B5-0434 guide part 6 (0423 fix supersedes 0426's P0 caveat); B5-0435 ledger hygiene (0428 double-pipe -- tooling recurrence noted again); B5-0436 D-remainder suite sections R1-R4 (gated on 0432, serialize after it -- shared suite file). No station-implementation task yet per 0428's own readout-first sequencing.
+
+## 2026-09-25 - opencode (me-so-poor / big-pickle): B5-0411 DONE - working-tree checkpoint commit
+
+* B5-0411 DONE: gate-first (compile.bat green, conformance 360/360, smoke PASS), staged tracked mods + 16 new reports, committed 04685e8 (no push). Deliberately left out: .agent/CLAIMS/*, .agent/HEARTBEATS/* (transient coordination), plus tool droppings QWEN.md, 0-byte 'java', stray b5ccg/src/.agent/ clones. Report: .agent/REPORTS/2026-09-25-opencode (me-so-poor)-B5-0411.md.
+## 2026-09-25 - opencode (me-so-poor / big-pickle): B5-0412 DONE - playtest-guide part 4
+
+* B5-0412 DONE (gated on B5-0409 DONE): docs-only refresh of docs/playtest-guide.md (+26 lines). Corrected stale stall framing (B5-0409 probe: natural termination ~R12/~118s at Rating 20; harness 'stall' = 60s window label), added honesty bullets for the dead B5-0349 parseLog promote counter, Rating-20 reachability, and ~64% initiator win-rate; suite count 360 unchanged (re-verified 360/360). Provenance: opencode appended as assessor + last_modified_by. No src/data edits. Report: .agent/REPORTS/2026-09-25-opencode (me-so-poor)-B5-0412.md.
+
+## 2026-09-25 - opencode (me-so-poor / big-pickle): B5-0413 DONE - confirmed-finding fix (harness)
+
+* Confirmed (B5-0409) the B5-0349 parseLog promote counter is dead: it matched the token ": promotes " (leading colon), but RulesEngine.java:177 logs " promotes " (no colon) and the GameController PROMOTE_CHARACTER action line is "X: PROMOTE_CHARACTER: ...". Harness artifact, not game defect - harness-only fix per B5-0376 precedent. HeadlessMultiRoundTest.java parseLog token changed to " promotes " + javadoc corrected.
+* Verified: seed 456 promotes=1 (was 0 pre-fix); conformance 360/360 PASS; smoke PASS; compile green. No data or game-logic edits. Report: .agent/REPORTS/2026-09-25-opencode (me-so-poor)-B5-0413.md.
+
+## 2026-09-25 - opencode (me-so-poor / big-pickle): B5-0421 DONE - build-hygiene sweep
+
+* Swept all 53 Java files under b5ccg/src/ for Java 8+ constructs: ZERO found (no lambdas, method refs, streams, Map default-methods, FunctionalInterface, try-with-resources, diamond, var). The getOrDefault hits are a DeckLoader private helper (line 321), replaceAll is the String regex method; all 123 broad-token matches were comments/ternaries/instanceof. Gates green: compile.bat, compile.sh (Git Bash; WSL bash unavailable on this host), and RUN_TESTS=1 (conformance 360/360 PASS, smoke PASS). Report: .agent/REPORTS/2026-09-25-opencode (me-so-poor)-B5-0421.md.
+* Concurrency note: B5-0409 dual-completed (see opencode B5-0409 collision entry below); B5-0410 completed by solar-pro4:free in the same window.
+
 ## 2026-09-25 — opencode (me-so-poor / big-pickle): B5-0409 dual-completion collision record
 
 * B5-0409 was completed by TWO sessions independently (both reaped the same stale claim per 00_BOOT step 9; both runs are real and verified). The ledger row and DEGISIONS already carry solar-pro4:free's completion (report `.agent/REPORTS/2026-09-25-solar-pro4-free-B5-0409.md`). THIS session's independent run produced a second report `.agent/REPORTS/2026-09-25-opencode (me-so-poor)-B5-0409.md` whose findings SUPERSEDE the ledger-recorded ones and must be read before any B5-0413 actionability decision:
 * The ledger row attributes "100% stall" and "0 promotions = pass-bias consequence". Both are WRONG or incomplete. No-timeout probe (seed 456, 240s watchdog) shows games TERMINATE naturally (round 12, ~118s, winner Alpha at Influence Rating 20) — "stalled" is purely the harness's 60s window. And B5-0349 `parseLog` promote counter is DEAD: its token `": promotes "` (colon) matches no real log line; `RulesEngine.java:177` logs `"<player> promotes <title>..."` (no colon) and the action line is `"<player>: PROMOTE_CHARACTER: <title>"`. So every multi-round aggregate's promote=0 is a counting artifact, NOT an AI behavior finding. Probe additionally shows promotions DO occur (Beta/Delta Inner Circles 1->2) and Influence Rating 20 IS reachable (~2 min) — so "agenda threshold unreachable" is also corrected (standard victory outruns the agenda economy, not a hard gate).
 * B5-0409 row was NOT re-flipped by this session (another agent's close-out; provenance rules). This entry + both reports are the honest record. Highest-value actionable finding for B5-0413: fix the harness's `parseLog` promote token in HeadlessMultiRoundTest.java (harness-file-only fix, B5-0376 precedent).
 
+## 2026-09-25 — Buffy (glm-5.3-flash): B5-0409 THIRD independent verification + two findings neither prior report carries
+
+* Triple-completion note: my verification of B5-0409 ran concurrently under the
+  ORIGINAL live claim (created 03:18:40Z per the ledger's own self-seed row); my
+  long scratch probes (reproduction x3 + 10-game sample + 240s-window runs + a
+  deep log-census probe) outlasted the claim TTL, so the row closed under other
+  sessions. My report was written and is on disk:
+  .agent/REPORTS/2026-09-25-Buffy-(glm-5.3-flash)-B5-0409.md. It corroborates
+  both prior reports (stall = 60s harness window; parseLog agenda token
+  " sets agenda:" is ALSO dead — matches no engine log line, so the runner's
+  agenda count is an artifact the same way the promote count is) and adds:
+* FINDING A (new, engine-level, NOT harness): conflicts resolve synchronously
+  INSIDE the initiating action — GameController.processAction's
+  INITIATE_CONFLICT branch sets the conflict, calls resolveCurrentConflict()
+  (AI join + human window + mandatory enforcement + resolution + aftermaths),
+  then clears it — all before the action loop resumes. The active-conflict
+  state that canAttackConflictParticipant/canHealCharacter/canRepairCard offers
+  require NEVER exists at AI decision time, so the B5-0368/0370/0371 damage
+  subsystem is structurally unreachable in AI-vs-AI games (observed
+  attacks=0/heals=0/repairs=0/neutralized=0 across every probe; conformance
+  reaches the handlers only via reflection). This sharpens B5-0413's
+  actionability decision: the parser fixes are harness-side, but this finding
+  is a REAL game-loop gap — the rulebook's separate Resolution Round (or an
+  in-window AI attack offer) is the fix direction, engine-scoped.
+* FINDING B (new, ai-tuning candidate): USE_ROTATE_EFFECT (MEDIUM 2 > PASS 0)
+  drives 36–82 assist rotations per game, keeping supporting characters
+  rotated — canPromote requires a READY assistant, so the assist frenzy
+  starves promotion; consistent with 0 promotions observed in my probe decks
+  while opencode's probe (different decks) saw IC growth. Recording as an AI
+  tuning candidate, not a defect.
+* No ledger row touched (another agent's close-out; provenance rules — my
+  evidence lives in this entry + my report). Scratch deleted; zero tracked-file
+  edits in my verification pass.
+
+## 2026-09-25 — Buffy (glm-5.3-flash): B5-0414 DONE (P0 UI finding) + B5-0415 DONE (all harnesses green)
+
+* B5-0414 UI audit (report-only, ui/ read-only): P0 — Heal, Repair, Lead
+  Fleet, Use Rotate Effect, and Attack read `selectedCard`, which is fed
+  ONLY by the HandPanel hand selection (MainWindow.java:792/1103); their
+  eligible cards live in board zones and GameBoardPanel has no selection
+  hooks, so all five buttons are permanently dark in real play. Engine
+  gating was correct but unreachable — explains why headless verification
+  (B5-0401/0402) could not catch it. Latent P2s: Heal omits `!isRotated()`
+  and the undamaged-IC aid path; P1: clearSelection leaves the three new
+  selectors' values; P3: Bid offers.get(0), Attack first-valid auto-target.
+  Fix direction (board CardSelectedListener, no engine change) recorded in
+  the report; P0 additionally interacts with B5-0409's synchronous-
+  resolution finding for Attack specifically.
+* B5-0415 health sweep: all five standalone harnesses green on a fresh
+  rebuild (tiebreak 26/26; difficulty contract 10/10; station 6;
+  participation probe PASS; lead-fleet 8) plus RUN_TESTS=1 360/360 + smoke
+  PASS. No flakes; counts and commands in the report table.
+* Reports: .agent/REPORTS/2026-09-25-Buffy-(glm-5.3-flash)-B5-0414.md and
+  ...-B5-0415.md. Claims released; no src/resources edits; ledger rows
+  closed with pipes preserved.
+
+--------------------------------------------------------------------------------
+2026-09-25 — B5-0416 DONE + B5-0417 DONE (Buffy, glm-5.3-flash)
+* B5-0416 card-data integrity sweep after backfills: ALL CHECKS PASS —
+  premiere 446 records all PREMIERE-set, deluxe 383 all DELUXE; title union
+  446 unique (383 shared, B5-0320 exact); cost keys 209/168 (= B5-0335);
+  participation 5/2 (= B5-0352 + de_border_raid + B5-0393); fleetClass
+  44/36 (= B5-0392); mercenary 0/0 (B5-0395 fixture design); Zack Allan
+  cross-set pair both "Zack Allan" (B5-0385 holds); Commercial Telepaths
+  paraphrases intact, Psi hook byte-stable, cost 6 the only numeric key.
+  Live DeckLoader.loadBothSets agrees on every count (446 pool, 383 DELUXE
+  + 63 PREMIERE, 44/44 fleets classed). Verdict: no regression, no drift.
+* B5-0417 D-series closure audit (report-only): all 15 B5-0203 deviations
+  mapped to resolving DONE rows + HeadlessConformanceTest sections (counts
+  re-verified by grep this session). D1/D3/D8 -> B5-0204 (D1x8, D3x8, D8x5);
+  D2/D4 -> B5-0338 (AMTx14); D5 -> B5-0337+0341 (FLRx15); D6 -> B5-0341+0372
+  (behavior-verified, no dedicated assertions); D7 -> B5-0301 (inside AISx7/
+  CSTx13 scoring checks only); D9 -> B5-0342+0369 (D9x9); D10/D11 ->
+  B5-0357+0367 (BONx9 + DMGx8); D12/D13 -> B5-0305+0332 (D12x5, D13x6);
+  D14 -> B5-0309 (CSDx8); D15 -> B5-0307 partial (E1x3/E3x5/ROTx14/LEADx13
+  exercise dispatched kinds). Verdict: 11/15 closed with named coverage.
+  Remainders: R1 stale info line HeadlessConformanceTest.java:3257-3258
+  ("D2/D4-D7/D9-D11/D15 need effect/target plumbing") is false today —
+  one-line replacement proposed in the report for a later harness-only
+  slice; R2 D6 lacks dedicated named assertions; R3 D7 same; R4 D15
+  partial by design (effect-kind coverage, not per-card text).
+* Reports: .agent/REPORTS/2026-09-25-Buffy-(glm-5.3-flash)-B5-0416.md and
+  ...-B5-0417.md. Both rows report-only: no src/resources edits; ledger
+  rows closed with pipes preserved; claims released.
+--------------------------------------------------------------------------------
+2026-09-25 — B5-0418 independent verification (Buffy, glm-5.3-flash)
+* Raced with solar-pro4:free (they closed the row; verdicts converge):
+  independent no-evidence census — literal "contingency" 0/0 in both JSONs;
+  full-blob walk found 13 unique titles matching face-down/reveal/hidden and
+  ALL classify as idioms (healed-state face-down; hand/pile-reveal effects),
+  none implement under-host placement + trigger reveal. SNRPG decode Type 5 =
+  CONTINGENCY (7 rows, "Reveal when [trigger]") confirms Great War provenance:
+  absent from data by set coverage, engine fully live (B5-0365/0377/0381).
+  B5-0424 gate resolves to that row's own no-op close path.
+* Schema recommendation on record: SUBTYPE-STRUCTURED (type + validTargetType/
+  validTargetRace/triggerCondition, the loader contract), NOT a boolean —
+  opposite of the B5-0386 mercenary case because the structural hooks exist.
+* Provenance note: my in-TTL claim (.agent/CLAIMS/B5-0418.json, started
+  2026-09-25T05:42:49Z) was deleted by another agent before close-out —
+  protocol says claims are never touched by other agents; ledger row left
+  to the closing agent per the one-writer rule.
+* Report: .agent/REPORTS/2026-09-25-Buffy-(glm-5.3-flash)-B5-0418.md;
+  reusable-lesson pattern filed under .agent/PATTERNS/Buffy (glm-5.3-flash)/.
+--------------------------------------------------------------------------------
+2026-09-25 — B5-0420 DONE (Buffy, glm-5.3-flash)
+* Agenda win-condition vocabulary census: FULL COVERAGE — all 47 agenda rows
+  (premiere 26, deluxe 21) carry winCondition values inside the engine set
+  (INFLUENCE_20 22+17, MILITARY_SUPREMACY 2+2, MOST_INNER_CIRCLE 2+2); zero
+  unknown keys; the loader's INFLUENCE_20 default is never exercised. Clean
+  bijection: every engine branch is exercised by data and every data key has
+  an engine path. B5-0425's gate resolves to its own no-op close path.
+* Major-agenda distribution: isMajorAgenda true on exactly the 6 AGENDA_MAJOR
+  -subtype rows per set (same 6 titles both sets), perfect flag/subtype
+  correlation; race-subtyped agendas never carry it. Census-method note: the
+  loader key is isMajorAgenda (DeckLoader.java:275) — a guessed key
+  (majorAgenda) fails silently to False and undercounts; key vocabulary must
+  be derived from the consumer's call sites.
+* Hidden-state rows: zero hidden keys in either file — correct by design;
+  B5-0364 implements hidden agendas as runtime state, not a JSON property.
+* Report-only: no src/resources edits. Report:
+  .agent/REPORTS/2026-09-25-Buffy-(glm-5.3-flash)-B5-0420.md; pattern filed
+  under .agent/PATTERNS/Buffy (glm-5.3-flash)/ (census-keys-from-consumer).
+
+2026-09-25 — B5-0419 DONE (opencode (me-so-poor), big-pickle)
+* War-conflict scenario probe: new HeadlessWarConflictProbe.java (45 checks,
+  exit 0), standalone CLI, never wired into RUN_TESTS; drives
+  DECLARE_WAR_CONFLICT end to end on REAL loaded card data
+  (DeckLoader.loadBothSets) through the same seams GameController reads.
+* S1 declaration legality: at peace cannot declare (canDeclareWarConflict and
+  canInitiateWarConflict both false); at war both sides may declare; a third
+  party can join a war conflict only once at war (tension-matrix gate, B5-0383
+  precedent); declaration against a peace-bound race refused (null). The
+  B5-0376 GameAction.declareWarConflict factory shape confirmed: type
+  DECLARE_WAR_CONFLICT, null card, race target in getTarget, location in
+  getTargetCard — exactly what the controller's DECLARE_WAR_CONFLICT branch
+  consumes. Conflict object: isWarConflict true, card null, MILITARY,
+  influenceReward 0.
+* S2 tension increment: an uncontested race war (+1 toward the target
+  faction) and the increment is clamped at 5 (pre-raised to 5, a second
+  resolution stays 5, not 6).
+* S3 location capture/recapture on a real loaded Centauri location: initiator
+  win captures (capturedBy set, effects suppressed, income and military 0);
+  the printed-faction owner's recapture clears capturedBy and restores income
+  and military. LOCATION_TARGET tension runs toward the printed owner (read
+  from the card after capture mutates capturedBy).
+* S4 the "all-supported uncontested" read both ways: empty opposition AND no
+  attack -> target -1, winner +1; opposers present OR resolveConflict winning
+  initiator with an attack (executeAttackConflictParticipant commits + marks
+  attackOccurred) -> contested, no swing either way.
+* No game-logic or suite edits (new file only). compile.bat green on JDK
+  1.8.0_292 (-source 6 -target 6); probe exit 0.
+* Report: .agent/REPORTS/2026-09-25-opencode (me-so-poor)-B5-0419.md.
+--------------------------------------------------------------------------------
+2026-09-25 — B5-0422 raced (Buffy, glm-5.3-flash)
+* opencode (me-so-poor) claimed B5-0422 at 05:53:30Z, replacing my claim of
+  05:52:30Z (second claim overwrite this session; 0418 was deleted outright).
+  My independent deliverable is on disk: docs/proposals/b5-0422-pass-bias-
+  cascade-design-proposal.md (author_llm Buffy glm-5.3-flash) — options A-D
+  with B5-0351 band effects per option, recommendation = Option A one-line
+  EASY retune (nextInt(10)<2, observed pass ~0.45-0.50, inside band with
+  margin), explicitly NOT-recommended list, and a verification plan for the
+  eventual fix slice. Grounded in AIPlayer.java:446-448, Main.java:70-72,
+  B5-0351 report contract, B5-0409 verdict. Row belongs to opencode's
+  close-out; if they deliver a second proposal file, the two are parallel
+  candidates for the same recommendation space — reconcile or note both.
+--------------------------------------------------------------------------------
+2026-09-25 — B5-0425 DONE (no-op) (Buffy, glm-5.3-flash)
+* Closed per the row's own gate: B5-0420 confirmed full winCondition coverage
+  (47/47 rows inside the engine set; zero keys without an engine path; the
+  INFLUENCE_20 loader default is never exercised by data), so the
+  missing-path condition this slice was seeded to fix does not exist in the
+  current pool. No engine/model edits; no conformance section added; build
+  gate not re-run (zero tracked-file edits; tree health per B5-0421 sweep).
+* Report: .agent/REPORTS/2026-09-25-Buffy-(glm-5.3-flash)-B5-0425.md.
+--------------------------------------------------------------------------------
+2026-09-25 — B5-0430 DONE (Buffy, glm-5.3-flash)
+* Shared pattern-store governance landed (human-approved per QUEUE 0430
+  note): 00_BOOT.md gained step 10 (close-out "Reusable lesson" + filing
+  under .agent/PATTERNS/<agent-id>/, boot-skim, own-namespace-only writes,
+  supersede-never-rewrite); AGENTS.md section 6 gained the pattern-store
+  rule (advisory tier, never canonical, stable agent_id = namespace,
+  provenance rules apply) with self assessor + last_modified updated
+  (author untouched); .agent/PATTERNS/README.md stub created (placement
+  rule, namespace table, cross-references).
+* Hermes defect-audit clause verified NOT triggered: nothing published
+  anywhere (grep over PATTERNS/REPORTS/HEARTBEATS); stub records the open
+  reference-link invitation; nothing copied per row text.
+* Buffy namespace already carries 2 pre-amendment pattern records from
+  this session (0418, 0420), serving as format examples.
+* Governance files only; no src/data edits; no compile needed. Report:
+  .agent/REPORTS/2026-09-25-Buffy-(glm-5.3-flash)-B5-0430.md.
+--------------------------------------------------------------------------------
+2026-09-25 — B5-0426 DONE (Buffy, glm-5.3-flash)
+* Playtest-guide refresh part 5 (gates verified: B5-0414 + B5-0422 DONE):
+  added the 0414 P0 caveat as a blockquote over the control reference
+  (five selection-driven controls dark in real play; board selection fix =
+  B5-0423); corrected the Damage bullet's false "YOU can trigger them from
+  the window" claim; added the 0422 proposal-status bullet (two parallel
+  advisory proposals; no behavior change); corrected the "EASY-heavy
+  default seating" honesty note — no all-EASY default exists in the tree
+  (Main MEDIUM/HARD/EASY; harnesses EASY/MEDIUM/HARD/MEDIUM), contradicting
+  the solar-pro4 proposal's premise; discrepancy flagged for whoever
+  reconciles the 0422 proposals. Suite count 360 unchanged (verified).
+  Self assessor appended; author untouched.
+* Docs-only: no src/resources edits. Report:
+  .agent/REPORTS/2026-09-25-Buffy-(glm-5.3-flash)-B5-0426.md; pattern filed
+  (gated-docs-refresh-propagates-audits) under .agent/PATTERNS/.
+--------------------------------------------------------------------------------
+2026-09-25 - B5-0423 DONE (opencode, big-pickle)
+* Scope honored: b5ccg/src/b5ccg/ui/ only. No engine or model edits. Gate was
+  satisfied (B5-0414 DONE; its audit report read before the first edit).
+* P0 (five 0401/0402/0404/0407 controls unreachable) closed by board-side
+  selection. GameBoardPanel gained a click -> resolveCardAt -> callback chain
+  (handleClick/resolveCardAt/hit/drawSelectionMark) with geometry copied
+  verbatim from drawZone (ambassador 60x84 at x+8,y+58; IC 46x64 step 52 at
+  y+175; supporting chips 46x16 step 50 at y+269; fleets 46x64 step 52 at
+  y+310; groups+locations 46x64 step 52 at y+430). Face-down cards are not
+  resolvable, preserving the B5-0381 host-information boundary. MainWindow
+  wires boardPanel.setOnBoardCardSelected to a new shared applyCardSelection
+  (card, fromHand), which the hand listener also calls, so target population,
+  assistant tracking, enablement, cost preview and the Tier-1 remainder
+  controls are identical for both sources.
+* Interface interpretation: board selection deliberately does NOT populate the
+  human target dropdown. A board card is never a ConflictCard to attack, and
+  conflicts are not board-resident, so fromHand alone gates the dropdown.
+* P1 (stale selectors) closed: clearSelection now resets warTargetSelector to
+  "(select target)", contingencySelector to "(none)", and
+  mercenaryBidAmountSelector to index 0. Index 0, not -1, because
+  refreshMercenaryBid parses getSelectedItem() with no null guard and a -1
+  index yields null. clearSelection also calls boardPanel.clearSelection() so
+  the lime highlight cannot outlive the selection that drew it.
+* P2 (heal enablement drift) closed: the hand-rolled heal predicate omitted
+  !isRotated and the undamaged-IC aid path, so it disabled a legal move
+  (RulesEngine.canHealCharacter:33, the HLR "undamaged IC may rotate as
+  ambassador aid" case). Enablement is now the same engine predicate the
+  action handler already gates on, for both Heal and Repair - one authority,
+  no duplicated partial copy to drift again.
+* Regression guard added: updatePlayInitiateButtons' canPlay now requires
+  humanPlayer().getHand().contains(selectedCard). Without it, the new board
+  selection would light "Play Card" for an IC/fleet/location card and dispatch
+  an illegal playCard for a card not in hand.
+* P3 residuals recorded, not fixed: Attack auto-picks the first valid target
+  and is structurally gated because activeConflict is never non-null at human
+  decision time (B5-0409) - closing that needs an engine change, outside this
+  row's ui-only scope. Bid hardcodes offers.get(0), unreachable while the pool
+  is empty.
+* Gates green: compile.bat; HeadlessConformanceTest 360/360 PASS; smoke PASS;
+  HeadlessAIDifficultyContractTest 10/10. Report:
+  .agent/REPORTS/2026-09-25-opencode (me-so-poor)-B5-0423.md; pattern filed
+  under .agent/PATTERNS/opencode (me-so-poor)/.
+--------------------------------------------------------------------------------
+2026-09-25 — B5-0427 DONE (Buffy, glm-5.3-flash)
+* Captured-location + war-state UI readout landed (ui/ only,
+  GameBoardPanel.java): location mini-cards render CAP:<player> and/or SUP
+  markers from the B5-0376 API (getCapturedBy/isEffectsSuppressed) on the
+  previously-empty upper stat line, face-up locations only; board-level
+  at-war pill 'At war: RACE-RACE,...' reads TensionMatrix.getAtWarPairs()
+  (sorted, drawn only when a war exists — the pool has no tension sources,
+  so normal games are unaffected); public atWarLine() accessor for
+  headless assertion. No engine/model edits.
+* Verified: compile.bat green; RUN_TESTS=1 green (360/360 conformance +
+  smoke PASS); Java 6 grep clean on the touched file; transient headless
+  paint probe 8/8 (marker on captured only, absent on free + face-down
+  siblings; pill clears after exitWar) — scratch deleted.
+* Note: TensionMatrix's header comment describing a second
+  b5ccg.model.Faction wrapper is stale — exactly one Faction enum exists
+  (model.enums.Faction); confirmed during this slice, no action taken.
+* Report: .agent/REPORTS/2026-09-25-Buffy-(glm-5.3-flash)-B5-0427.md;
+  pattern filed (headless-ui-readout-probes) under .agent/PATTERNS/.
+--------------------------------------------------------------------------------
+2026-09-25 — B5-0431 DONE (opencode, big-pickle)
+* Seat-mix premise reconciled from current executable source. Production Main
+  is MEDIUM/HARD/EASY for its three AI seats (Main.java:69-73); Smoke,
+  MultiRound, and Reporting are each EASY/MEDIUM/HARD/MEDIUM. Every default is
+  already mixed with exactly one EASY seat; no all-EASY executable default or
+  user-selectable all-EASY path exists.
+* B5-0422 Option B is DEAD as written. Removing the last EASY full-game sample
+  would redefine metrics/coverage; changing Main's Londo seat would be a new
+  onboarding policy. The parallel proposal's claim that Reporting is not a game
+  loop is also corrected: HeadlessReportingTiebreakTest.java:480-503 runs a
+  live GameController integration loop.
+* Report-only scope: no src/ or resources/ edits; no build gate applies.
+  Report: .agent/REPORTS/2026-09-25-opencode (me-so-poor)-B5-0431.md.
+  Pattern: .agent/PATTERNS/opencode (me-so-poor)/
+  2026-09-25-census-executable-defaults-before-config-edits.md.

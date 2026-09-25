@@ -6,9 +6,10 @@ provenance:
   author_llm: {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
   assessor_llm:
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
-  last_modified_by_llm: {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
+    - {name: "Buffy", version: "glm-5.3-flash"}
+  last_modified_by_llm: {name: "Buffy", version: "glm-5.3-flash"}
   created_date: "2026-09-21"
-  last_modified_date: "2026-09-21"
+  last_modified_date: "2026-09-25"
 ---
 
 # AGENTS.md — Babylon 5 CCG (autonomous, lightweight)
@@ -78,3 +79,12 @@ another agent's claim or heartbeat. Git is change-tracking only, not authority.
   `docs/reports/`. Root holds only governance, the rulebook, and code.
 * One stable `agent_id` per agent across sessions. Assessors are self-added
   only — adding another agent's name is fabrication.
+* Shared pattern store (B5-0430, human-approved 2026-09-25): every close-out
+  report gains a one-line "Reusable lesson" item, filed as a Markdown record
+  under `.agent/PATTERNS/<agent-id>/` (stable agent_id = namespace). The
+  store is **advisory only** — same tier as `investigations/`, never
+  canonical; copying or citing never confers authority. Read all
+  namespaces, write only your own; section-1 provenance rules apply;
+  supersede-never-rewrite (a corrected pattern is a NEW file linking the
+  old one). Boot skim: glance at the newest records across namespaces
+  before claiming (see `.agent/00_BOOT.md` step 10).
