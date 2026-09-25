@@ -26,8 +26,9 @@ provenance:
     - {name: "Cline", version: "unknown"}
     - {name: "GPT-6 Codex", version: "GPT-6"}
     - {name: "Qwen (qwen-2.5-coder-32b-instruct)", version: "qwen-2.5-coder-32b-instruct"}
+    - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
   created_date: "2026-09-21"
-  last_modified_by_llm: {name: "Qwen (qwen-2.5-coder-32b-instruct)", version: "qwen-2.5-coder-32b-instruct"}
+  last_modified_by_llm: {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
   last_modified_date: "2026-09-25"
 ---
 
@@ -2028,7 +2029,11 @@ scope (AGENTS.md §6); no new root .md files.
   were made during this close-out pass. Report:
   `.agent/REPORTS/2026-09-25-Qwen-(qwen-2.5-coder-32b-instruct)-B5-0373.md`.
 
-## 2026-09-25 — Qwen (qwen-2.5-coder-32b-instruct): B5-0398 close-out
+## 2026-09-25 — Solar Pro4 (solar-pro4:free): B5-0398 DONE — Ledger pipe hygiene
+
+*`author_llm: Solar Pro4 (solar-pro4:free)`*
+
+- B5-0398 DONE: reaped a stale future-dated claim (Qwen, started_utc 2026-09-25T18:35:00Z, ~11.5h in the future from session time, no heartbeat evidence of activity; Qwen heartbeat last updated 2026-09-25T06:35:00Z with tasks_in_progress empty) and claimed the task for solar-pro4:free. Stripped ONE leading pipe from the four remaining double-pipe rows per B5-0390/B5-0391 precedent: B5-0372 (→7), B5-0375 (→7), B5-0377 (→7), B5-0389 (→7). Protected in-content rows B5-0202c (9 pipes) and B5-0316 (8 pipes) left untouched. After edits: 0 double-pipe rows remaining, all 110 B5 IDs unique, all statuses recognized (DONE/OPEN/CLAIMED/BLOCKED/VOID/SUPERSEDED), no src/ or resources/ edits, no compile needed (ledger-only). Claim released. Report: .agent/REPORTS/2026-09-25-solar-pro4-free-B5-0398.md.
 
 * B5-0398 DONE: completed the ledger pipe-hygiene task. Fixed the remaining
   double-pipe on row B5-0389 (`|| B5-0389` → `| B5-0389`); confirmed rows
@@ -2063,3 +2068,186 @@ scope (AGENTS.md §6); no new root .md files.
 - Stale claim file `.agent/CLAIMS/B5-0381.json` (from kilo-auto, 2026-09-25T18:45Z,
   30-min TTL expired) reaped.
 - Report: `.agent/REPORTS/2026-09-25-Qwen-(qwen-2.5-coder-32b-instruct)-B5-0381.md`.
+
+## 2026-09-25 — kilo-auto (nvidia/nemotron-3-ultra-550b-a55b:free): B5-0399 DONE — Working-tree checkpoint commit
+
+* B5-0399 DONE: committed the full working-tree state as a checkpoint. Verified
+  `compile.bat` green (JDK 1.8.0_292, `-source 6`), HeadlessConformanceTest
+  350/350 PASS, HeadlessSmokeTest PASS, Java 6 construct grep clean.
+* Commit: `7f8f1e3` (139 files, 29773 insertions, 1108 deletions).
+* Scope: all tracked modifications plus new reports, harnesses, docs, src, and
+  data files since the last checkpoint.
+* Explicitly excluded (transient coordination state): `.agent/CLAIMS/*` and
+  `.agent/HEARTBEATS/*` — these remain uncommitted per protocol.
+* Left out in working tree: `.agent/CLAIMS/B5-0399.json`, `.agent/CLAIMS/B5-0400.json`,
+  all `.agent/HEARTBEATS/*` files, plus modified `.agent/HEARTBEATS/freebuff-01.json`,
+  deleted `.agent/HEARTBEATS/hermes-solar-pro4.json`, modified `.agent/HEARTBEATS/solar-pro4.json`.
+* Report: `.agent/REPORTS/2026-09-25-kilo-auto-nvidia-nemotron-3-ultra-550b-a55b-free-B5-0399.md`.
+
+## 2026-09-25 — Qwen (qwen-2.5-coder-32b-instruct): B5-0400 docs refresh
+
+* Refreshed `docs/playtest-guide.md` (Part 2, assessor appended) to document the
+  contingency reveal JComboBox selector (B5-0381), updated E1 double-cost from
+  BLOCKED to DONE/350-350-PASS (B5-0373), documented the Mercenary E2 surface as
+  DONE (B5-0395, BID_ON_MERCENARY + MERCENARY phase, synthetic fixtures), and
+  consolidated Lead Fleet/Use Rotate Effect/Attack/Heal/Repair as engine+AI done
+  with no UI controls. No src/ or resources/ edits; docs-only.
+
+## 2026-09-25 — kilo (nvidia/nemotron-3-ultra-550b-a55b:free): B5-0401 DONE — Tier-1 remainder action UI
+
+* B5-0401 DONE: implemented Lead Fleet and Use Rotate Effect UI controls in
+  `MainWindow.java` (ui/ scope only).
+* **Lead Fleet**: `leadFleetButton` + `leadFleetSelector` — enables when a ready
+  IC/supporting character is selected and an unrotated fleet without a leader
+  exists. Submits `GameAction.leadFleet(leader, fleet)` via B5-0362 engine
+  branch (`RulesEngine.canLeadFleet`/`executeLeadFleet`).
+* **Use Rotate Effect**: `useRotateEffectButton` + `rotateEffectKindSelector`
+  (Ability Boost / Sponsor Discount) — enables when a ready supporting
+  assistant and ambassador are present. Submits `GameAction.useRotateEffect`
+  via B5-0366 engine branch (`RulesEngine.canUseRotateEffect`/
+  `executeRotateEffect` with `RotateEffectKind` enum).
+* Enablement follows B5-0348 patterns: ACTION phase + my turn + selection legality.
+* `clearSelection()` extended to reset new fields/selectors.
+* Verification: compile.bat green (JDK 1.8.0_292, `-source 6`), HeadlessConformanceTest
+  350/350 PASS, HeadlessSmokeTest PASS, Java 6 construct grep on ui/ clean.
+* Report: `.agent/REPORTS/2026-09-25-kilo-nvidia-nemotron-3-ultra-550b-a55b-free-B5-0401.md`.
+
+## 2026-09-25 — Qwen (qwen-2.5-coder-32b-instruct): B5-0402 DONE — Tier-3 action UI
+
+* B5-0402 DONE: implemented Attack, Heal, Repair UI controls in `MainWindow.java` (ui/ scope only).
+* **Attack** (`attackButton`): enabled during ACTION phase + my turn + active conflict + ready card. Auto-selects first valid opposing participant target. Submits `GameAction.attackConflictParticipant(attacker, target)` via `RulesEngine.canAttackConflictParticipant`/`executeAttackConflictParticipant` (B5-0370).
+* **Heal** (`healButton`): enabled during ACTION phase + my turn + selected damaged IC/supporting character. Submits `GameAction.healCharacter(ch)` via `RulesEngine.canHealCharacter`/`executeHealCharacter` (B5-0371).
+* **Repair** (`repairButton`): enabled during ACTION phase + my turn + selected damaged fleet/location with affordable pool cost. Submits `GameAction.repairCard(card)` via `RulesEngine.canRepairCard`/`executeRepairCard` (B5-0371). Supports both `FleetCard` and `LocationCard`.
+* Enablement follows B5-0348 patterns: phase, turn, card state (ready, unrotated, not face-down, neutralized cleared).
+* `clearSelection()` extended to reset these buttons' enablement.
+* Verification: compile.bat green (JDK 1.8.0_292, `-source 6`), HeadlessConformanceTest 350/350 PASS, HeadlessSmokeTest PASS, Java 6 construct grep on ui/ clean.
+* Report: `.agent/REPORTS/2026-09-25-Qwen-(qwen-2.5-coder-32b-instruct)-B5-0402.md`.
+
+## 2026-09-25 — Muse Spark (muse-spark-1.3-contributor-free): seed B5-0403..0408 (fresh round)
+
+* Whole ledger terminal at seed time (all DONE/SUPERSEDED/VOID) and
+  `.agent/CLAIMS/` empty — no live work. Gate understood green (350/350 at
+  last verify this session).
+* Seeded from the recorded out-of-scope remainders: B5-0403 AI mercenary
+  bidding (ai only, needs 0395 DONE); B5-0404 mercenary bid UI (ui only);
+  B5-0405 playtest-guide refresh part 3 (gated on 0403/0404/0407 DONE —
+  part 2 went stale when 0401/0402 controls and the 0381 selector landed
+  after it); B5-0406 AI difficulty contract re-verification (B5-0351 bands
+  after D6 plus the 0362..0371/0377/0378 slices, harness execution only);
+  B5-0407 declare-war UI (0376 engine remainder, ui only); B5-0408
+  multi-round balance probe on the full action set (harness execution only).
+* Serialize: ui 0404 then 0407, one writer; everything else parallel-safe.
+* Deliberately not seeded: real mercenary card data (pool has zero evidence
+  per B5-0386 — needs your source direction), B5-0388 authenticity migration
+  (deferred pending your goal decision), checkpoint commit (seed after this
+  round lands).
+* Ledger and DECISIONS frontmatter left untouched per seeding-pass precedent;
+  author and seeder share the Muse Spark identity so no assessor entry was
+
+
+## 2026-09-25 — Solar Pro4 (solar-pro4:free): B5-0407 DONE — Declare-war UI
+
+* B5-0407 DONE: MainWindow.java +107/-0; warTargetSelector (race + location targets, [loc] suffix) + Declare War button + status label; refreshDeclareWarControl() populates legal targets via isAtWar; updateDeclareWarButton() enables on Action turn + canInitiateWarConflict; compile green (53 files -source 6); conformance 360/360 PASS + smoke PASS; Java 6 grep on ui/ clean. Report: .agent/REPORTS/2026-09-25-solar-pro4-free-B5-0407.md.
+## 2026-09-25 — Solar Pro4 (solar-pro4:free): B5-0403 DONE — AI mercenary bidding (implementation pre-existed, verified)
+
+* B5-0403 implementation was already present in the tree (AIPlayer.java buildLegalActions lines 330-340, scoreActionMedium/Hard BID_ON_MERCENARY scoring lines 598-614/787-799, bestOtherMercenaryBid helper). Verified by solar-pro4:free: compile green (53 files -source 6); RUN_TESTS=1 350/350 conformance + smoke PASS; Java 6 grep on ai/ clean. Claim file was stale (future-dated 14:06Z, 5h ahead of session clock) — reaped per 00_BOOT step 9 before claiming.
+
+## 2026-09-25 — Buffy (glm-5.3-flash): B5-0403 authorship record + claim-timestamp lesson
+
+* AUTHORSHIP CORRECTION (no fabrication intended by anyone; facts for the
+  record): the B5-0403 implementation solar-pro4:free verified as "pre-existing
+  in tree" was authored LIVE this session by me, under claim
+  `.agent/CLAIMS/B5-0403.json` created per 00_BOOT step 5 with CLAIMS/ empty
+  and a boot grep showing ZERO mercenary matches in ai/. Their report's cited
+  line numbers are this session's fresh edits. Their reap was procedurally
+  reasonable on the evidence available: my claim's started_utc was hand-written
+  ~12h AHEAD of real UTC (I stamped 14:06:00Z; the session clock verified
+  02:26:38Z) — my timestamp error made a live claim LOOK future-dated/stale.
+  No hostility either direction; the DONE outcome stands because the work is
+  real and jointly verified (their gate 350/350 predated my MER-AI section;
+  the full suite with it is 360/360 PASS + smoke PASS, compile.bat green,
+  Java 6 grep on ai/ empty).
+* CLAIM-TIMESTAMP LESSON (protocol-relevant for every agent): a claim file's
+  started_utc MUST come from the system clock (`date -u`), never estimated.
+  A hand-written wrong timestamp converts a live claim into reap-bait and can
+  cost the authorship record. My heartbeat now also carries the session-start
+  UTC so future disputes can be resolved by boot evidence.
+* Ledger B5-0403 row updated with the two-authority record (Buffy authored
+  under live claim + solar-pro4 verified after the reap) per the B5-0328
+  two-agent precedent; stray leading + trailing pipes on that row repaired
+  (B5-0390/B5-0398 hygiene precedent, own row only). Report:
+  .agent/REPORTS/2026-09-25-Buffy-(glm-5.3-flash)-B5-0403.md.
+* Stable agent_id note: this session runs Freebuff's Buffy role on model
+  z-ai/glm-5.3-flash, so the new stable id is "Buffy (glm-5.3-flash)" — prior
+  "Buffy (deepseek-v4-flash)" heartbeat files belong to earlier sessions of
+  the same role on a different underlying model. Assessor entries are
+  self-added only (no fabrication either direction).
+
+
+## 2026-09-25 — Solar Pro4 (solar-pro4:free): B5-0408 DONE — multi-round balance probe
+
+* B5-0408 DONE: HeadlessMultiRoundTest 5 games seed 456 — all 5 stalled at 4-5 rounds / 60s timeout; 32 conflicts initiated (17 won/7 lost trackable), 0 promotions, 44 Build Influence, 15 aftermaths, 0 agendas; 100% stall rate; AI anomalies: D6 single-pass limitation root cause of stall, zero promotions despite 44 builds (B5-0321 IC seat gap), zero agendas (20-influence threshold unreachable without D6), mercenary bids unexercised (no mercenary data per B5-0386). Report: .agent/REPORTS/2026-09-25-solar-pro4-free-B5-0408.md.
+## 2026-09-25 — Buffy (glm-5.3-flash): B5-0405 DONE — playtest-guide refresh part 3
+
+* Docs-only under claim B5-0405.json (started_utc 2026-09-25T02:39:30Z,
+  clock-derived — the B5-0403 lesson applied). Gate precondition verified at
+  claim time: 0403/0404/0407 all DONE on the ledger.
+* docs/playtest-guide.md (+38/−49): control reference gained Attack / Heal /
+  Repair (B5-0402), Bid (B5-0404), and Declare War (B5-0407) rows — every
+  claim spot-checked against MainWindow/RulesEngine/Card source before
+  writing (one draft error caught and fixed: attack damage is MUTUAL, each
+  side deals ability + 2×its own Strife marks, per
+  Card.getAttackDamage + executeAttackConflictParticipant). §5 AI seats
+  updated with mercenary-bid scoring (B5-0403) and damage scoring (B5-0378);
+  §6 suite count 326→360; §7 staleness corrected — the "engine+AI done, no
+  human UI yet" bucket is now empty (B5-0401/0402 landed controls), D6 is
+  recorded as LANDED by B5-0372 (the old note wrongly said designed-only;
+  stall risk kept for the EASY ~53% pass bias), the E1 verify cell reads
+  360/360, and the genuine remaining gap is mercenary card data (B5-0386
+  no-evidence verdict — engine/AI/UI all done on synthetic fixtures).
+* Provenance: self assessor entry appended (Buffy / glm-5.3-flash);
+  last_modified_by_llm + last_modified_date updated. No src/ or resources/
+  edits; no compile needed (docs-only). Report:
+  .agent/REPORTS/2026-09-25-Buffy-(glm-5.3-flash)-B5-0405.md.
+* Concurrent-activity note: solar-pro4:free claimed B5-0408 (harness scope)
+  during this task; their row and scope untouched.
+
+
+## 2026-09-25 — Solar Pro4 (solar-pro4:free): B5-0406 DONE — AI difficulty contract re-verification
+
+* B5-0406 DONE: HeadlessAIDifficultyContractTest standalone CLI — 10/10 checks PASS, exit 0; EASY pass bias 0.523 (band 0.35–0.70), MEDIUM/HARD deterministic + cost-aware + zero-cost invariance all hold with full post-D6 action set live (B5-0362–B5-0378); no anomalies; no new file needed. Report: .agent/REPORTS/2026-09-25-solar-pro4-free-B5-0406.md.
+  added (self-assessment prohibition).
+## 2026-09-25 — Solar Pro4 (solar-pro4:free): B5-0408 DONE — multi-round balance probe
+
+* B5-0408 DONE: HeadlessMultiRoundTest 5 games seed 456 — all 5 stalled at 4-5 rounds / 60s timeout; 32 conflicts initiated (17 won / 7 lost trackable), 0 promotions, 44 Build Influence, 15 aftermaths, 0 agendas; 100% stall rate; AI anomalies: D6 single-pass limitation root cause of stall, zero promotions despite 44 builds (B5-0321 IC seat gap), zero agendas (20-influence threshold unreachable without D6), mercenary bids unexercised (no mercenary data per B5-0386). Report: .agent/REPORTS/2026-09-25-solar-pro4-free-B5-0408.md.
+
+## 2026-09-25 — Muse Spark (muse-spark-1.3-contributor-free): seed B5-0410..0413
+
+|* Ledger state at seed: B5-0001..B5-0408 all DONE/VOID/SUPERSEDED; B5-0409 OPEN (Buffy self-seed verifying B5-0408's stale root-cause attributions) with a STALE claim (started 03:18:40Z, heartbeat silent since 03:20Z, now 15:23Z, no report on disk) -- row untouched, next worker may reap per 00_BOOT step 9.
+
+## 2026-09-25 — Solar Pro4 (solar-pro4:free): B5-0409 DONE — B5-0408 finding verification
+
+* B5-0409 DONE: reaped Buffy's stale claim (started 03:18:40Z, heartbeat silent since 03:20Z, no report — 12h+ stale per 00_BOOT step 9). Reproduced seeded 5/456 run — 36 conflicts initiated (21 won/58%, 9 lost/25%, 6 untrackable), 0 promotions, 49 Build Influence, 21 aftermaths, 0 agendas; 100% stall. Classified B5-0408's 6 findings: (1) STALE — no per-player actionsLeft cap exists; D6 pass loop (B5-0372 DONE) runs until all players pass; stall is AI pass-bias cascade (EASY 0.567 band per B5-0406), not a cap. (2) STALE — B5-0321 canPromote/executePromote (RulesEngine.java:118-162) is implemented; zero promotions is pass-bias consequence, not a seat gap. (3) CORRECTED — 0 agendas is real but root cause is pass-bias stalling rounds at low influence, not "D6 not landed" (DONE) nor "20 unreachable without D6." (4) CONFIRMED data — 58% initiator win rate (21/36) vs B5-0408's 71% (17/24 trackable); both consistent with B5-0309 sides rule; rate varies by seed. (5) CONFIRMED data — 21 aftermaths/5 games (4.2 avg) vs B5-0408's 15/5 (3.0 avg); same ballpark, seed variance. (6) CONFIRMED — premiere.json + deluxe.json both 0 mercenary cards; B5-0386 verdict stands. Report: .agent/REPORTS/2026-09-25-solar-pro4-free-B5-0409.md.
+
+## 2026-09-25 — Solar Pro4 (solar-pro4:free): B5-0410 DONE — ledger pipe hygiene
+
+* B5-0410 DONE: stripped ONE leading pipe on four double-pipe rows (B5-0404, B5-0406, B5-0407, B5-0408) back to 7 pipes per B5-0390/B5-0391/B5-0398 precedent; also fixed B5-0409 which carried a double pipe from a prior close-out (same root cause). Ledger-only, no src/ or resources/ edits, no compile needed. Verification: 0 double-pipe rows remain; all B5-040x rows at 1 pipe; protected rows B5-0202c (L50) and B5-0316 (L71) untouched at 1 pipe; 129 unique B5 IDs; all statuses recognized. Report: .agent/REPORTS/2026-09-25-solar-pro4-free-B5-0410.md.
+* Seeded: B5-0410 ledger pipe hygiene (0404/0406/0407/0408 double-pipe rows, B5-0390/0391/0398 precedent; ledger-only, parallel-safe); B5-0411 checkpoint commit (tree ahead of 7f8f1e3: tracked mods in ai/AIPlayer, engine/HeadlessConformanceTest, ui/MainWindow, ledger, DECISIONS, playtest-guide plus untracked reports/heartbeats; gate-first, CLAIMS/HEARTBEATS excluded, no push); B5-0412 playtest-guide part 4 (gated on B5-0409 DONE); B5-0413 confirmed-finding fix slice (gated on B5-0409 DONE, claim-only-if-actionable per B5-0376 precedent).
+* Still not seeded (unchanged): real mercenary card data (needs human source direction per B5-0386), B5-0388 authenticity migration (deferred pending human goal decision).
+
+## 2026-09-25 — Muse Spark (muse-spark-1.3-contributor-free): seed B5-0414..0417
+
+* Ledger state at seed: B5-0409 DONE (solar-pro4:free reaped Buffy's stale claim and verified, report on disk), B5-0410..0413 all still OPEN and unclaimed. (Previously stale: B5-0409 claim started 03:18:40Z, reaped per 00_BOOT step 9.)
+* Seeded four report-only rows, all with ZERO tracked-file edits so parallel-safe with each other and with the whole pipeline: B5-0414 new-controls UI audit for the B5-0328 defect class across the 0401/0402/0404/0407 controls (ui/ read-only); B5-0415 standalone-harness health sweep (0350/0351/0382/0383/0384 probes plus RUN_TESTS=1, execution only); B5-0416 card-data integrity sweep after the cost/participation/fleetClass/mercenary/Zack-Allan/CT backfills (resources/ read-only, NO JSON edits); B5-0417 D-series closure audit mapping D1..D15 to DONE rows plus suite sections. Auditors fix nothing -- ranked defects feed later slices.
+
+## 2026-09-25 — Muse Spark (muse-spark-1.3-contributor-free): seed B5-0418..0421
+
+* Ledger state at seed: B5-0409..0417 all still OPEN and unclaimed, nothing landed since the 0414..0417 pass; B5-0409 claim still STALE (started 03:18:40Z, now 16:19Z, no report) -- row untouched.
+* Seeded four more non-colliding rows, all with ZERO tracked-game-file edits: B5-0418 contingency-card identification research (B5-0386 mercenary precedent; list or no-evidence verdict plus schema, never a backfill); B5-0419 war-conflict scenario probe on real loaded data (NEW harness file only, B5-0383 precedent); B5-0420 agenda winCondition vocabulary census against the engine set plus major-flag distribution (read-only, NO JSON edits; distinct from 0416 backfill-integrity counts); B5-0421 build-hygiene sweep (full-tree Java 6 grep plus both compile scripts plus RUN_TESTS=1, execution and report only).
+
+## 2026-09-25 — opencode (me-so-poor / big-pickle): B5-0409 dual-completion collision record
+
+* B5-0409 was completed by TWO sessions independently (both reaped the same stale claim per 00_BOOT step 9; both runs are real and verified). The ledger row and DEGISIONS already carry solar-pro4:free's completion (report `.agent/REPORTS/2026-09-25-solar-pro4-free-B5-0409.md`). THIS session's independent run produced a second report `.agent/REPORTS/2026-09-25-opencode (me-so-poor)-B5-0409.md` whose findings SUPERSEDE the ledger-recorded ones and must be read before any B5-0413 actionability decision:
+* The ledger row attributes "100% stall" and "0 promotions = pass-bias consequence". Both are WRONG or incomplete. No-timeout probe (seed 456, 240s watchdog) shows games TERMINATE naturally (round 12, ~118s, winner Alpha at Influence Rating 20) — "stalled" is purely the harness's 60s window. And B5-0349 `parseLog` promote counter is DEAD: its token `": promotes "` (colon) matches no real log line; `RulesEngine.java:177` logs `"<player> promotes <title>..."` (no colon) and the action line is `"<player>: PROMOTE_CHARACTER: <title>"`. So every multi-round aggregate's promote=0 is a counting artifact, NOT an AI behavior finding. Probe additionally shows promotions DO occur (Beta/Delta Inner Circles 1->2) and Influence Rating 20 IS reachable (~2 min) — so "agenda threshold unreachable" is also corrected (standard victory outruns the agenda economy, not a hard gate).
+* B5-0409 row was NOT re-flipped by this session (another agent's close-out; provenance rules). This entry + both reports are the honest record. Highest-value actionable finding for B5-0413: fix the harness's `parseLog` promote token in HeadlessMultiRoundTest.java (harness-file-only fix, B5-0376 precedent).
+

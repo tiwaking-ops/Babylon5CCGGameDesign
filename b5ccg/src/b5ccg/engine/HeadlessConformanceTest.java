@@ -1253,6 +1253,145 @@ public class HeadlessConformanceTest {
                 && hC.getCard() == conC_rev);
     }
 
+    /**
+     * B5-0403: verify the AI mercenary-bidding offer + scoring against the
+     * B5-0395 engine. Fixtures follow the CON-AI pattern: boards cleared so
+     * the bid is the only non-pass action, the offered mercenary is the
+     * synthetic event fixture (the pool carries zero mercenary cards per
+     * B5-0386), and bids spend the D9 applied pool only.
+     */
+    private static void testMercenaryBiddingAI() {
+        System.out.println("MER-AI (B5-0403): MEDIUM/HARD mercenary bid offer + scoring");
+        RulesEngine rules = new RulesEngine();
+
+        // ── A: solo player, one offered mercenary, no competition.
+        //    The only non-pass action is a bid of the minimal winning
+        //    increment (no rival bids, so inc = 1). Both tiers pick it.
+        Player pA = player("MERAIpA", Faction.NARN);
+        GameState sA = state(pA);
+        EventCard mercA = event("mer_ai_fixture");
+        mercA.setMercenary(true);
+        sA.addMercenaryOffer(mercA);
+        pA.getHand().clear();
+        pA.getFleets().clear();
+        pA.getInnerCircle().clear();
+        pA.getSupportingRole().clear();
+        pA.getLocations().clear();
+        pA.getGroups().clear();
+        pA.getEnhancements().clear();
+        pA.setAgenda(null);
+
+        AIPlayer medA = new AIPlayer(pA, AIDifficulty.MEDIUM);
+        AIPlayer hardA = new AIPlayer(pA, AIDifficulty.HARD);
+        AIPlayer easyA = new AIPlayer(pA, AIDifficulty.EASY);
+
+        GameAction mA = medA.chooseAction(sA, pA);
+        check("MER-AI", "MEDIUM bids the minimal winning increment (1) when uncontested",
+                mA.getType() == GameAction.Type.BID_ON_MERCENARY
+                && mA.getCard() == mercA && mA.getAmount() == 1);
+        GameAction hA = hardA.chooseAction(sA, pA);
+        check("MER-AI", "HARD bids the minimal winning increment (1) when uncontested",
+                hA.getType() == GameAction.Type.BID_ON_MERCENARY
+                && hA.getCard() == mercA && hA.getAmount() == 1);
+        check("MER-AI", "MEDIUM bid choice is deterministic (same pick twice)",
+                medA.chooseAction(sA, pA).getType() == GameAction.Type.BID_ON_MERCENARY);
+
+        // EASY picks uniformly from the same legal list (PASS + the bid);
+        // assert the legality contract, not a specific pick.
+        boolean easyLegal = true;
+        for (int i = 0; i < 100; i++) {
+            GameAction e = easyA.chooseAction(sA, pA);
+            if (e.getType() != GameAction.Type.PASS
+                    && e.getType() != GameAction.Type.BID_ON_MERCENARY) easyLegal = false;
+        }
+        check("MER-AI", "EASY picks only from the legal set (PASS or BID) over 100 samples",
+                easyLegal);
+
+        // ── B: outbidding. A rival already holds the standing highest bid
+        //    (2); the AI's offer must be exactly bestOther + 1 = 3, and both
+        //    tiers take it (win probability outweighs the cost at these
+        //    amounts).
+        Player pB = player("MERAIpB", Faction.NARN);
+        Player rB = player("MERAIrB", Faction.MINBARI);
+        GameState sB = state(pB, rB);
+        EventCard mercB = event("mer_ai_fixture_b");
+        mercB.setMercenary(true);
+        sB.addMercenaryOffer(mercB);
+        rules.executeBidOnMercenary(rB, mercB, 2, sB);
+        pB.getHand().clear();
+        pB.getFleets().clear();
+        pB.getInnerCircle().clear();
+        pB.getSupportingRole().clear();
+        pB.getLocations().clear();
+        pB.getGroups().clear();
+        pB.getEnhancements().clear();
+        pB.setAgenda(null);
+
+        AIPlayer medB = new AIPlayer(pB, AIDifficulty.MEDIUM);
+        AIPlayer hardB = new AIPlayer(pB, AIDifficulty.HARD);
+        GameAction mB = medB.chooseAction(sB, pB);
+        check("MER-AI", "MEDIUM outbids the standing highest bid by exactly one (3)",
+                mB.getType() == GameAction.Type.BID_ON_MERCENARY
+                && mB.getCard() == mercB && mB.getAmount() == 3);
+        GameAction hB = hardB.chooseAction(sB, pB);
+        check("MER-AI", "HARD outbids the standing highest bid by exactly one (3)",
+                hB.getType() == GameAction.Type.BID_ON_MERCENARY
+                && hB.getCard() == mercB && hB.getAmount() == 3);
+
+        // ── C: pool floor. The winning increment (3) exceeds the applied
+        //    pool (drained to 1); canBidOnMercenary refuses, so NO bid offer
+        //    exists and both tiers pass. A partial bid can never win (ties
+        //    crown nobody), so offering one would waste pool by design.
+        Player pC = player("MERAIpC", Faction.NARN);
+        Player rC = player("MERAIrC", Faction.MINBARI);
+        GameState sC = state(pC, rC);
+        EventCard mercC = event("mer_ai_fixture_c");
+        mercC.setMercenary(true);
+        sC.addMercenaryOffer(mercC);
+        rules.executeBidOnMercenary(rC, mercC, 2, sC);
+        pC.applyInfluence(3);   // pool 4 → 1 < winning increment 3
+        pC.getHand().clear();
+        pC.getFleets().clear();
+        pC.getInnerCircle().clear();
+        pC.getSupportingRole().clear();
+        pC.getLocations().clear();
+        pC.getGroups().clear();
+        pC.getEnhancements().clear();
+        pC.setAgenda(null);
+
+        AIPlayer medC = new AIPlayer(pC, AIDifficulty.MEDIUM);
+        AIPlayer hardC = new AIPlayer(pC, AIDifficulty.HARD);
+        check("MER-AI", "MEDIUM passes when the winning increment exceeds the pool",
+                medC.chooseAction(sC, pC).getType() == GameAction.Type.PASS);
+        check("MER-AI", "HARD passes when the winning increment exceeds the pool",
+                hardC.chooseAction(sC, pC).getType() == GameAction.Type.PASS);
+
+        // ── D: hold while strictly leading. p already holds the strictly
+        //    highest cumulative bid, so the offer loop must NOT re-bid
+        //    (extending a won auction only drains the pool); both tiers pass.
+        Player pD = player("MERAIpD", Faction.NARN);
+        GameState sD = state(pD);
+        EventCard mercD = event("mer_ai_fixture_d");
+        mercD.setMercenary(true);
+        sD.addMercenaryOffer(mercD);
+        rules.executeBidOnMercenary(pD, mercD, 1, sD);
+        pD.getHand().clear();
+        pD.getFleets().clear();
+        pD.getInnerCircle().clear();
+        pD.getSupportingRole().clear();
+        pD.getLocations().clear();
+        pD.getGroups().clear();
+        pD.getEnhancements().clear();
+        pD.setAgenda(null);
+
+        AIPlayer medD = new AIPlayer(pD, AIDifficulty.MEDIUM);
+        AIPlayer hardD = new AIPlayer(pD, AIDifficulty.HARD);
+        check("MER-AI", "MEDIUM does not re-bid while strictly leading (pass)",
+                medD.chooseAction(sD, pD).getType() == GameAction.Type.PASS);
+        check("MER-AI", "HARD does not re-bid while strictly leading (pass)",
+                hardD.chooseAction(sD, pD).getType() == GameAction.Type.PASS);
+    }
+
     // ── main ─────────────────────────────────────────────────────────────────
 
     // ── D12: standard victory strictly-greatest + major-agenda block ───────
@@ -3112,6 +3251,8 @@ public class HeadlessConformanceTest {
             testLeadFleetAI();
             testAgendaLifecycleAI();
             testContingencyAI();
+
+            testMercenaryBiddingAI();   // B5-0403 (rulebook §Mercenaries :735–:741)
             System.out.println("Still-open findings (no assertion possible yet):");
             System.out.println("  [info] D2/D4-D7/D9-D11/D15 need effect/target"
                     + " plumbing; partially addressed by B5-0307 (see audit report).");

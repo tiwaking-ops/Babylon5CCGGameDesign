@@ -4,6 +4,7 @@ import b5ccg.engine.GameController;
 import b5ccg.engine.RulesEngine;
 import b5ccg.model.*;
 import b5ccg.model.enums.*;
+import java.util.List;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -81,6 +82,31 @@ public class MainWindow extends JFrame {
 
     // B5-0327 F8: initiative order display
     private JLabel initiativeLabel;
+
+    // B5-0407: declare-war UI
+    private JComboBox<String> warTargetSelector;
+    private JButton declareWarButton;
+    private JLabel warStatusLabel;
+
+    // B5-0404: mercenary bid control
+    private static final String[] BID_AMOUNTS = new String[] { "1", "2", "3", "5", "10" };
+    private JComboBox<String> mercenaryBidAmountSelector;
+    private JLabel mercenaryOfferLabel;
+    private JLabel mercenaryControllerLabel;
+    private JButton mercenaryBidButton;
+
+    // B5-0401: Tier-1 remainder action UI — Lead Fleet + Use Rotate Effect
+    private JButton leadFleetButton;
+    private JComboBox<String> leadFleetSelector;
+    private FleetCard selectedFleet;
+    private JButton useRotateEffectButton;
+    private JComboBox<String> rotateEffectKindSelector;
+    private CharacterCard selectedAssistant;
+
+    // B5-0402: Tier-3 action UI — Attack + Heal + Repair
+    private JButton attackButton;
+    private JButton healButton;
+    private JButton repairButton;
 
     private Card selectedCard;
     private RulesEngine rules;
@@ -330,6 +356,78 @@ public class MainWindow extends JFrame {
         revealContingencyButton.setEnabled(false);
         revealContingencyButton.setToolTipText("Reveal a face-down contingency placed under one of your in-play hosts.");
 
+        // B5-0401: Lead Fleet control — select a ready character (IC or supporting)
+        // and an unrotated fleet to rotate the character and lead the fleet.
+        leadFleetSelector = new JComboBox<String>(new String[] { "(select fleet)" });
+        leadFleetSelector.setEnabled(false);
+        leadFleetSelector.setMaximumSize(new Dimension(180, 24));
+        leadFleetSelector.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (leadFleetSelector.getSelectedItem() != null) {
+                    String name = (String) leadFleetSelector.getSelectedItem();
+                    Player hp = humanPlayer();
+                    if (hp != null) {
+                        for (FleetCard fl : hp.getFleets()) {
+                            if (fl.getTitle().equals(name)) {
+                                selectedFleet = fl;
+                                break;
+                            }
+                        }
+                    }
+                    GameState gs = MainWindow.this.controller.getState();
+                    boolean actionTurn = gs.getPhase() == GamePhase.ACTION
+                        && gs.getActivePlayer() == hp && MainWindow.this.controller.isWaitingForHuman();
+                    updateLeadFleetButton(actionTurn);
+                }
+            }
+        });
+
+        leadFleetButton = makeButton("Lead Fleet", new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Player hp = humanPlayer();
+                CharacterCard leader = (selectedCard instanceof CharacterCard)
+                    ? (CharacterCard) selectedCard : null;
+                if (hp != null && leader != null && selectedFleet != null
+                        && rules.canLeadFleet(hp, leader, selectedFleet)) {
+                    MainWindow.this.controller.submitHumanAction(
+                        GameAction.leadFleet(leader, selectedFleet));
+                    clearSelection();
+                }
+            }
+        });
+        leadFleetButton.setEnabled(false);
+        leadFleetButton.setToolTipText("Rotate a ready IC/supporting character to lead an unrotated fleet (B5-0362).");
+
+        // B5-0401: Use Rotate Effect control — select an assistant and effect kind.
+        rotateEffectKindSelector = new JComboBox<String>(
+            new String[] { "Ability Boost (+1 D/I/L)", "Sponsor Discount (-1 INF)" });
+        rotateEffectKindSelector.setEnabled(false);
+        rotateEffectKindSelector.setMaximumSize(new Dimension(180, 24));
+
+        useRotateEffectButton = makeButton("Use Rotate Effect", new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Player hp = humanPlayer();
+                CharacterCard assistant = (selectedAssistant instanceof CharacterCard)
+                    ? (CharacterCard) selectedAssistant : null;
+                if (hp != null && assistant != null) {
+                    GameAction.RotateEffectKind kind = rotateEffectKindSelector.getSelectedIndex() == 0
+                        ? GameAction.RotateEffectKind.USE_ABILITY_BOOST
+                        : GameAction.RotateEffectKind.USE_SPONSOR_DISCOUNT;
+                    CharacterCard amb = hp.getAmbassador();
+                    if (rules.canUseRotateEffect(hp, assistant, amb, kind)) {
+                        MainWindow.this.controller.submitHumanAction(
+                            GameAction.useRotateEffect(assistant, amb, kind));
+                        clearSelection();
+                    }
+                }
+            }
+        });
+        useRotateEffectButton.setEnabled(false);
+        useRotateEffectButton.setToolTipText("Rotate a ready supporting assistant to boost ambassador or reduce sponsor cost (B5-0366).");
+
         // B5-0325 F2: conflict target selector
         targetSelector = new JComboBox<String>();
         targetSelector.setEnabled(false);
@@ -365,6 +463,167 @@ public class MainWindow extends JFrame {
             }
         });
         opposeButton.setEnabled(false);
+
+        // B5-0402: Tier-3 action UI — Attack + Heal + Repair
+        attackButton = makeButton("Attack", new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Player hp = humanPlayer();
+                Conflict conflict = MainWindow.this.controller.getState().getActiveConflict();
+                if (hp == null || conflict == null) return;
+                if (!(selectedCard instanceof Card)) return;
+                Card attacker = (Card) selectedCard;
+                // Find a valid target from participants on another faction's side
+                Card validTarget = null;
+                for (Player p : conflict.getParticipants()) {
+                    if (p == hp) continue; // can't attack ourselves
+                    for (Card c : conflict.getCommittedCards(p)) {
+                        if (rules.canAttackConflictParticipant(hp, attacker, c, conflict)) {
+                            validTarget = c;
+                            break;
+                        }
+                    }
+                    if (validTarget != null) break;
+                }
+                if (validTarget != null) {
+                    MainWindow.this.controller.submitHumanAction(
+                        GameAction.attackConflictParticipant(attacker, validTarget));
+                    clearSelection();
+                }
+            }
+        });
+        attackButton.setEnabled(false);
+        attackButton.setToolTipText("Attack a participant in the active conflict (B5-0370).");
+
+        healButton = makeButton("Heal", new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Player hp = humanPlayer();
+                if (hp != null && selectedCard instanceof CharacterCard) {
+                    CharacterCard ch = (CharacterCard) selectedCard;
+                    if (rules.canHealCharacter(hp, ch)) {
+                        MainWindow.this.controller.submitHumanAction(
+                            GameAction.healCharacter(ch));
+                        clearSelection();
+                    }
+                }
+            }
+        });
+        healButton.setEnabled(false);
+        healButton.setToolTipText("Rotate to heal a damaged IC/supporting character (B5-0371).");
+
+        repairButton = makeButton("Repair", new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Player hp = humanPlayer();
+                if (hp != null && selectedCard instanceof FleetCard) {
+                    FleetCard fl = (FleetCard) selectedCard;
+                    if (rules.canRepairCard(hp, fl)) {
+                        MainWindow.this.controller.submitHumanAction(
+                            GameAction.repairCard(fl));
+                        clearSelection();
+                    }
+                } else if (hp != null && selectedCard instanceof LocationCard) {
+                    LocationCard loc = (LocationCard) selectedCard;
+                    if (rules.canRepairCard(hp, loc)) {
+                        MainWindow.this.controller.submitHumanAction(
+                            GameAction.repairCard(loc));
+                        clearSelection();
+                    }
+                }
+            }
+        });
+        repairButton.setEnabled(false);
+        repairButton.setToolTipText("Pool-paid repair of a damaged fleet or location (B5-0371).");
+
+        // B5-0404: mercenary bid control
+        mercenaryBidAmountSelector = new JComboBox<String>(BID_AMOUNTS);
+        mercenaryBidAmountSelector.setEnabled(false);
+        mercenaryBidAmountSelector.setMaximumSize(new Dimension(80, 24));
+        mercenaryBidButton = makeButton("Bid", new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Player hp = humanPlayer();
+                if (hp == null) return;
+                GameState gs = MainWindow.this.controller.getState();
+                List<Card> offers = gs.getMercenaryOffers();
+                if (offers.isEmpty()) return;
+                int amount = Integer.parseInt((String) mercenaryBidAmountSelector.getSelectedItem());
+                if (amount <= 0) return;
+                // Bid on the first offered mercenary (single-mercenary display assumption)
+                Card merc = offers.get(0);
+                if (rules.canBidOnMercenary(hp, merc, amount, gs)) {
+                    MainWindow.this.controller.submitHumanAction(
+                        GameAction.bidOnMercenary(merc, amount));
+                }
+            }
+        });
+        mercenaryBidButton.setEnabled(false);
+        mercenaryBidButton.setToolTipText("Bid influence to control an offered mercenary (B5-0395).");
+
+        mercenaryOfferLabel = new JLabel("(no mercenary offers)");
+        mercenaryOfferLabel.setForeground(new Color(200, 220, 200));
+        mercenaryOfferLabel.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        mercenaryOfferLabel.setMaximumSize(new Dimension(160, 24));
+
+        // B5-0407: declare-war UI
+        warTargetSelector = new JComboBox<String>(new String[] { "(select target)" });
+        warTargetSelector.setEnabled(false);
+        warTargetSelector.setMaximumSize(new Dimension(200, 24));
+        warTargetSelector.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                updateDeclareWarButton();
+            }
+        });
+
+        declareWarButton = makeButton("Declare War", new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Player hp = humanPlayer();
+                if (hp == null) return;
+                GameState gs = MainWindow.this.controller.getState();
+                String sel = (String) warTargetSelector.getSelectedItem();
+                if (sel == null || sel.equals("(select target)")
+                        || sel.equals("(no legal targets)")) return;
+                // Determine if this is a race target or location target
+                Player raceTarget = null;
+                LocationCard locTarget = null;
+                // Look up the target by name
+                for (Player p : gs.getPlayers()) {
+                    if (!p.isHuman() && p.getName().equals(sel)) {
+                        raceTarget = p;
+                        break;
+                    }
+                }
+                if (raceTarget == null) {
+                    // Must be a location — find by scanning all players' locations
+                    for (Player p : gs.getPlayers()) {
+                        if (p.isHuman()) continue;
+                        for (LocationCard loc : p.getLocations()) {
+                            if (loc.getTitle().equals(sel)) {
+                                locTarget = loc;
+                                break;
+                            }
+                        }
+                        if (locTarget != null) break;
+                    }
+                }
+                if (raceTarget == null && locTarget == null) return;
+                WarKind kind = raceTarget != null ? WarKind.RACE_TARGET : WarKind.LOCATION_TARGET;
+                if (rules.canInitiateWarConflict(hp, kind, raceTarget, locTarget, gs)) {
+                    MainWindow.this.controller.submitHumanAction(
+                            GameAction.declareWarConflict(kind, raceTarget, locTarget));
+                }
+            }
+        });
+        declareWarButton.setEnabled(false);
+        declareWarButton.setToolTipText("Declare a war conflict against a race or location at war with your faction (B5-0376).");
+
+        warStatusLabel = new JLabel("");
+        warStatusLabel.setForeground(new Color(200, 220, 200));
+        warStatusLabel.setFont(new Font("SansSerif", Font.PLAIN, 10));
+        warStatusLabel.setMaximumSize(new Dimension(240, 24));
 
         // B5-0326 F5: cost preview readout
         costLabel = new JLabel("  ");
@@ -488,12 +747,35 @@ public class MainWindow extends JFrame {
         toolbar.add(Box.createHorizontalStrut(4));
         toolbar.add(revealContingencyButton);
         toolbar.add(Box.createHorizontalStrut(12));
+        toolbar.add(leadFleetSelector);
+        toolbar.add(Box.createHorizontalStrut(4));
+        toolbar.add(leadFleetButton);
+        toolbar.add(Box.createHorizontalStrut(12));
+        toolbar.add(rotateEffectKindSelector);
+        toolbar.add(Box.createHorizontalStrut(4));
+        toolbar.add(useRotateEffectButton);
+        toolbar.add(Box.createHorizontalStrut(12));
         toolbar.add(costLabel);
         toolbar.add(Box.createHorizontalStrut(12));
         toolbar.add(targetSelector);
         toolbar.add(Box.createHorizontalStrut(12));
         toolbar.add(supportButton);
         toolbar.add(opposeButton);
+        toolbar.add(Box.createHorizontalStrut(12));
+        toolbar.add(attackButton);
+        toolbar.add(healButton);
+        toolbar.add(repairButton);
+        toolbar.add(Box.createHorizontalStrut(8));
+        toolbar.add(mercenaryBidAmountSelector);
+        toolbar.add(mercenaryBidButton);
+        toolbar.add(Box.createHorizontalStrut(8));
+        toolbar.add(mercenaryOfferLabel);
+        toolbar.add(Box.createHorizontalStrut(8));
+        toolbar.add(warTargetSelector);
+        toolbar.add(Box.createHorizontalStrut(4));
+        toolbar.add(declareWarButton);
+        toolbar.add(Box.createHorizontalStrut(8));
+        toolbar.add(warStatusLabel);
         toolbar.add(Box.createHorizontalStrut(12));
         toolbar.add(initiativeLabel);
         toolbar.add(Box.createHorizontalStrut(12));
@@ -524,9 +806,25 @@ public class MainWindow extends JFrame {
                     fStatusLabel.setText("Selected: " + card.getTitle()
                         + "  |  " + card.getText());
                 }
+                // B5-0401: Track assistant selection for Use Rotate Effect
+                Player hp = humanPlayer();
+                if (card instanceof CharacterCard) {
+                    CharacterCard ch = (CharacterCard) card;
+                    if (hp != null && hp.getSupportingRole().contains(ch)) {
+                        selectedAssistant = ch;
+                    } else {
+                        selectedAssistant = null;
+                    }
+                } else {
+                    selectedAssistant = null;
+                }
                 updatePlayInitiateButtons();
                 // B5-0326 F5: refresh cost preview immediately
                 refreshCostPreview();
+                // B5-0401: Refresh Tier-1 remainder action UI
+                GameState gs = MainWindow.this.controller.getState();
+                refreshLeadFleetAndRotateEffect(hp, gs.getPhase() == GamePhase.ACTION
+                    && gs.getActivePlayer() == hp && MainWindow.this.controller.isWaitingForHuman());
             }
         });
         // B5-0348: give HandPanel access to rules + human faction for affordability checks
@@ -612,6 +910,141 @@ public class MainWindow extends JFrame {
             if (!ch.isRotated()) return ch;
         }
         return null;
+    }
+
+    /** B5-0404: refresh the mercenary bid control from current state.
+     *  Shows offered mercenaries, updates the amount selector enablement and
+     *  the Bid button. The button is enabled when it is the human's Action
+     *  turn, a mercenary is offered, and the selected bid amount is affordable.
+     */
+    private void refreshMercenaryBidControl(Player human, boolean actionTurn) {
+        if (human == null) {
+            mercenaryBidAmountSelector.setEnabled(false);
+            mercenaryBidButton.setEnabled(false);
+            mercenaryOfferLabel.setText("(no mercenary offers)");
+            return;
+        }
+        GameState gs = MainWindow.this.controller.getState();
+        List<Card> offers = gs.getMercenaryOffers();
+        if (offers.isEmpty()) {
+            mercenaryBidAmountSelector.setEnabled(false);
+            mercenaryBidButton.setEnabled(false);
+            mercenaryOfferLabel.setText("(no mercenary offers)");
+            return;
+        }
+        // Show the first offered mercenary's title
+        mercenaryOfferLabel.setText(offers.get(0).getTitle());
+
+        // Enablement: Action phase, my turn, a mercenary is offered
+        mercenaryBidAmountSelector.setEnabled(actionTurn && !offers.isEmpty());
+
+        // Bid button: enabled when affordable at the selected amount
+        int selectedAmount = Integer.parseInt((String) mercenaryBidAmountSelector.getSelectedItem());
+        boolean canAfford = actionTurn
+            && rules.canBidOnMercenary(human, offers.get(0), selectedAmount, gs);
+        mercenaryBidButton.setEnabled(canAfford);
+    }
+
+    /** B5-0407: refresh the declare-war control from current state.
+     *  Populates the target selector with legal war targets (races at war,
+     *  then locations owned by factions at war), updates the status label,
+     *  and enables/disables the controls based on phase and turn.
+     */
+    private void refreshDeclareWarControl(Player human, boolean actionTurn) {
+        if (human == null) {
+            warTargetSelector.setEnabled(false);
+            declareWarButton.setEnabled(false);
+            warStatusLabel.setText("");
+            return;
+        }
+        GameState gs = MainWindow.this.controller.getState();
+        // Only available when at war
+        if (!gs.isAtWar(human.getFaction())) {
+            warTargetSelector.setEnabled(false);
+            declareWarButton.setEnabled(false);
+            warStatusLabel.setText("Not at war — no war conflicts available.");
+            return;
+        }
+        // Build target list: races at war first, then locations
+        java.util.ArrayList<String> targets = new java.util.ArrayList<String>();
+        java.util.ArrayList<String> targetTypes = new java.util.ArrayList<String>();
+        for (Player p : gs.getPlayers()) {
+            if (p == human || p.getFaction() == null) continue;
+            if (gs.isAtWar(human.getFaction(), p.getFaction())) {
+                targets.add(p.getName());
+                targetTypes.add("race");
+            }
+        }
+        for (Player p : gs.getPlayers()) {
+            if (p == human || p.getFaction() == null) continue;
+            if (!gs.isAtWar(human.getFaction(), p.getFaction())) continue;
+            for (LocationCard loc : p.getLocations()) {
+                targets.add(loc.getTitle());
+                targetTypes.add("location");
+            }
+        }
+        if (targets.isEmpty()) {
+            warTargetSelector.setEnabled(false);
+            declareWarButton.setEnabled(false);
+            warStatusLabel.setText("No war targets available.");
+            return;
+        }
+        warTargetSelector.removeAllItems();
+        for (int i = 0; i < targets.size(); i++) {
+            String label = targets.get(i);
+            if (targetTypes.get(i).equals("location")) {
+                label += " [loc]";
+            }
+            warTargetSelector.addItem(label);
+        }
+        warTargetSelector.setEnabled(actionTurn);
+        warStatusLabel.setText(targets.size() + " war target(s) available.");
+        updateDeclareWarButton();
+    }
+
+    /** Updates the Declare War button enablement based on current selection. */
+    private void updateDeclareWarButton() {
+        if (warTargetSelector == null || declareWarButton == null) return;
+        Player hp = humanPlayer();
+        if (hp == null) { declareWarButton.setEnabled(false); return; }
+        GameState gs = MainWindow.this.controller.getState();
+        String sel = (String) warTargetSelector.getSelectedItem();
+        if (sel == null || sel.equals("(select target)")
+                || sel.equals("(no legal targets)")) {
+            declareWarButton.setEnabled(false);
+            return;
+        }
+        // Determine target type
+        Player raceTarget = null;
+        LocationCard locTarget = null;
+        for (Player p : gs.getPlayers()) {
+            if (!p.isHuman() && p.getName().equals(sel)) {
+                raceTarget = p;
+                break;
+            }
+        }
+        if (raceTarget == null) {
+            for (Player p : gs.getPlayers()) {
+                if (p.isHuman()) continue;
+                for (LocationCard loc : p.getLocations()) {
+                    if (loc.getTitle().equals(sel)) {
+                        locTarget = loc;
+                        break;
+                    }
+                }
+                if (locTarget != null) break;
+            }
+        }
+        if (raceTarget == null && locTarget == null) {
+            declareWarButton.setEnabled(false);
+            return;
+        }
+        WarKind kind = raceTarget != null ? WarKind.RACE_TARGET : WarKind.LOCATION_TARGET;
+        boolean actionTurn = gs.getPhase() == GamePhase.ACTION
+            && gs.getActivePlayer() == hp
+            && MainWindow.this.controller.isWaitingForHuman();
+        declareWarButton.setEnabled(actionTurn
+            && rules.canInitiateWarConflict(hp, kind, raceTarget, locTarget, gs));
     }
 
     /** B5-0326 F5: show preview of the cost for the currently selected card. */
@@ -763,6 +1196,32 @@ public class MainWindow extends JFrame {
         buildInfluenceButton.setEnabled(actionPhase && myTurn
             && rules.canBuildInfluence(human));
 
+        // B5-0402: Attack - enabled when ACTION phase, my turn, active conflict, selected card can attack
+        Card selCard = selectedCard;
+        boolean canAttack = actionPhase && myTurn && activeConflict && selCard instanceof Card
+            && !selCard.isFaceDown() && !selCard.isRotated()
+            && selCard.canActAfterNeutralization();
+        attackButton.setEnabled(canAttack);
+
+        // Heal: ACTION phase, my turn, selected character in IC/supporting, damaged
+        boolean canHeal = actionPhase && myTurn && ch != null && !ch.isFaceDown()
+            && (human.getInnerCircle().contains(ch) || human.getSupportingRole().contains(ch))
+            && ch.getDamageTokens() > 0;
+        healButton.setEnabled(canHeal);
+
+        // Repair: ACTION phase, my turn, selected fleet/location with damage, affordable
+        boolean canRepair = false;
+        if (actionPhase && myTurn && selCard instanceof FleetCard) {
+            FleetCard fl = (FleetCard) selCard;
+            canRepair = !fl.isFaceDown() && !fl.isRotated() && fl.getDamageTokens() > 0
+                && rules.canRepairCard(human, fl);
+        } else if (actionPhase && myTurn && selCard instanceof LocationCard) {
+            LocationCard loc = (LocationCard) selCard;
+            canRepair = !loc.isFaceDown() && !loc.isRotated() && loc.getDamageTokens() > 0
+                && rules.canRepairCard(human, loc);
+        }
+        repairButton.setEnabled(canRepair);
+
         // B5-0380: lifecycle controls are action-phase-only. The disabled
         // discard control remains visible for a Major agenda and its tooltip
         // explains why replacement is the available path.
@@ -772,6 +1231,15 @@ public class MainWindow extends JFrame {
         // unrevealed contingencies placed under in-play hosts and it is
         // the human's Action turn.
         refreshContingencyRevealControl(human, actionPhase && myTurn);
+
+        // B5-0401: Tier-1 remainder action UI — Lead Fleet + Use Rotate Effect
+        refreshLeadFleetAndRotateEffect(human, actionPhase && myTurn);
+
+        // B5-0404: mercenary bid control
+        refreshMercenaryBidControl(human, actionPhase && myTurn);
+
+        // B5-0407: declare-war control
+        refreshDeclareWarControl(human, actionPhase && myTurn);
 
         // B5-0326 F5: refresh cost preview
         refreshCostPreview();
@@ -862,8 +1330,73 @@ public class MainWindow extends JFrame {
             }
             revealContingencyButton.setToolTipText("Reveal a face-down contingency (" + unrevealed + " remaining).");
         }
+}
+ 
+    /** B5-0401: refresh Lead Fleet and Use Rotate Effect controls. */
+    private void refreshLeadFleetAndRotateEffect(Player human, boolean actionTurn) {
+        if (human == null || leadFleetSelector == null || rotateEffectKindSelector == null) {
+            if (leadFleetSelector != null) {
+                leadFleetSelector.removeAllItems();
+                leadFleetSelector.addItem("(select fleet)");
+                leadFleetSelector.setEnabled(false);
+            }
+            if (rotateEffectKindSelector != null) {
+                rotateEffectKindSelector.setEnabled(false);
+            }
+            leadFleetButton.setEnabled(false);
+            useRotateEffectButton.setEnabled(false);
+            return;
+        }
+ 
+        // Lead Fleet: populate fleet selector if a valid leader character is selected
+        CharacterCard leader = (selectedCard instanceof CharacterCard)
+            ? (CharacterCard) selectedCard : null;
+        boolean hasValidLeader = leader != null
+            && !leader.isFaceDown() && !leader.isRotated()
+            && (human.getInnerCircle().contains(leader) || human.getSupportingRole().contains(leader))
+            && leader.canActAfterNeutralization();
+ 
+        leadFleetSelector.removeAllItems();
+        int fleetCount = 0;
+        if (hasValidLeader) {
+            for (FleetCard fl : human.getFleets()) {
+                if (!fl.isRotated() && fl.canActAfterNeutralization() && fl.getLeader() == null) {
+                    leadFleetSelector.addItem(fl.getTitle());
+                    fleetCount++;
+                }
+            }
+        }
+        if (fleetCount == 0) {
+            leadFleetSelector.addItem("(no eligible fleet)");
+        }
+        leadFleetSelector.setEnabled(fleetCount > 0);
+        updateLeadFleetButton(actionTurn);
+ 
+        // Use Rotate Effect: enabled when a supporting assistant is selected and ambassador exists
+        CharacterCard assistant = (selectedAssistant instanceof CharacterCard)
+            ? (CharacterCard) selectedAssistant : null;
+        boolean hasValidAssistant = assistant != null
+            && !assistant.isFaceDown() && !assistant.isRotated()
+            && human.getSupportingRole().contains(assistant)
+            && assistant.canActAfterNeutralization()
+            && human.getAmbassador() != null;
+ 
+        rotateEffectKindSelector.setEnabled(hasValidAssistant);
+        useRotateEffectButton.setEnabled(actionTurn && hasValidAssistant);
     }
-
+ 
+    /** Updates the Lead Fleet button enablement based on current fleet selection. */
+    private void updateLeadFleetButton(boolean actionTurn) {
+        if (leadFleetSelector == null || leadFleetButton == null) return;
+        String sel = (String) leadFleetSelector.getSelectedItem();
+        boolean hasFleet = sel != null && !sel.equals("(select fleet)") && !sel.equals("(no eligible fleet)");
+        Player hp = humanPlayer();
+        CharacterCard leader = (selectedCard instanceof CharacterCard)
+            ? (CharacterCard) selectedCard : null;
+        leadFleetButton.setEnabled(actionTurn && hasFleet && leader != null && hp != null
+            && rules.canLeadFleet(hp, leader, selectedFleet));
+    }
+ 
     /**
      * B5-0379: rebuild the read-only join-window participant list from the
      * live Conflict D14 sides API (B5-0309). Runs on the EDT inside
@@ -991,10 +1524,25 @@ public class MainWindow extends JFrame {
     private void clearSelection() {
         selectedCard = null;
         selectedTarget = null;
+        selectedFleet = null;
+        selectedAssistant = null;
         targetSelector.setSelectedIndex(-1);
         targetSelector.setEnabled(false);
+        if (leadFleetSelector != null) {
+            leadFleetSelector.setSelectedIndex(-1);
+            leadFleetSelector.setEnabled(false);
+        }
+        if (rotateEffectKindSelector != null) {
+            rotateEffectKindSelector.setSelectedIndex(0);
+            rotateEffectKindSelector.setEnabled(false);
+        }
         playCardOnlyButton.setEnabled(false);
         initiateConflictButton.setEnabled(false);
+        leadFleetButton.setEnabled(false);
+        useRotateEffectButton.setEnabled(false);
+        attackButton.setEnabled(false);
+        healButton.setEnabled(false);
+        repairButton.setEnabled(false);
     }
 
     /**

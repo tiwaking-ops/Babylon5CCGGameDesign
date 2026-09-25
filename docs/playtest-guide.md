@@ -8,7 +8,9 @@ provenance:
   assessor_llm:
     - {name: "GPT-6 Codex", version: "GPT-6"}
     - {name: "Solar Pro4", version: "solar-pro4:free"}
-  last_modified_by_llm: {name: "solar-pro4:free", version: "solar-pro4:free"}
+    - {name: "Qwen (qwen-2.5-coder-32b-instruct)", version: "qwen-2.5-coder-32b-instruct"}
+    - {name: "Buffy", version: "glm-5.3-flash"}
+  last_modified_by_llm: {name: "Buffy", version: "glm-5.3-flash"}
   last_modified_date: "2026-09-25"
 ---
 
@@ -92,8 +94,13 @@ you right now, not broken):
 | **Reveal Agenda** | Expose a face-down agenda: apply its on-play effect immediately if it is sponsorable, otherwise discard it | Face-down agendas render without their title or win-condition status until revealed (B5-0364). |
 | **Play Card** (agenda guard) | Play the selected hand card; events route to the effect tables | If you already have an agenda installed, the Play Card button will not play another agenda from your hand — the one-major rule is enforced engine-side before the card leaves your hand (B5-0364). Use Discard/Replace/Reveal for agenda lifecycle instead. |
 | **Place Contingency** | Play a ContingencyCard from your hand face-down under a host card in one of your in-play zones (Inner Circle, fleet, group, or location); the host's contingency count increments and the card's identity stays hidden | Requires a valid target and a host with an available slot; race matching reads the host card's subtype (B5-0365). No contingency-typed cards exist in the current pool, so this control is engine-ready but has no in-pool cards to play. |
-| **Reveal Contingency** | Flip a face-down contingency under one of your hosts, triggering its effect (routed through the event dispatcher) and then discarding it | Owner-gated; the identity of placed contingencies is now exposed to the UI via the B5-0394 accessor. No contingency cards in the current pool — engine-ready, data-pending. |
+| **Reveal Contingency** | Choose a face-down contingency from the dropdown selector and flip it, triggering its effect (routed through the event dispatcher) and then discarding it | Owner-gated; the selector lists each placed contingency as "<title> (under <host>)" (B5-0381); the reveal button is enabled only when it is your action turn and at least one placed contingency passes the reveal gate; no contingency cards in the current pool — engine-ready, data-pending. |
 | **Use Rotate Effect** | Rotate a character to apply a selected effect: assistant bonus (+1 Diplomacy/Intrigue/Leadership for the turn) or sponsor discount (−1 influence on a later recruit this turn) | Gated by the B5-0339 assistant mechanic (your own ready, unneutralized supporting-character assistant plus your ambassador); consumes your action (B5-0366). |
+| **Attack** | Attack a participant in the active conflict with the selected ready card; damage is mutual — each side deals its current conflict ability + 2 per its own Strife mark | Enabled on your Action turn with an active conflict and a selected ready, non-neutralized card; the target is auto-selected as the first valid opposing committed card (B5-0402, engine B5-0370, damage model B5-0368). Neutralization can trigger on either side from the overflow. |
+| **Heal** | Rotate to heal the selected damaged Inner Circle or supporting character | Enabled on your Action turn for a selected damaged character in those roles (B5-0402, engine B5-0371). If every IC member performed a heal action this round, your ambassador is fully healed at the round's end. |
+| **Repair** | Repair the selected damaged fleet or location: removes normal damage at 1 influence per token, paid from your per-turn applied pool (Rating untouched) | Enabled on your Action turn for a selected damaged, ready fleet/location with affordable pool cost (B5-0402, engine B5-0371). |
+| **Bid** (mercenary) | Bid the selected amount of applied-pool influence to control an offered mercenary for the turn; bids are cumulative per player per turn | Amount selector offers 1/2/3/5/10; the label above shows the offered mercenary, the controller after resolution. Enabled on your Action turn when the selected amount is affordable now (B5-0404, engine B5-0395). Highest cumulative total controls at the MERCENARY phase; a tie crowns nobody (D12 discipline). No mercenary-typed cards exist in the current pool (B5-0386), so in a normal game this control shows "(no mercenary offers)". |
+| **Declare War** | Declare a war conflict against a selected race or location target while you are at war with that faction | The target selector lists races at war with you, then their locations (marked "[loc]"); a status label explains the current war state (B5-0407, engine B5-0376). Note: no card or effect in the current pool moves tension, so no faction is ever at war in a normal game — the control shows "Not at war" unless war state is set by a future data/effect task (B5-0358 design). |
 
 Hand panel (B5-0348): filter checkboxes by card **type** and **faction**,
 sort radio buttons (**unsorted / cost ↑ / cost ↓**), and a show-dimmed
@@ -115,18 +122,20 @@ assist-bonus and sponsor-discount states (B5-0339).
 
 * **EASY (Londo)** passes often (~53% of decisions) and otherwise picks
   uniformly among legal actions — useful for watching mechanics play out.
-* **MEDIUM (Delenn)** is cost-aware and deterministic.
+* **MEDIUM (Delenn)** is cost-aware and deterministic; scores mercenary bids
+  by projected win probability minus the bid cost (B5-0403).
 * **HARD (G'Kar)** adds agenda win-condition proximity, aftermath
   anticipation, event/contingency catch-up scoring, and rotate-effect scoring
   (B5-0344), plus conflict-side choice instead of always-oppose defaults
-  (B5-0343).
+  (B5-0343), damage-aware attack/heal/repair scoring (B5-0378), and
+  mercenary-bid scoring with a steeper opportunity-cost penalty (B5-0403).
 * Difficulty contracts are pinned by the standalone harness
   `HeadlessAIDifficultyContractTest` (B5-0351).
 
 ## 6. Headless testing (no UI)
 
 `sh compile.sh` with `RUN_TESTS=1` runs the full conformance suite
-(326 checks) plus a smoke game. Several standalone CLI harnesses exist
+(360 checks) plus a smoke game. Several standalone CLI harnesses exist
 (not wired into RUN_TESTS — run directly with `java -cp out`):
 
 * Seeded multi-round runner from B5-0349 prints N games of aggregate stats:
@@ -152,35 +161,9 @@ reflects the working tree as of 2026-09-25:
 
 **Engine + AI done, no human UI yet — the AI can do these; you cannot trigger them from the window:**
 
-* **Lead a Fleet** — engine + AI done (B5-0362). The AI offers LEAD_FLEET
-  pairs and scores them. There is no UI control to rotate a leader; the
-  board shows per-fleet leadership state via the B5-0337 FleetCard APIs.
-  No UI task seeded yet.
-* **Agenda lifecycle** — engine done (B5-0364): DISCARD_AGENDA,
-  REPLACE_AGENDA, REVEAL_AGENDA, plus the one-major-agenda guard and
-  face-down hidden state. The UI task (B5-0380, OPEN) has not landed, so
-  you have no discard/replace/reveal buttons today. Playing another agenda
-  through the Play Card button is correctly refused engine-side when one is
-  already installed.
-* **Use Rotate Effect** — engine + AI done (B5-0366). The AI offers
-  USE_ROTATE_EFFECT for the assistant-bonus and sponsor-discount kinds and
-  scores them. No UI control exists; the assistant state is still surfaced
-  only through the A+/A$ markers on the ambassador mini-card.
-* **Attack / Heal / Repair** — engine + AI done (B5-0370, B5-0371, with
-  the damage/neutralization model from B5-0368). The injury system is live:
-  characters accumulate damage tokens, abilities reduce to zero at
-  neutralisation threshold, neutralised characters cannot act until healed,
-  and fleet leaders auto-neutralise. The AI offers attacks, heals, and
-  pool-paid repairs. You have no UI to trigger any of them.
-* **Place / Reveal Contingency** — engine done (B5-0365, with the
-  attached-identity accessor from B5-0394). No contingency-typed cards exist
-  in the current card pool, so there is nothing to play or reveal; the
-  engine path is sound but data-pending. The UI task (B5-0381) is BLOCKED
-  behind the now-resolved B5-0394 API gap — retriable.
-* **War conflicts** — engine done (B5-0376): TensionMatrix, declare-war
-  action, RACE_TARGET/LOCATION_TARGET conflict modes, all-supported
-  uncontested read, location capture/suppression, tension increment clamped
-  at 5. No UI task seeded.
+* (empty as of this refresh — the last entries in this bucket, Lead Fleet /
+  Use Rotate Effect (B5-0401) and Attack / Heal / Repair (B5-0402), now have
+  UI controls; see the control reference above and the live list below.)
 
 **Engine done and live — visible or materially affects gameplay today:**
 
@@ -189,10 +172,10 @@ reflects the working tree as of 2026-09-25:
   Rating), and sponsor/promote spend from the pool. The old defect where
   every sponsor permanently eroded your Rating is resolved. The
   free-participant waiver (B5-0374, E3) is also live. The E1 double-cost
-  pool interaction (B5-0373) is BLOCKED pending unrelated engine/model
-  fixes — behaviour is correct today because all cost values are zero, but
-  the named `isDoubleCostRequired` helper and neutral exemption are not yet
-  wired.
+  pool interaction (B5-0373) is DONE: the named `isDoubleCostRequired`
+  helper and neutral exemption are wired into the applyInfluence spend site
+  — behaviour-preserving (base recruit cost math unchanged); conformance
+  360/360 PASS.
 * **Damage subsystem** — characters can be damaged and neutralised; the
   damage/neutralisation model (B5-0368) plus attack (B5-0370) and
   heal/repair (B5-0371) are all live. You will see neutralised characters
@@ -205,26 +188,32 @@ reflects the working tree as of 2026-09-25:
   rather than permanent mutation; fleet leadership (B5-0337) and assistant
   (B5-0339) compose through it. Not directly player-visible beyond the
   existing markers, but it means round-boundary expiry and stacking now work.
+* **AI mercenary bidding** — live (B5-0403): MEDIUM/HARD offer and score
+  BID_ON_MERCENARY actions for offered mercenaries (minimal strictly-winning
+  increment, pool-affordability gated); EASY picks uniformly from the same
+  legal list. MER-AI conformance section ×10 landed with it (suite 350→360).
+* **Declare War UI** — live (B5-0407): a war target selector + Declare War
+  button wired to the B5-0376 engine branch; the selector lists races at
+  war, then their locations. Inert in normal games (no tension sources in
+  the pool; see the control-reference note).
 
 **Still open — unchanged or newly flagged:**
 
-* **Mercenaries** — no data evidence in the pool (B5-0386, no-evidence
-  verdict). The implementation slice (B5-0395) is OPEN and claimed; using
-  synthetic fixtures per the B5-0365 precedent.
-* **E1 double-cost pool interaction** — BLOCKED (B5-0373); see above.
-* **Contingency UI** — BLOCKED (B5-0381) behind the now-resolved B5-0394
-  accessors; retriable when a UI writer claims it.
+* **Mercenary card data** — no data evidence in the pool (B5-0386,
+  no-evidence verdict). The engine slice (B5-0395), AI bidding (B5-0403),
+  and bid UI (B5-0404) are all DONE using synthetic fixtures; a real game
+  still has nothing to bid on until real mercenary cards are sourced (needs
+  human direction).
 
 **Honesty notes for playtesters:**
 
 * The AI can stall the game. When all four seats pass consecutively the
   action phase ends; with the EASY-heavy default seating this can happen
   quickly and the round advances without much action. The multi-round
-  harness (B5-0349) correctly reports "stalled" when it observes this. A
-  D6-based unlimited-action rework is designed in
-  `docs/proposals/d6-unlimited-actions-design-proposal.md` (B5-0341) but
-  not implemented — the current loop uses a non-rulebook safety cap of
-  8×playerCount.
+  harness (B5-0349) correctly reports "stalled" when it observes this.
+  (B5-0372 landed the D6-based initiative-cycle rework — un-passing on
+  non-pass actions with the 8×playerCount safety cap as the liveness
+  backstop — but EASY's ~53% pass bias still makes quiet rounds common.)
 * Deck-out penalty is live (B5-0204/B5-0304): drawing from an empty deck
   discards your non-ambassador Inner Circle character if you have one, else
   signals forfeit for the victory check. Severe-damage overflow can also

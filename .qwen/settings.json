@@ -2,8 +2,15 @@
   "permissions": {
     "allow": [
       "Bash(b5ccg\\compile.bat)",
+      "Bash(b5ccg/compile.bat)",
       "Bash(findstr *)",
-      "Bash(git stash)"
+      "Bash(git *)",
+      "Bash(javac *)",
+      "Bash(java *)",
+      "Bash(dir *)",
+      "Read(./b5ccg/**)",
+      "Read(./.agent/**)",
+      "Read(./docs/**)"
     ]
   },
   "$version": 4

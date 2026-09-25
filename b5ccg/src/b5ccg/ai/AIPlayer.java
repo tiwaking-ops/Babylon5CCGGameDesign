@@ -44,6 +44,13 @@ import java.util.*;
  *  not a dead card), and events get a behind-the-leader catch-up bonus
  *  matching the rulebook's underdog reading of event timing. EASY stays
  *  random (the difficulty contract; B5-0351 owns its verification).
+ *
+ *  Mercenary bidding (B5-0403; B5-0395 engine, rulebook §Mercenaries): every
+ *  offered mercenary gets one bid offer per visit — the minimal increment
+ *  that puts this player strictly ahead of the best competing cumulative
+ *  total (ties crown nobody) — when the applied pool can cover it. MEDIUM and
+ *  HARD score the bid by win probability of the projected total versus its
+ *  cost; bids spend the D9 applied pool only, never the Rating.
  */
 public class AIPlayer {
 
@@ -312,6 +319,26 @@ public class AIPlayer {
             }
         }
 
+        // ── Mercenary bids (B5-0403; B5-0395 engine, rulebook §Mercenaries
+        // :735–:741) ────────────────────────────────────────────────────────
+        // One offer per offered mercenary per visit: the minimal increment
+        // that puts p STRICTLY ahead of the best competing cumulative total
+        // (ties crown nobody, so equal is not enough), when the applied pool
+        // can cover it now. A player who already strictly leads does not
+        // re-bid — extending a won auction only drains the pool; if a rival
+        // overbids, the offer reappears on a later visit (passing is not
+        // sticky under D6). EASY picks uniformly from the same offer list
+        // (difficulty contract untouched).
+        for (Card merc : state.getMercenaryOffers()) {
+            int mine = state.getMercenaryBid(merc, p);
+            int bestOther = bestOtherMercenaryBid(state, p, merc);
+            if (mine > bestOther) continue;   // hold: the auction is already won
+            int inc = bestOther - mine + 1;   // strictly outbid, or open at 1
+            if (rules.canBidOnMercenary(p, merc, inc, state)) {
+                actions.add(GameAction.bidOnMercenary(merc, inc));
+            }
+        }
+
         // ── Agenda lifecycle (B5-0364; B5-0345 Tier-1 #3) ──────────────────
         // DISCARD_AGENDA: non-Major agendas only (engine refuses Majors).
         if (rules.canDiscardAgenda(p)) {
@@ -399,6 +426,19 @@ public class AIPlayer {
         AgendaCard ag = p.getAgenda();
         if (ag != null) hosts.add(ag);
         return hosts;
+    }
+
+    /** B5-0403: the highest cumulative mercenary bid on `merc` by any player
+     *  other than p (0 when none) — the total a winning bid must strictly
+     *  exceed (B5-0395 resolution: ties crown nobody). */
+    private int bestOtherMercenaryBid(GameState state, Player p, Card merc) {
+        int bestOther = 0;
+        for (Player q : state.getPlayers()) {
+            if (q == p) continue;
+            int bid = state.getMercenaryBid(merc, q);
+            if (bid > bestOther) bestOther = bid;
+        }
+        return bestOther;
     }
 
     // ── EASY ──────────────────────────────────────────────────────────────────
@@ -554,6 +594,23 @@ public class AIPlayer {
                 Card c = a.getCard();
                 if (c == null) return 0;
                 return 3 + Math.min(6, c.getDamageTokens() * 2);
+            }
+            case BID_ON_MERCENARY: {
+                // B5-0403: control value discounted by the bid cost, weighted
+                // by the win probability of the projected total (the same
+                // winProb idiom the HARD initiation/LEAD_FLEET paths use).
+                // What a controlled mercenary is worth is card-specific (the
+                // CardEffects mercenary action fires for the controller at
+                // the MERCENARY phase) and not readable here, so the base is
+                // the modest B5-0301 house value.
+                Card merc = a.getCard();
+                if (merc == null) return 0;
+                int inc = a.getAmount();
+                if (inc <= 0) return 0;
+                int projected = state.getMercenaryBid(merc, p) + inc;
+                double winProb = (projected + 1.0)
+                        / (projected + bestOtherMercenaryBid(state, p, merc) + 2.0);
+                return (int) Math.round(4.0 * winProb - inc * 0.5);
             }
             default:
                 return 1;
@@ -726,6 +783,19 @@ public class AIPlayer {
                 double value = 2.0 + Math.min(5, c.getDamageTokens() * 1.5);
                 if (c instanceof FleetCard && c.getDamageTokens() > 0) value += 1.0;
                 return value;
+            }
+            case BID_ON_MERCENARY: {
+                // B5-0403: HARD weighs control higher and charges the bid at
+                // a steeper opportunity cost (bids spend the D9 applied pool
+                // only — the Rating is never touched, per B5-0395).
+                Card merc = a.getCard();
+                if (merc == null) return 0.0;
+                int inc = a.getAmount();
+                if (inc <= 0) return 0.0;
+                int projected = state.getMercenaryBid(merc, p) + inc;
+                double winProb = (projected + 1.0)
+                        / (projected + bestOtherMercenaryBid(state, p, merc) + 2.0);
+                return 5.0 * winProb - inc * 0.75;
             }
             default:
                 return 1;
