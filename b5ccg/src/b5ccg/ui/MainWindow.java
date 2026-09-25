@@ -67,6 +67,12 @@ public class MainWindow extends JFrame {
     private JButton supportButton;
     private JButton opposeButton;
     private Player selectedTarget;
+    // B5-0452 (B5-0451 F1): suppresses the target-selector listener while the
+    // selector is being (re)populated — a JComboBox auto-selects its first
+    // item and fires the listener during population, which set selectedTarget
+    // programmatically and satisfied the B5-0325 explicit-target gate without
+    // any user action.
+    private boolean targetSelectorPopulating = false;
 
     // B5-0379: read-only participant list for the human join window. Rows are
     // snapshots of the active Conflict's D14 sides API (B5-0309); the panel
@@ -441,6 +447,9 @@ public class MainWindow extends JFrame {
         targetSelector.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                // B5-0452 (B5-0451 F1): ignore events fired by programmatic
+                // population — only a real user change may set the target.
+                if (targetSelectorPopulating) return;
                 if (targetSelector.getSelectedItem() != null) {
                     String name = (String) targetSelector.getSelectedItem();
                     for (Player p : MainWindow.this.controller.getState().getPlayers()) {
@@ -1545,21 +1554,16 @@ public class MainWindow extends JFrame {
         clearSelection();
     }
 
-    /** B5-0328 F4: dispatch for the "Initiate Conflict" button (never plays). */
+    /** B5-0328 F4: dispatch for the "Initiate Conflict" button (never plays).
+     *  B5-0452 (B5-0451 F3): the highest-influence auto-target fallback was
+     *  removed — it was unreachable under the targetReady gate (the gate is
+     *  false exactly when selectedTarget is null, the only case it covered)
+     *  and implied a choice the user never made. The button can only fire
+     *  with an explicit user-picked target now. */
     private void initiateOnly() {
         if (!(selectedCard instanceof ConflictCard)) return;
-        // B5-0325 F2: human-selected target, auto-target fallback.
+        // B5-0325 F2 as repaired by B5-0452: explicit user-selected target only.
         Player target = selectedTarget;
-        if (target == null) {
-            GameState state = MainWindow.this.controller.getState();
-            int bestInfluence = -1;
-            for (Player p : state.getPlayers()) {
-                if (!p.isHuman() && p.getInfluence() > bestInfluence) {
-                    bestInfluence = p.getInfluence();
-                    target = p;
-                }
-            }
-        }
         if (target == null) return;
         MainWindow.this.controller.submitHumanAction(
             GameAction.initiateConflict(selectedCard, target));
@@ -1579,13 +1583,22 @@ public class MainWindow extends JFrame {
         refreshAttackControl(humanPlayer(),
             MainWindow.this.controller.isWaitingForHumanConflictAttack());
         if (fromHand && card instanceof ConflictCard) {
-            // B5-0325 F2: populate target selector with non-human players
-            targetSelector.removeAllItems();
-            for (Player p : controller.getState().getPlayers()) {
-                if (!p.isHuman()) {
-                    targetSelector.addItem(p.getName());
+            // B5-0452 (B5-0451 F1+F2): repopulate with the listener suppressed
+            // so the auto-selection fires nothing, and clear any stale target
+            // from a previous card selection — the target must be an explicit
+            // user choice for THIS conflict before Initiate enables.
+            targetSelectorPopulating = true;
+            try {
+                targetSelector.removeAllItems();
+                for (Player p : controller.getState().getPlayers()) {
+                    if (!p.isHuman()) {
+                        targetSelector.addItem(p.getName());
+                    }
                 }
+            } finally {
+                targetSelectorPopulating = false;
             }
+            selectedTarget = null;
             targetSelector.setEnabled(true);
             statusLabel.setText("Selected: " + card.getTitle()
                 + "  |  Target: choose from dropdown");

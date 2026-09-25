@@ -158,6 +158,36 @@ threshold — with any nonzero tension pairs listed just above it (B5-0427/
 B5-0429; all of these stay clear in normal games, since nothing in the pool
 moves tension yet).
 
+> **B5-0445 addendum (station-hooks landed, 2026-09-26):** B5-0437 wired the
+> station-influence card hooks from the 0428 proposal. Three sources move the
+> ratings at the round boundary (`applyEndOfRoundStation`, run BEFORE
+> `advanceRound` because `advanceRound` resets the `stationSourceFired` flag):
+>
+> 1. **Capture source** — winning a LOCATION_TARGET war where the location is
+>    not already under friendly control raises **human-side station influence**
+>    by +1 (capped 100) and sets `stationSourceFired = true`. Recapturing a
+>    suppressed location restores effects but yields **no station gain**
+>    (recapture = restoration, not a source).
+> 2. **Vorlon presence-bleed** — when a Vorlon player holds one or more
+>    captured locations at the round boundary, **vorlon influence** gains +1
+>    (capped 100) and sets `stationSourceFired = true`. (Shadow presence-bleed
+>    is deliberately NOT wired — there is no Shadow faction in the current
+>    enum, per B5-0354; it waits for a future card hook.)
+> 3. **Decay sink** — if NO source fired this round (neither capture nor
+>    bleed), all three ratings (human, shadow, vorlon) decay -1 toward 0. The
+>    `stationSourceFired` no-source guard means one source firing protects all
+>    three from decay that round.
+>
+> **Condition-2 / Shadow-War implications:** Shadow War (condition-2 input)
+> triggers when either shadow or vorlon influence reaches the
+> `CONDITION_2_THRESHOLD (20)`. Station victory condition 2 (rulebook :176)
+> crowns the unique strict influence leader when station influence reaches 20+,
+> **but is suppressed when Shadow War is active** (verified by the
+> `HeadlessStationVictoryTest`, B5-0382). In normal games these ratings stay
+> near zero (no tension-moving cards exist yet, B5-0386), so the markers stay
+> clear; the hooks exist and are unit-tested, but do not affect visible play
+> until the data pool gains tension sources.
+
 ## 5. The AI seats
 
 * **EASY (Londo)** passes often (~53% of decisions) and otherwise picks
@@ -185,9 +215,9 @@ moves tension yet).
 ## 6. Headless testing (no UI)
 
 `sh compile.sh` with `RUN_TESTS=1` runs the full conformance suite
-(373 checks) plus a smoke game. B5-0436 added named D6 action-loop termination
-coverage, D7 Build Influence boundary and no-op coverage, and D15 winner-only
-`influenceReward` coverage. Several standalone CLI harnesses exist
+(387 checks) plus a smoke game. B5-0437's station hooks added 14 STH
+assertions (373 → 387); B5-0436 added D6/D7 named assertions and D15
+winner-only `influenceReward` coverage. Several standalone CLI harnesses exist
 (not wired into RUN_TESTS — run directly with `java -cp out`):
 
 * Seeded multi-round runner from B5-0349 prints N games of aggregate stats.
@@ -234,7 +264,7 @@ the live list below.
   pool interaction (B5-0373) is DONE: the named `isDoubleCostRequired`
   helper and neutral exemption are wired into the applyInfluence spend site
   — behaviour-preserving (base recruit cost math unchanged); its coverage remains
-  green in the current 373-check suite.
+  green in the current 387-check suite.
 * **Damage subsystem** — characters can be damaged and neutralised; the
   damage/neutralisation model (B5-0368) plus attack (B5-0370) and
   heal/repair (B5-0371) are all live, with UI controls landed (B5-0402).
@@ -266,7 +296,7 @@ the live list below.
   BID_ON_MERCENARY actions for offered mercenaries (minimal strictly-winning
   increment, pool-affordability gated); EASY picks uniformly from the same
   legal list. MER-AI conformance section ×10 landed with it (historical suite
-  expansion; current total is 373 after B5-0436).
+  expansion; current total is 387 after B5-0436 (373) + B5-0437 STH ×14).
 * **Declare War UI** — live (B5-0407): a war target selector + Declare War
   button wired to the B5-0376 engine branch; the selector lists races at
   war, then their locations. Inert in normal games (no tension sources in

@@ -32,8 +32,9 @@ provenance:
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
     - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
+    - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
   created_date: "2026-09-21"
-  last_modified_by_llm: {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
+  last_modified_by_llm: {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
   last_modified_date: "2026-09-26"
 ---
 
@@ -2881,6 +2882,20 @@ scope (AGENTS.md §6); no new root .md files.
   (docs-only consolidation of 0422 option A plus mercenary and contingency
   data sources with file pointers, no re-litigation, claimable now).
 --------------------------------------------------------------------------------
+## 2026-09-25 — Muse Spark (muse-spark-1.3-contributor-free): seed B5-0455/0456/0457/0458
+
+* Ledger caught up: 0437 DONE (suite 387, checkpoint 7e4315e via 0438),
+  0443/0444/0445/0446/0447 DONE, 0448 no-op, 0449/0450/0451/0452/0454 DONE.
+  Sole OPEN row is B5-0453 (Buffy live claim, heartbeat working; tree red from
+  its own in-flight edit, missing testAIStationAwareness method -- owner
+  scope, no repair seed).
+* Seeded four rows, all gated on 0453 DONE and parallel-safe after it:
+  B5-0455 checkpoint commit (git-only precedent); B5-0456 guide refresh part 8
+  (0452 plus 0447 plus 0453 deltas, docs-only); B5-0457 harness re-sweep
+  (0446 precedent, 0443 probe added to the roster); B5-0458 0451-F4
+  phase-gate hardening (ui/ only, 0451 report read first).
+* Nothing seeded on the 0454 brief until a human ruling arrives.
+--------------------------------------------------------------------------------
 
 
 ## 2026-09-25 — Buffy (glm-5.3-flash): B5-0437 station-influence card hooks landed + fabricated close-out replaced
@@ -2914,6 +2929,71 @@ scope (AGENTS.md §6); no new root .md files.
   green (387/387 incl. new STH ×14 + smoke PASS); Java 6 grep clean.
 --------------------------------------------------------------------------------
 
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0445 playtest-guide station-hooks addendum
+
+* Documented the B5-0437 station-influence card hooks in the playtest guide §4
+  board-readout addendum: capture source (first capture +1 station influence,
+  recapture = restoration), Vorlon presence-bleed (+1 vorlon influence when a
+  Vorlon player holds captured locations), decay sink (no-source guard via
+  stationSourceFired), and the marker lifecycle (applyEndOfRoundStation runs
+  BEFORE advanceRound to read the flag before it resets).
+* Condition-2 / Shadow-War implications: Shadow War triggers at either shadow or
+  vorlon influence reaching CONDITION_2_THRESHOLD (20); station victory
+  condition 2 (rulebook :176) is suppressed when Shadow War is active
+  (verified by HeadlessStationVictoryTest, B5-0382). Shadow presence-bleed
+  remains unwired (no Shadow faction in enum, B5-0354).
+* Updated suite count from 373 to 387 in the playtest guide (B5-0437 added
+  14 STH assertions; B5-0436 added D6/D7 named assertions).
+* Interpretation preserved: recapture restoring effects is maintenance, not an
+  influence source — the only station source wired from war outcomes is first
+  capture; presence-bleed is the only boundary source.
+
+--------------------------------------------------------------------------------
+
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0453 AI station-hook awareness
+
+* Added `stationContextScore(GameState)` as an additive scoring term in both
+  MEDIUM and HARD AI difficulty tiers for DECLARE_WAR_CONFLICT actions
+  targeting LOCATION_TARGET (location cards). The term:
+  - Returns 0 when all station ratings (human, shadow, vorlon) are below 15
+    (today's always-case: no station influence has moved).
+  - Returns +2 when station influence >= 15 (pushes toward condition-2
+    threshold of 20).
+  - Returns -1 when Shadow War is active (shadow or vorlon >= 20), because
+    station victory condition 2 is suppressed during Shadow War.
+* HARD already had this term (initial work by twin session); extended it to
+  MEDIUM's DECLARE_WAR_CONFLICT scoring so both tiers see the rating effects.
+  EASY remains uniform (random pick, no station consultation).
+* Added testAIStationAwareness() conformance section (7 checks) verifying
+  stationContextScore returns the correct values at each rating boundary and
+  that EASY is unaffected. Conformance suite expanded from 387 to 394.
+* Interpretation preserved: the AI never mutates station ratings — it only
+  reads them (B5-0354 discipline). Support Babylon 5 player-side effects are
+  not consulted.
+
+--------------------------------------------------------------------------------
+
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0443 human-seat probe passed
+
+* B5-0443 was BLOCKED because B5-0449 de-blocked the tree (GameState.java
+  duplicate field fix + HeadlessHumanSeatProbe wrong AIDifficulty import fix).
+  Re-claimed B5-0443, compiled HeadlessHumanSeatProbe.java Java 6-clean
+  (expected bootstrap warning only), and ran the full human-seat end-to-end
+  probe with seed=42, 180s timeout.
+* Result: **HUMAN-SEAT PROBE PASSED (8 checks)**, winner=Human, 61 submits,
+  elapsed 98s, round 9. Coverage gates all passed:
+  - play=8, initiate=3, support=3, oppose=0, heal=0, repair=0 (first gate: 16>0 ✓)
+  - recruit=7, promote=4, build=1, leadFleet=0, rotate=20, attack=1 (second gate: 33>0 ✓)
+  - agendaD=1, agendaR=0, agendaRe=0 (third gate: 1>0 ✓)
+  - pass=13 (fourth gate: 13>0 ✓)
+  - bid=0, war=0 (soft-gated: no mercenary cards in pool per B5-0386)
+* heal/repair absent: no damage events triggered in this seeded game — soft
+  coverage, the gates assert the path exists, not that damage occurred.
+* Gates: compile.bat green; conformance 387/387 PASS; Java 6 grep clean on
+  the probe file.
+
+--------------------------------------------------------------------------------
+
 ## 2026-09-26 — Buffy (glm-5.3-flash): B5-0449 ledger pipe hygiene
 
 * Restored B5-0443 row to 7 pipes: the BLOCKED close-out had dropped the
@@ -2933,3 +3013,69 @@ scope (AGENTS.md §6); no new root .md files.
 * Verified: all IDs unique (0 duplicates); all standard rows 7 pipes;
   protected in-content rows (B5-0202c with 9, B5-0316 with 8) untouched;
   build green on JDK 1.8.0_292 with -source 6.
+
+## 2026-09-25 — Buffy (glm-5.3-flash): B5-0438 checkpoint commit 7e4315e
+
+* Overseer-seeded checkpoint after the 0432/0436/0437/0440-0454 era; gates
+  verified immediately before commit (compile.bat exit 0; RUN_TESTS=1 exit 0,
+  387/387 + smoke PASS). Commit 7e4315e, 82 files, +6158/-135, no push.
+* Excluded per row text: ALL .agent/CLAIMS/* (incl. B5-0436.json.stale
+  residue) and .agent/HEARTBEATS/* as transient coordination state; plus
+  b5ccg/src/.agent/ clone, QWEN.md, java/node_modules/package-lock.json
+  droppings. ~30 untracked paths remain deliberately uncommitted.
+* Flagged: the captured package.json diff (@llamagate/ai-sdk-provider
+  dependency + allowScripts block) is pre-existing working-tree state, not
+  any ledger task's product; recorded here so its provenance is not lost.
+
+## 2026-09-25 — Buffy (glm-5.3-flash): B5-0446 probe re-sweep all green
+
+* All six standalone probes (0350/0351/0382/0383/0384/0419) re-run against
+  the station-hooked engine: PASS exit 0 each (26 tiebreak checks, 10/10 AI
+  contract, 6/0 station victory, participation gates, 8/0 lead-fleet, war
+  conflict). RUN_TESTS=1 re-verified same session (387/387 + smoke).
+* The 0437-specific risk is closed: the B5-0382 station-victory guard
+  semantics (condition-2 at exactly 20, Shadow-War suppression both ways)
+  survived the capture/presence-bleed/decay hooks.
+
+## 2026-09-25 — Buffy (glm-5.3-flash): B5-0447 balance re-probe — stall is no longer the norm
+
+* 10 games on the B5-0444 runner (seeds 101-109 step 2, 180s cap): 9 WINNER
+  + 1 TIMEOUT = 10% stall vs the B5-0408/0409 100% baseline; natural
+  termination spans rounds 4-16 (56-178s); winner spread Beta 4 / Alpha 2 /
+  Gamma 2 / Delta 1; 79 conflicts with 69 initiator wins (87%, small
+  samples); promotions now fire at 4.9/game (baseline 0 — B5-0321 path
+  exercised); agendas 0/10 persists and is flagged as an AI-scoring
+  anomaly, not explained by pass bias.
+* Execution only; zero source edits. The one TIMEOUT matches the 0422
+  prediction that some seeds stall pending the human option-A ruling
+  (see docs/human-decision-brief.md Ruling 1).
+
+## 2026-09-25 — Buffy (glm-5.3-flash): B5-0451 initiation-targeting audit — selector defeats its own explicit-choice gate
+
+* Report-only audit of the MainWindow initiate path (B5-0325 selector +
+  B5-0328 gate + B5-0328 initiateOnly fallback). Five findings; highest:
+  the target JComboBox's population auto-selects item 0 and fires the
+  change listener, so selectedTarget is set programmatically and the
+  B5-0325 "explicit target" gate (targetReady) is satisfied by the widget
+  itself — Initiate lights without a user choice (intent defect only;
+  the engine gate still validates legality, so no illegal submissions).
+* The initiateOnly highest-influence fallback is unreachable under the
+  current gate and does not duplicate AIPlayer.leadingPlayer scoring
+  (different metric, different caller); recommend deletion in the 0452
+  fix slice.
+* Self-caught during close-out: my own ledger edit briefly reproduced the
+  B5-0354-class pipe corruption (duplicated scope cell); repaired and
+  verified all my closed rows at canonical 6 cells.
+
+## 2026-09-25 — Buffy (glm-5.3-flash): B5-0452 initiation-targeting fix landed
+
+* Repaired the B5-0451 findings in MainWindow.java only: a
+  targetSelectorPopulating guard now suppresses the selector listener
+  during population (Java 6 try/finally, B5-0102 precedent), the chosen
+  target resets on every conflict-card selection, and the unreachable
+  highest-influence fallback in initiateOnly is deleted — Initiate now
+  fires only on an explicit user-picked target.
+* Behavior note for the UI audit trail: the status label already told the
+  user to choose a target; now the button actually enforces it. No
+  engine/game-logic change, so no conformance section; suite, smoke,
+  attack-window (9/9) and real-Swing (10/10) regressions all green.

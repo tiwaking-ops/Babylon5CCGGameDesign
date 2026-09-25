@@ -441,6 +441,30 @@ public class AIPlayer {
         return bestOther;
     }
 
+    /** B5-0453: station-aware war scoring (B5-0437 hooks live, B5-0354
+     *  no-rewire respected — READ-ONLY over the station ratings; the AI
+     *  never mutates them and Support Babylon 5 is untouched).
+     *
+     *  Returns a score additive term based on the station's current state:
+     *  0  — all ratings below 15 (today's always-case: pool starts inert,
+     *       so existing orderings are preserved when nothing has moved);
+     *  -1 — Shadow War active (shadow or vorlon at 20): station influence
+     *       can no longer crown (RulesEngine.checkVictory guards on
+     *       isShadowWar), so pushing it is wasted motion;
+ *       +2 — station influence at 15+: a capture now pushes the rating
+ *       toward the condition-2 threshold (20) the AI's influence already
+ *       targets;
+ *       +1 — shadow or vorlon at 15+: capture also feeds the Shadow-War
+ *       trigger threshold, which is board state the AI can exploit.
+     */
+    public int stationContextScore(GameState state) {
+        Babylon5Station stn = state.getStation();
+        if (stn.isShadowWar()) return -1;
+        if (stn.getInfluence() >= 15) return +2;
+        if (stn.getShadowInfluence() >= 15 || stn.getVorlonInfluence() >= 15) return +1;
+        return 0;
+    }
+
     // ── EASY ──────────────────────────────────────────────────────────────────
 
     private GameAction easyChoose(List<GameAction> legal, Player p) {
@@ -469,9 +493,12 @@ public class AIPlayer {
                     int myTotal = p.conflictTotal(cc.getConflictType());
                     int oppTotal = a.getTarget() != null
                         ? a.getTarget().conflictTotal(cc.getConflictType()) : 0;
-                    return myTotal > oppTotal
+                    int score = myTotal > oppTotal
                         ? cc.getInfluenceReward() * 10 + (myTotal - oppTotal)
                         : -5;
+                    // B5-0453 station-context is on DECLARE_WAR_CONFLICT (the path
+                    // that raises station influence via capture source), not here.
+                    return score;
                 }
                 return 0;
             case RECRUIT_CHARACTER: {
@@ -501,6 +528,13 @@ public class AIPlayer {
                 if (a.getCard() instanceof LocationCard) base = 6;
                 else if (a.getCard() instanceof GroupCard)    base = 4;
                 else                                          base = 2;
+                // B5-0453: station-aware scoring for location plays — a
+                // location can be captured later, feeding the station capture
+                // source (B5-0437 hooks). Add the station-context term so MEDIUM
+                // and HARD both see the rating effect; EASY stays uniform.
+                if (a.getCard() instanceof LocationCard) {
+                    base += stationContextScore(state);
+                }
                 return Math.max(0, base - a.getCard().getCost());
             }
             case BUILD_INFLUENCE:
@@ -576,8 +610,11 @@ public class AIPlayer {
                 // the +1 uncontested swing; location targets value the captured
                 // per-round income (suppressed for the owner). Parked above the
                 // generic floor so wars are preferred once they are legal.
+                // B5-0453: MEDIUM shares the HARD station-context term for
+                // location-target wars (B5-0437 hooks moved the ratings).
                 if (a.getTargetCard() instanceof LocationCard) {
-                    return 2 + ((LocationCard) a.getTargetCard()).getInfluencePerRound();
+                    return 2 + ((LocationCard) a.getTargetCard()).getInfluencePerRound()
+                            + stationContextScore(state);
                 }
                 return 4;
             case ATTACK_CONFLICT_PARTICIPANT:
@@ -754,9 +791,12 @@ public class AIPlayer {
                 // B5-0376: HARD weighs the war payoff — location income when
                 // capturing a location, plus a preference to hit the leading
                 // enemy race. Kept modest (B5-0301 house style).
+                // B5-0453: station-context additive term on location captures
+                // (B5-0437 hooks moved the ratings; see stationContextScore).
                 if (a.getTargetCard() instanceof LocationCard) {
                     LocationCard loc = (LocationCard) a.getTargetCard();
-                    double base = 2.0 + loc.getInfluencePerRound();
+                    double base = 2.0 + loc.getInfluencePerRound()
+                                  + stationContextScore(state);
                     if (loc.getFaction() != null
                             && leader != null && leader.getFaction() == loc.getFaction()) base += 1.0;
                     return base;

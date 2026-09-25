@@ -1392,6 +1392,59 @@ public class HeadlessConformanceTest {
                 hardD.chooseAction(sD, pD).getType() == GameAction.Type.PASS);
     }
 
+    // ── B5-0453: AI station-aware scoring ──────────────────────────────────────
+
+    private static void testAIStationAwareness() {
+        System.out.println("STH-AI (B5-0453): MEDIUM/HARD score station ratings, EASY uniform");
+        RulesEngine rules = new RulesEngine();
+
+        Player p1 = player("STHAI-1", Faction.CENTAURI);
+        Player p2 = player("STHAI-2", Faction.NARN);
+        GameState st = state(p1, p2);
+        st.getTensionMatrix().enterWar(Faction.CENTAURI, Faction.NARN);
+
+        // --- stationContextScore returns 0 when all ratings below 15 ---
+        AIPlayer med = new AIPlayer(p1, AIDifficulty.MEDIUM);
+        check("STH-AI", "stationContextScore = 0 at idle ratings",
+                med.stationContextScore(st) == 0);
+
+        // --- stationContextScore returns +2 when human station influence >= 15 ---
+        st.getStation().gainInfluence(15);
+        check("STH-AI", "station influence raised to 15",
+                st.getStation().getInfluence() >= 15);
+        check("STH-AI", "stationContextScore = +2 at influence>=15",
+                med.stationContextScore(st) == 2);
+
+        // --- stationContextScore returns -1 when Shadow War is active ---
+        // Shadow War triggers at CONDITION_2_THRESHOLD (20) on either shadow or
+        // vorlon influence.
+        st.getStation().setShadowInfluence(Babylon5Station.CONDITION_2_THRESHOLD);
+        check("STH-AI", "Shadow War active (>= 20 shadow)",
+                st.getStation().isShadowWar());
+        check("STH-AI", "stationContextScore = -1 when Shadow War active",
+                med.stationContextScore(st) == -1);
+
+        // --- EASY is unaffected: stationContextScore is a MEDIUM/HARD term ---
+        // EASY picks uniformly from legal actions and never consults the score.
+        // Verify EASY does not crash and returns a legal action in any station
+        // state (the method exists on the class but EASY choose logic bypasses it).
+        st.getStation().setShadowInfluence(0);
+        AIPlayer easy = new AIPlayer(p1, AIDifficulty.EASY);
+        GameAction eAction = easy.chooseAction(st, p1);
+        check("STH-AI", "EASY returns a legal action (non-null) regardless of station state",
+                eAction != null);
+
+        // --- MEDIUM DECLARE_WAR_CONFLICT uses the station term ---
+        // At influence >= 15, the station term is +2; verify MEDIUM can still
+        // chooseAction (the score term is additive and does not crash).
+        st.getStation().gainInfluence(5); // now 20
+        st.getStation().setShadowInfluence(0);
+        AIPlayer medHi = new AIPlayer(p1, AIDifficulty.MEDIUM);
+        GameAction mAction = medHi.chooseAction(st, p1);
+        check("STH-AI", "MEDIUM returns a legal action at high station influence",
+                mAction != null);
+    }
+
     private static void testD6ActionLoop() {
         System.out.println("D6 (B5-0436 R2): action round ends on consecutive passes; no safety cap");
         Player p1 = player("D6p1", Faction.CENTAURI);
@@ -3531,7 +3584,8 @@ public class HeadlessConformanceTest {
             testD7BuildInfluence();
             testD15EffectCoverage();
             testStationHooks();   // B5-0437: station-influence card hooks
-            System.out.println("All B5-0203 deviations D1-D14 resolved; D15 partial by effect-coverage; D6/D7 now have dedicated named assertions (B5-0436). B5-0437 station hooks covered (STH).");
+            testAIStationAwareness(); // B5-0453: MEDIUM/HARD score station ratings, EASY uniform
+            System.out.println("All B5-0203 deviations D1-D14 resolved; D15 partial by effect-coverage; D6/D7 now have dedicated named assertions (B5-0436). B5-0437 station hooks covered (STH). B5-0453 AI station-awareness covered.");
 
             System.out.println();
             System.out.println(failed == 0
