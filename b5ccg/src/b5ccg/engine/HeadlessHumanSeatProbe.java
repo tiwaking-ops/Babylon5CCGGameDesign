@@ -19,6 +19,16 @@ import java.util.*;
  * join, sponsor/promote/build, lead-fleet, rotate-effect, attack (via the B5-0432
  * attack window), heal/repair, agenda lifecycle, bid, declare war.
  *
+ * B5-0460: heal, repair, mercenary bid and war declaration are additionally
+ * exercised on a dedicated synthetic fixture state, because the seeded game
+ * rarely (or, for mercenaries, never — B5-0386 zero-evidence pool) opens
+ * them. Each scenario asserts the exact engine entry points the human
+ * dispatcher calls (legality predicate + execute/declaration landing a
+ * state change), per the 0443 precedent of asserting the path, not the
+ * gate. Live submissions still route through submitHumanAction above; the
+ * controller parks submissions outside a live wait-window, so synthetic
+ * paths assert at the engine boundary instead.
+ *
  * Usage:
  *   java -cp b5ccg/out b5ccg.engine.HeadlessHumanSeatProbe [seed] [timeoutSec]
  *
@@ -200,6 +210,29 @@ public class HeadlessHumanSeatProbe {
         if (nBid > 0) mark("COVERAGE: bid exercised");
         if (nWar > 0) mark("COVERAGE: war exercised");
 
+        // ── B5-0460: synthetic scenarios for the 0443 soft-gated paths ────
+        // Dedicated fixture state (fresh, not game-over, no driver thread)
+        // so the played game is never touched. Same file, same harness.
+        try {
+            Player fh = new Player("HSP-human", Faction.HUMAN, true);
+            Player fe = new Player("HSP-enemy", Faction.NARN, false);
+            final GameState fstate = new GameState(Arrays.asList(fh, fe));
+            fh.setGameState(fstate);
+            fe.setGameState(fstate);
+            RulesEngine frules = new RulesEngine();
+            CharacterCard amb = new CharacterCard("hsp_amb", "Probe Ambassador",
+                    "AMBASSADOR", Rarity.COMMON, Faction.HUMAN, CardSet.PREMIERE,
+                    "x", "probe", 2, 2, 0, 2, true);
+            fh.setAmbassador(amb);
+            fh.addCharacter(amb);
+            scenarioHealAndRepair(frules, fh, fstate);
+            scenarioMercenaryBid(frules, fh, fstate);
+            scenarioDeclareWar(frules, fh, fe, fstate);
+        } catch (Throwable t) {
+            check("SYN: scenarios ran without exception", false);
+            t.printStackTrace(System.err);
+        }
+
         System.out.println();
         System.out.println("=== Human-seat probe summary ===");
         System.out.println("  elapsed: " + elapsed + "ms, round " + state.getRoundNumber()
@@ -370,6 +403,85 @@ public class HeadlessHumanSeatProbe {
         else if (t == GameAction.Type.BID_ON_MERCENARY) nBid++;
         else if (t == GameAction.Type.DECLARE_WAR_CONFLICT) nWar++;
         else if (t == GameAction.Type.PASS) nPass++;
+    }
+
+    // ── B5-0460: synthetic-fixture scenarios (engine entry points the human
+    // dispatcher calls; submitHumanAction only processes inside a live
+    // wait-window, so the fixtures assert at the engine boundary) ──────────
+
+    /** Heal + repair: produce damage on the fixture (seeded games opened no
+     *  damage window per the 0443 run), then walk the legality predicate plus
+     *  execute pair the dispatcher would call for HEAL_CHARACTER and
+     *  REPAIR_CARD. */
+    private static void scenarioHealAndRepair(RulesEngine rules, Player human,
+                                              GameState state) {
+        CharacterCard ch = null;
+        for (CharacterCard c : human.getInnerCircle()) { ch = c; break; }
+        check("SYN heal: fixture has an IC character", ch != null);
+        if (ch == null) return;
+        ch.applyDamage(1); // below the greatest ability, so no neutralization
+        check("SYN heal: character carries damage", ch.getDamageTokens() == 1);
+        check("SYN heal: canHealCharacter true for damaged IC member",
+                rules.canHealCharacter(human, ch));
+        check("SYN heal: executeHealCharacter lands",
+                rules.executeHealCharacter(human, ch, state));
+        check("SYN heal: normal damage cleared by the heal",
+                ch.getDamageTokens() == 0);
+
+        FleetCard fl = new FleetCard("hsp_repair_fleet", "Probe Fleet", "LINE",
+                Rarity.COMMON, human.getFaction(), CardSet.PREMIERE, "x", "probe", 3);
+        human.addFleet(fl);
+        fl.applyDamage(2);
+        check("SYN repair: fleet carries damage", fl.getDamageTokens() == 2);
+        check("SYN repair: canRepairCard true for damaged funded fleet",
+                rules.canRepairCard(human, fl));
+        check("SYN repair: executeRepairCard lands",
+                rules.executeRepairCard(human, fl, state));
+        check("SYN repair: fleet damage cleared", fl.getDamageTokens() == 0);
+        nHeal++;
+        nRepair++;
+    }
+
+    /** Mercenary bid: synthetic fixture per the B5-0365 precedent (the pool
+     *  carries zero mercenaries, B5-0386). Flag, offer, then bid through the
+     *  legality predicate plus execute pair the dispatcher would call for
+     *  BID_ON_MERCENARY. */
+    private static void scenarioMercenaryBid(RulesEngine rules, Player human,
+                                             GameState state) {
+        FleetCard merc = new FleetCard("hsp_bid_merc", "Probe Mercenary", "LINE",
+                Rarity.COMMON, human.getFaction(), CardSet.PREMIERE, "x", "probe", 2);
+        merc.setMercenary(true);
+        check("SYN bid: offer accepted for mercenary-flagged card",
+                state.addMercenaryOffer(merc));
+        check("SYN bid: mercenary is in play on the state",
+                state.isMercenaryInPlay(merc));
+        check("SYN bid: canBidOnMercenary true for offered card",
+                rules.canBidOnMercenary(human, merc, 2, state));
+        check("SYN bid: executeBidOnMercenary lands",
+                rules.executeBidOnMercenary(human, merc, 2, state));
+        check("SYN bid: bid recorded on the mercenary",
+                state.getMercenaryBid(merc, human) == 2);
+        nBid++;
+    }
+
+    /** War declaration: force the rare at-war shape via the tension matrix,
+     *  then walk canDeclareWarConflict/canInitiateWarConflict and the same
+     *  declareWarConflict entry the dispatcher builds for
+     *  DECLARE_WAR_CONFLICT (conflicts resolve synchronously at
+     *  initiation, B5-0309 — the assertion is the returned conflict). */
+    private static void scenarioDeclareWar(RulesEngine rules, Player human,
+                                           Player enemy, GameState state) {
+        state.getTensionMatrix().enterWar(human.getFaction(), enemy.getFaction());
+        check("SYN war: seats registered at war", state.isAtWar(human.getFaction()));
+        check("SYN war: canDeclareWarConflict true at war",
+                rules.canDeclareWarConflict(human, state));
+        check("SYN war: canInitiateWarConflict(RACE_TARGET) true",
+                rules.canInitiateWarConflict(human, WarKind.RACE_TARGET, enemy,
+                        null, state));
+        Conflict war = rules.declareWarConflict(human, WarKind.RACE_TARGET,
+                enemy, null, state);
+        check("SYN war: declaration produced a conflict", war != null);
+        nWar++;
     }
 
     // ── Helpers mirrored from HeadlessHumanConflictAttackWindowTest ──────────

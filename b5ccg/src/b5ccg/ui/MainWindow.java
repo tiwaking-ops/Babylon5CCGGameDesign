@@ -1525,8 +1525,14 @@ public class MainWindow extends JFrame {
             || phase == GamePhase.CONFLICT_RESOLUTION
             || phase == GamePhase.AFTERMATH
             || phase == GamePhase.DRAW);
+        // B5-0458 (B5-0451 F4): initiation is an ACTION-phase act, so the
+        // Initiate Conflict button now gates on ACTION only. The broader
+        // phaseAllowsAction above stays for Play Card (inherited draft
+        // breadth; tightening Play was explicitly out of F4's scope and
+        // remains out of ours).
+        boolean phaseAllowsInitiation = (phase == GamePhase.ACTION);
         boolean canInitiate = myTurn && conflictSelected && !activeConflict
-            && phaseAllowsAction;
+            && phaseAllowsInitiation;
         // B5-0325 F2: when the selector is enabled for a conflict card, require
         // an explicit target so Initiate can't fire on a stale auto-fallback.
         boolean targetReady = !conflictSelected || !targetSelector.isEnabled()

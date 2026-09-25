@@ -33,6 +33,8 @@ provenance:
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
     - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
+    - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
+    - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
   created_date: "2026-09-21"
   last_modified_by_llm: {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
   last_modified_date: "2026-09-26"
@@ -2896,6 +2898,25 @@ scope (AGENTS.md §6); no new root .md files.
   phase-gate hardening (ui/ only, 0451 report read first).
 * Nothing seeded on the 0454 brief until a human ruling arrives.
 --------------------------------------------------------------------------------
+## 2026-09-26 — Muse Spark (muse-spark-1.3-contributor-free): seed B5-0459/0460/0461
+
+* State at seed time: 0453/0454/0455/0456/0457 DONE (suite 394/394, checkpoint
+  03bc9d6, tree green); sole prior OPEN B5-0458 live-claimed by Buffy
+  (future-dated stamp per known pathology, claim-file authority, untouched).
+* Seeded: B5-0459 agenda non-appearance triage (static report-only, claimable
+  now; 0447 zero-agenda anomaly plus 0456 parser-artifact nuance as competing
+  hypotheses); B5-0460 human-probe coverage extension (0443 file only,
+  0453-DONE gate satisfied); B5-0461 checkpoint (git-only, gated on 0458
+  DONE). Advisory: 0458 adds its own guide line if behavior changes.
+--------------------------------------------------------------------------------
+## 2026-09-26 — Muse Spark (muse-spark-1.3-contributor-free): seed B5-0462/0463
+
+* State at seed time: 0458 DONE (ACTION-only Initiate gate, 394 green);
+  0460 live-claimed by Buffy (row untouched); 0461 gate satisfied by 0458.
+* Seeded two claimable-now rows, both zero-edit and parallel-safe with live
+  0460: B5-0462 balance re-probe vs 0447 baseline (0453 scoring postdates it);
+  B5-0463 hygiene re-sweep (seven code tasks since 0421).
+--------------------------------------------------------------------------------
 
 
 ## 2026-09-25 — Buffy (glm-5.3-flash): B5-0437 station-influence card hooks landed + fabricated close-out replaced
@@ -3079,3 +3100,85 @@ scope (AGENTS.md §6); no new root .md files.
   user to choose a target; now the button actually enforces it. No
   engine/game-logic change, so no conformance section; suite, smoke,
   attack-window (9/9) and real-Swing (10/10) regressions all green.
+
+## 2026-09-25 — Buffy (glm-5.3-flash): B5-0455 checkpoint commit 03bc9d6
+
+* Verified both gates green immediately before committing (compile.bat
+  Build successful on JDK 1.8.0_292 -source 6; RUN_TESTS=1 conformance
+  394/394 PASS plus smoke PASS), then committed the settled work tree as
+  checkpoint 03bc9d6 on main: 20 files changed, 1060 insertions, 36
+  deletions — TASK_LEDGER, the 0449/0452/0453 source work in AIPlayer.java,
+  HeadlessConformanceTest.java and MainWindow.java, both docs files, nine
+  agent reports and five pattern records. NOT pushed.
+* Deliberately left out per row text and the B5-0438 exclusion precedent:
+  all .agent/CLAIMS files and all .agent/HEARTBEATS files (transient
+  coordination state, including tracked edits and deletions inside
+  HEARTBEATS), QWEN.md, the java directory with node_modules and
+  package-lock.json toolchain droppings, and the b5ccg/src/.agent/ nested
+  coordination directory — none carry work content.
+* Flagged for a future hygiene pass, untouched here: DECISIONS.md section
+  ordering has gone date-disordered mid-file (the B5-0449 entry sits out of
+  sequence among 09-25 entries), and ledger row B5-0449 still misses its
+  trailing pipe (5 cells).
+
+## 2026-09-25 — Buffy (glm-5.3-flash): B5-0457 post-0453 harness re-sweep all green
+
+* Re-ran every row-enumerated harness against the station-aware AI:
+  conformance 394/394 plus smoke, tiebreak 26, AI difficulty contract
+  10/10, station victory 6/0, participation gates, lead-fleet 8/0,
+  war-conflict probe, human seat probe 8/0 — all exit 0. The B5-0453
+  scoring change shifted no contract band.
+* Balance-baseline risk covered by a canary rather than a full re-baseline:
+  seed 101 through the B5-0444 runner reproduced its B5-0447 baseline row
+  (WINNER, natural termination). Full 10-game re-baseline deliberately not
+  run — outside the row's enumerated scope; escalate only if a canary
+  diverges.
+
+## 2026-09-25 — Buffy (glm-5.3-flash): B5-0458 initiation gated to the ACTION phase
+
+* Interpretation recorded: initiating a conflict is an ACTION-phase act,
+  so the human Initiate Conflict button now gates on ACTION only
+  (phaseAllowsInitiation in updatePlayInitiateButtons, MainWindow.java).
+  This resolves the B5-0451 F4 finding (initiation permitted during
+  CONFLICT_RESOLUTION/AFTERMATH/DRAW) and closes the deferral the B5-0328
+  live-claim note recorded ("tightening would be a behavior change beyond
+  F4") — the behavior change is now made deliberately, not inherited.
+* Scope guard kept: Play Card intentionally retains the broader inherited
+  phase breadth (ACTION/CONFLICT_RESOLUTION/AFTERMATH/DRAW); no engine or
+  model change, and the engine-side revalidation of initiation remains the
+  backstop (F5: no illegal submission possible).
+* Gates: compile.bat green (-source 6, JDK 1.8.0_292); conformance 394/394
+  plus smoke PASS; MainWindowAttackControlTest 10/10;
+  HeadlessHumanConflictAttackWindowTest 9/9; Java 6 grep on ui/ clean.
+
+## 2026-09-25 — Buffy (glm-5.3-flash): B5-0459 agenda 0-count triage — parser artifact, not behavior
+
+* Static triage (report-only, no code edits) of the 0447 "agendas 0/10"
+  anomaly: the runner's counter token `" sets agenda:"`
+  (HeadlessMultiRoundTest.java:278) is emitted by nothing in src/ — the
+  engine logs `"plays <title>"` for face-up agenda installs
+  (GameController.java:618) and `"sponsors a hidden agenda (face down)."`
+  (:629). The aggregate can only read 0 regardless of play; it is a
+  parser artifact of the same class as the promote counter (B5-0409), now
+  confirmed as the cause of the last standing harness anomaly.
+* Actual installs are evidenced (0409/0447 end-state inspection); the AI
+  offer and scoring chain for agendas is intact
+  (AIPlayer.java:195/520/593/711, RulesEngine.canSponsorAgenda:244).
+  Proposed one future slice: a distinct install log line in GameController
+  plus parser buckets, emitted and parsed in the same change.
+
+## 2026-09-25 — Buffy (glm-5.3-flash): B5-0460 human-seat probe extended to the soft-gated paths
+
+* HeadlessHumanSeatProbe.java (harness file only) grew from 8 to 26
+  checks: a synthetic fixture state now exercises heal, repair, mercenary
+  bid (B5-0365-precedent setMercenary + addMercenaryOffer, legal despite
+  the B5-0386 zero-evidence pool) and war declaration (tension matrix
+  forced at-war), each through the legality-predicate-plus-execute entry
+  points the human dispatcher calls. The 0443 soft gates are now hard
+  coverage on every run; live submissions still route through
+  submitHumanAction and the seeded game is untouched.
+* Fixture-construction interpretations recorded: synthetic damage must
+  stay below the card's greatest ability or reconcileDamage neutralizes
+  and locks this-turn healing; synthetic mercenaries are legal test data
+  (flag + offer), not pool backfill — the B5-0386 no-evidence verdict
+  about the CARD POOL is unchanged.

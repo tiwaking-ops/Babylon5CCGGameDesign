@@ -116,7 +116,7 @@ you right now, not broken):
 |---|---|---|
 | **Pass Turn** | Pass your action | Consecutive passes by all players end the Action Round |
 | **Play Card** | Play the selected hand card | Events route to the effect tables; agendas install as your agenda |
-| **Initiate Conflict** | Initiate the selected conflict card | Some conflicts require a declared target (B5-0336: e.g. Border Raid); use the target selector when enabled |
+| **Initiate Conflict** | Initiate the selected conflict card | Some conflicts require a declared target (B5-0336: e.g. Border Raid); use the target selector when enabled. Since B5-0452 the selector no longer pre-selects during population — Initiate stays dark until you explicitly pick a target, and the stale fallback that auto-picked the highest-influence location is gone (B5-0451). |
 | **Support / Oppose** | Join the active conflict on that side | Enabled only when the engine is waiting for your decision and you are eligible to join; choosing a side commits your face-up ambassador, if present, and resumes resolution. Mandatory participation still applies (B5-0336). |
 | **Sponsor** | Recruit a supporting card | Applies the card's influence cost (B5-0323) |
 | **Promote** | Promote a supporting character to your Inner Circle | Costs per `canPromote`/`promotionCost` (B5-0321/0323) |
@@ -192,15 +192,25 @@ moves tension yet).
 
 * **EASY (Londo)** passes often (~53% of decisions) and otherwise picks
   uniformly among legal actions — useful for watching mechanics play out.
+  EASY never consults station ratings (B5-0453): the uniform pick is the
+  intended contract, and difficulty-level behavior is unchanged.
 * **MEDIUM (Delenn)** is cost-aware and deterministic; scores mercenary bids
-  by projected win probability minus the bid cost (B5-0403).
+  by projected win probability minus the bid cost (B5-0403). Since B5-0453
+  it also scores station, shadow and vorlon rating context on
+  influence-moving choices (war declarations on captured locations and
+  location plays) — the same additive term HARD uses.
 * **HARD (G'Kar)** adds agenda win-condition proximity, aftermath
   anticipation, event/contingency catch-up scoring, and rotate-effect scoring
   (B5-0344), plus conflict-side choice instead of always-oppose defaults
   (B5-0343), damage-aware attack/heal/repair scoring (B5-0378), and
   mercenary-bid scoring with a steeper opportunity-cost penalty (B5-0403).
+  Its war scoring also carries the station-context term (B5-0453):
+  −1 when the Shadow War is active, +2 at station influence 15+, +1 when
+  shadow or vorlon influence is 15+, 0 otherwise (zero-rating invariance —
+  orderings when the pool is inert are unchanged).
 * Difficulty contracts are pinned by the standalone harness
-  `HeadlessAIDifficultyContractTest` (B5-0351).
+  `HeadlessAIDifficultyContractTest` (B5-0351). The station-aware scoring is
+  pinned by the suite's STH-AI section (B5-0453, 7 checks).
 * **Pass-bias proposal status (B5-0422):** the ~53% EASY pass bias sits inside
   its designed 0.35-0.70 band but drags multi-seat games into quiet,
   low-promotion rounds (B5-0409). Two parallel advisory proposals are on
@@ -215,8 +225,9 @@ moves tension yet).
 ## 6. Headless testing (no UI)
 
 `sh compile.sh` with `RUN_TESTS=1` runs the full conformance suite
-(387 checks) plus a smoke game. B5-0437's station hooks added 14 STH
-assertions (373 → 387); B5-0436 added D6/D7 named assertions and D15
+(394 checks) plus a smoke game. B5-0437's station hooks added 14 STH
+assertions (373 → 387); B5-0453 added 7 STH-AI assertions (387 → 394);
+B5-0436 added D6/D7 named assertions and D15
 winner-only `influenceReward` coverage. Several standalone CLI harnesses exist
 (not wired into RUN_TESTS — run directly with `java -cp out`):
 
@@ -264,7 +275,7 @@ the live list below.
   pool interaction (B5-0373) is DONE: the named `isDoubleCostRequired`
   helper and neutral exemption are wired into the applyInfluence spend site
   — behaviour-preserving (base recruit cost math unchanged); its coverage remains
-  green in the current 387-check suite.
+  green in the current 394-check suite.
 * **Damage subsystem** — characters can be damaged and neutralised; the
   damage/neutralisation model (B5-0368) plus attack (B5-0370) and
   heal/repair (B5-0371) are all live, with UI controls landed (B5-0402).
@@ -296,7 +307,7 @@ the live list below.
   BID_ON_MERCENARY actions for offered mercenaries (minimal strictly-winning
   increment, pool-affordability gated); EASY picks uniformly from the same
   legal list. MER-AI conformance section ×10 landed with it (historical suite
-  expansion; current total is 387 after B5-0436 (373) + B5-0437 STH ×14).
+  expansion; current total is 394 after B5-0436 (373) + B5-0437 STH ×14 + B5-0453 STH-AI ×7).
 * **Declare War UI** — live (B5-0407): a war target selector + Declare War
   button wired to the B5-0376 engine branch; the selector lists races at
   war, then their locations. Inert in normal games (no tension sources in
@@ -340,6 +351,15 @@ the live list below.
   So promote counts print 0 even when promotions occur (the B5-0409 probe
   observed Inner Circles growing 1→2 during play). Trust IC size in a live
   game, not the harness promote figure. (Fix flagged for B5-0413.)
+* **B5-0447 re-probe (10 games, seeds 101-109 step 2, 180s window):** 9
+  WINNER + 1 TIMEOUT — timeout behavior is down to ~10% from the earlier
+  all-timeout baseline under the parameterized window. End-state inspection
+  counted ~4.9 promotions per game while the log-token promote figure
+  printed 0 (the parser artifact above). The aggregate "agendas set" figure
+  read 0/10 — the same parser-artifact class: the runner's agenda token
+  still matches no real log line even though installs are visible in live
+  inspection, so read agenda participation from the game log, not the
+  aggregate. (B5-0413 still pending.)
 * **Influence Rating 20 is reachable and standard victory can trigger.**
   The B5-0409 probe reached Rating 20 in ~2 minutes and ended the game at
   the round boundary. In the sampled games no agenda won before standard
