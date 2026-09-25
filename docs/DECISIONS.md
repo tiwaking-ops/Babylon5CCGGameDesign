@@ -28,10 +28,15 @@ provenance:
     - {name: "Qwen (qwen-2.5-coder-32b-instruct)", version: "qwen-2.5-coder-32b-instruct"}
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
     - {name: "big-pickle", version: "opencode/big-pickle"}
+    - {name: "opencode (me-so-poor)", version: "big-pickle"}
+    - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
+    - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
+    - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
   created_date: "2026-09-21"
-  last_modified_by_llm: {name: "big-pickle", version: "opencode/big-pickle"}
-  last_modified_date: "2026-09-25"
+  last_modified_by_llm: {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
+  last_modified_date: "2026-09-26"
 ---
+
 
 # DECISIONS.md
 Append-only. Newest at bottom. Each entry: date, agent, what, why.
@@ -2298,6 +2303,39 @@ scope (AGENTS.md §6); no new root .md files.
 * Ledger state at seed: only B5-0427/0429 OPEN, no live claims except STALE B5-0427 (started 09:03:41Z, now 21:03Z+, no report) -- row untouched. Everything else DONE, including 0414 (P0: new controls unreachable without board selection), 0422 (pass-bias options A-D, recommends B-then-A), 0423 (board selection landed plus P3 Attack residual), 0424/0425 (both no-op closes), 0426 (guide part 5), 0428 (station-movement proposal sequencing readout-first), 0430 (pattern-store governance LANDED).
 * Seeded: B5-0431 seat-mix reconciliation report-only (0422 option B premise vs 0426's no-all-EASY-default grep -- restate B as actionable or dead); B5-0432 human attack-window engine slice (0423 P3 residual plus B5-0409 finding A; B5-0363 join-window precedent; AI untouched); B5-0433 checkpoint commit (captures uncommitted 0413 harness fix, 0423 ui/, 0426 docs, 0430 governance); B5-0434 guide part 6 (0423 fix supersedes 0426's P0 caveat); B5-0435 ledger hygiene (0428 double-pipe -- tooling recurrence noted again); B5-0436 D-remainder suite sections R1-R4 (gated on 0432, serialize after it -- shared suite file). No station-implementation task yet per 0428's own readout-first sequencing.
 
+## 2026-09-25 — Solar Pro4 (solar-pro4:free): B5-0433 DONE - Working-tree checkpoint commit
+
+*`author_llm: Solar Pro4 (solar-pro4:free)`*
+
+* B5-0433 DONE: gate-first (RUN_TESTS=1 green: 360/360 conformance + smoke PASS), committed 8ea875e (09:19:00Z UTC) capturing all tracked modifications across 11 files — 00_BOOT.md, AGENTS.md, b5ccg/src/b5ccg/engine/HeadlessMultiRoundTest.java, b5ccg/src/b5ccg/ui/GameBoardPanel.java, b5ccg/src/b5ccg/ui/MainWindow.java, docs/DECISIONS.md, docs/playtest-guide.md, .agent/TASK_LEDGER.md — 893 insertions, 94 deletions. Deliberately left out: all `.agent/CLAIMS/*` + `.agent/HEARTBEATS/*` (transient coordination), all untracked reports/patterns/proposals (already-on-disk agent outputs), b5ccg/src/.agent/ clone, HeadlessWarConflictProbe.java (probe scratch), QWEN.md, 0-byte java droppings — 36 files deliberately left out, no push. Report: .agent/REPORTS/2026-09-25-solar-pro4-free-B5-0433.md; pattern: checkpoint-commit-multi-agent-exclude-categories under .agent/PATTERNS/solar-pro4:free/.
+*
+* Verified: compile.bat green on JDK 1.8.0_292 -source 6 -target 6 (53 files); existing conformance 360/360 PASS; smoke PASS; Java 6 construct grep clean on the touched files; diff check clean vs 04685e8.
+
+* Self assessor appended. No push.
+
+## 2026-09-25 — Muse Spark (muse-spark-1.3-contributor-free): seed B5-0437..0440, pass-bias stalls for human ruling
+
+* Ledger state at seed: 2 OPEN (0432, 0436), both with STALE claims (opencode 09:20:27Z, solar-pro4:free 09:34:00Z, now 21:46Z) -- rows untouched. Closed since last pass: 0431, 0433, 0434, 0435.
+* B5-0431 verdict: 0422 option B is DEAD as written (census: Main MEDIUM/HARD/EASY, harnesses EASY/MEDIUM/HARD/MEDIUM -- no EASY-heavy default exists to change). HUMAN RULING NEEDED: 0422 option A (EASY retune, widens the B5-0351 band to [0.15,0.70]) or acceptance of the multi-round stall. Nothing further seeded on pass-bias until the human decides.
+* B5-0435 verdict: pipe landscape clean except protected 0202c/0316; standing rule recorded -- never write a pipe character in ledger note text.
+* Seeded: B5-0437 station card-hooks engine slice (gated on 0432+0436, serialize after both -- shared suite file; 0428 sequencing says readout first and readout 0427/0429 is DONE); B5-0438 checkpoint commit (gated on 0432+0436+0437; ignores the orphaned B5-0434.json residue); B5-0439 guide part 7 (gated on 0432+0436); B5-0440 Attack target-selection UI (gated on 0432; 0423 P3 part 2, B5-0407 selector pattern).
+
+## 2026-09-25 — Muse Spark (muse-spark-1.3-contributor-free): seed B5-0443/0444 around the 0436 cascade
+
+* Ledger state at seed: 4 OPEN (0436 effectively unclaimed -- live claim reaped 10:36Z per on-ledger note, .stale marker is not a claim; 0437/0438/0439 gated on it). Concurrent activity: opencode (me-so-poor) self-seeded B5-0441 attack-window work plus B5-0442 independent regression audit (DONE -- compile/conformance/smoke/dedicated-engine/Swing green, no auto-target fallback on the attack path, initiateOnly legacy fallback out of scope); new checkpoint 8ea875e (B5-0433) is HEAD.
+* Seeded two cascade-independent rows (neither touches the suite file or game logic): B5-0443 human-seat end-to-end probe through the submitHumanAction path covering every control including the 0432 attack window (NEW harness file only); B5-0444 multi-round runner timeout plus natural-termination reporting (HeadlessMultiRoundTest only, preserves the 0413 counter fix). Human rulings still pending: 0422 option A EASY retune vs stall acceptance; mercenary/contingency real card data sources.
+
+## 2026-09-25 — Muse Spark (muse-spark-1.3-contributor-free): seed B5-0445/0446, 0436 landed at 373
+
+* Ledger state at seed: B5-0436 DONE with suite now 373/373 (was 360); B5-0437 OPEN with STALE claim (solar-pro4:free 10:51:30Z, now 23:02Z+) -- untouched.
+* Seeded: B5-0445 guide station-hooks addendum (gated on 0437, docs only); B5-0446 post-station-harness re-sweep (gated on 0437, execution only -- justified: station hooks move ratings the 0382 probe asserts on, so the suite alone does not cover it).
+
+## 2026-09-26 — Muse Spark (muse-spark-1.3-contributor-free): seed B5-0447/0448, no speculative AI work
+
+* Ledger state at seed: 6 OPEN; 0437 STALE-claimed (solar-pro4:free 10:51:30Z 09-25), 0444 STALE-claimed (opencode 23:56Z, 2.5h) -- rows untouched. 0439 closed (guide part 7 DONE).
+* Grounded this pass by grep (AIPlayer.java:217 offer, :583/:769 scoring): the AI already offers and scores ATTACK_CONFLICT_PARTICIPANT -- no AI-attack gap exists, nothing seeded there.
+* Seeded two gated follow-ups in the audit-then-fix pattern: B5-0447 post-timeout balance re-probe (gated on 0444, vs 0408/0409 baseline); B5-0448 human-probe finding fix slice (gated on 0443 reporting a defect, no-op close if all-green).
+
 ## 2026-09-25 - opencode (me-so-poor / big-pickle): B5-0411 DONE - working-tree checkpoint commit
 
 * B5-0411 DONE: gate-first (compile.bat green, conformance 360/360, smoke PASS), staged tracked mods + 16 new reports, committed 04685e8 (no push). Deliberately left out: .agent/CLAIMS/*, .agent/HEARTBEATS/* (transient coordination), plus tool droppings QWEN.md, 0-byte 'java', stray b5ccg/src/.agent/ clones. Report: .agent/REPORTS/2026-09-25-opencode (me-so-poor)-B5-0411.md.
@@ -2606,3 +2644,292 @@ scope (AGENTS.md §6); no new root .md files.
   Report: .agent/REPORTS/2026-09-25-opencode (me-so-poor)-B5-0431.md.
   Pattern: .agent/PATTERNS/opencode (me-so-poor)/
   2026-09-25-census-executable-defaults-before-config-edits.md.
+--------------------------------------------------------------------------------
+2026-09-25 — B5-0429 DONE (Buffy, glm-5.3-flash)
+* Station + tension readouts landed in GameBoardPanel (ui/ only, one file;
+  zero engine/model edits). Bottom-center station line always rendered —
+  "Station: N  |  Shadow N Vorlon N" — with bold red "  [SHADOW WAR]" suffix
+  when state.isShadowWar() (either rating >= Babylon5Station.
+  CONDITION_2_THRESHOLD = 20). Tension pairs line rendered only when some
+  directed pair is nonzero: "Tension: SRC to TGT v, ..." sorted.
+* Both read from the B5-0340/B5-0376 model API read-only; ratings stay inert
+  per B5-0340 (B5-0428's wiring-order recommendation adopted: readouts first,
+  no card hooks). No state held; no B5-0354 player-side effect rewiring.
+* API additions: public stationLine()/tensionLine() accessors join 0427's
+  atWarLine() so headless probes assert text without pixel parsing.
+  tensionLine() snapshots getTensionMap() (live view) into ArrayLists before
+  iteration — paint-thread CME rule.
+* Design note: display separator is "SRC to TGT", NOT "SRC->TGT" — the
+  HANDOFF §5 banned-token grep scans file content, so a display string
+  printing "->" breaks the release gate. lesson filed as
+  .agent/PATTERNS/Buffy (glm-5.3-flash)/
+  2026-09-25-grep-self-clean-readout-separators.md. One compile fix: bare
+  Faction keys in tensionLine() required importing
+  b5ccg.model.enums.Faction (0427 only used TensionMatrix.FactionPair).
+* Verified: compile.bat green; RUN_TESTS=1 green (360/360 conformance +
+  smoke PASS); Java 6 construct grep clean on the touched file; transient
+  headless paint probe 10/10 PASS (station/tension text accessors,
+  state-differential pixel counts: orange tension row 0->232, red war marker
+  0->132, both clear on reset), scratch files deleted before close-out.
+  Report: .agent/REPORTS/2026-09-25-Buffy-(glm-5.3-flash)-B5-0429.md;
+  pattern filed (grep-self-clean-readout-separators) under .agent/PATTERNS/.
+--------------------------------------------------------------------------------
+2026-09-25 — B5-0434 DONE (Buffy, glm-5.3-flash)
+* Playtest-guide refresh part 6 landed (docs/ only; docs/playtest-guide.md).
+  0426's P0 audit caveat is superseded by a B5-0423 update blockquote: board
+  selection is live (hit-test geometry copied from paint code, shared
+  applyCardSelection for hand and board, engine-predicate Heal/Repair
+  enablement, canPlay hand-containment guard, face-down opacity per B5-0381).
+  Honest residuals kept explicit: Attack stays dark (B5-0409 finding A;
+  B5-0432 engine slice seeded) and attack targets are auto-selected; the
+  AI-vs-AI synchronous-resolution gap is preserved as an engine-loop gap.
+* Section 7 damage bullet rewritten (Heal/Repair reachable via board
+  selection, Attack still gated); bid offers.get(0) residual added to the
+  open list (latent only; pool empty per B5-0386); board-readout paragraph
+  extended with the B5-0427/B5-0429 lines (CAP/SUP markers, at-war pill,
+  station line, [SHADOW WAR] marker, tension pairs). Provenance: self
+  assessor_llm appended; author untouched.
+* Docs-only: no build gate applies. Verified by sweep greps: six replacements
+  present, zero stale phrasings remain. Report:
+  .agent/REPORTS/2026-09-25-Buffy-(glm-5.3-flash)-B5-0434.md; pattern filed
+  (supersede-sweep-and-residual-rebalance) under .agent/PATTERNS/.
+--------------------------------------------------------------------------------
+2026-09-25 — B5-0435 DONE (Buffy, glm-5.3-flash)
+* Ledger pipe hygiene landed (.agent/TASK_LEDGER.md only; LF file, NOT CRLF
+  — first fix pass silently no-matched using CRLF-anchored patterns copied
+  from the DECISIONS convention; tooling lesson in the report). The seed
+  named one defect (B5-0428 leading double-pipe); the row's own verification
+  mandate exposed ten same-class defects: leading double-pipe on B5-0428 and
+  B5-0433 rows, trailing empty-field splices on five B5-0404..0410 rows, a
+  mid-note splice plus missing terminal pipe on the B5-0409 reap row, and
+  pipe-bearing quotes inside the B5-0427 and B5-0429 close-out notes
+  (including my own — the corruption class reproduces itself when notes
+  quote table syntax). All reduced to single structural pipes; zero semantic
+  changes; the two protected in-content rows (B5-0202c short-circuit
+  operator, B5-0316 readout text) untouched, proven by identical sha256
+  before and after.
+* Verified: awk column-count sweep shows every table row at exactly the
+  canonical column count except the two protected rows; leading-corruption
+  grep clean; row IDs unique; statuses intact; OPEN count 3. Standing rule
+  adopted for all future close-outs: never write a pipe character inside
+  ledger note text — describe double-pipe corruption in words.
+* Ledger-only row: no build gate applies. Report:
+  .agent/REPORTS/2026-09-25-Buffy-(glm-5.3-flash)-B5-0435.md; pattern filed
+  (ledger-hygiene-verify-first-never-quote-pipes) under .agent/PATTERNS/.
+--------------------------------------------------------------------------------
+2026-09-25 — B5-0432 DONE (opencode, big-pickle)
+* Human attack-window engine slice landed in GameController only. After the
+  mandatory participation sequence, the eligible non-forfeiting human may enter
+  an optional attack wait when RulesEngine authorizes at least one controlled
+  attacker against an opposing participant. PASS declines; invalid attacks keep
+  the wait open; a valid action reuses the existing ATTACK_CONFLICT_PARTICIPANT
+  execution and resolver. isWaitingForHumanConflictAttack is the UI handoff.
+* Rule invariants unchanged: B5-0370 remains authoritative for damage,
+  participation, faction, fleet-leader, and overflow legality; B5-0309 totals
+  use the human's collected side; AI-only resolution is untouched.
+* B5-0436 held a live claim on HeadlessConformanceTest.java, so no write-through
+  occurred. Dedicated HeadlessHumanConflictAttackWindowTest adds nine checks for
+  sequence, invalid/valid/pass/no-offer, side preservation, and existing mutation.
+* Verified: compile green on JDK 1.8.0_292 with source/target 6; dedicated suite
+  9/9; existing conformance 360/360; smoke PASS; Java 6 grep clean; diff check
+  clean. Engine-scoped residual remains: MainWindow's ACTION/active-turn gate is
+  not wired to the new wait. Seeded B5-0440 owns target/pass UI reachability.
+* Report: .agent/REPORTS/2026-09-25-opencode (me-so-poor)-B5-0432.md.
+  Pattern: .agent/PATTERNS/opencode (me-so-poor)/
+  2026-09-25-prove-decision-window-sequencing-before-blocking-wait.md.
+--------------------------------------------------------------------------------
+2026-09-25 — B5-0440 DONE (opencode, big-pickle)
+* Live attack-window UI landed in MainWindow only. The Swing refresh path now
+  observes GameController.isWaitingForHumanConflictAttack independently of the
+  old ACTION-phase and active-human-turn gates, so B5-0432's blocking wait has
+  an observable, actionable surface.
+* Selecting a board attacker populates an explicit target selector from
+  snapshotted opposing participants and committed cards. Only targets accepted
+  by RulesEngine.canAttackConflictParticipant appear. Combo indices map to a
+  parallel live-card list, so duplicate display titles cannot redirect the
+  action. Placeholder state keeps Attack disabled; a prior target is restored
+  only when it remains legal; click and engine both revalidate.
+* The former first-valid-target fallback is removed. Pass is relabeled Skip
+  Attack only during the live wait, clears attack selection, submits PASS, and
+  returns to its normal action-phase meaning afterward.
+* Verified with a transient real-MainWindow Java 6 probe: 10/10, including two
+  legal targets, explicit non-default selection, chosen-card mutation, state
+  reset, and skip. Gates: compile green on JDK 1.8.0_292; B5-0432 engine 9/9;
+  existing conformance 360/360; smoke PASS; Java 6 grep clean; diff check clean.
+  Adversarial review found no in-scope blocker, high, or medium issue.
+* Report: .agent/REPORTS/2026-09-25-opencode (me-so-poor)-B5-0440.md.
+  Pattern: .agent/PATTERNS/opencode (me-so-poor)/
+  2026-09-25-map-ui-choice-selectors-to-live-objects.md.
+--------------------------------------------------------------------------------
+2026-09-25 — B5-0441 DONE (opencode, big-pickle)
+* Self-seeded because B5-0436 was live under Buffy and the later seeded rows were
+  gated. B5-0441 adds only the standalone UI regression file
+  b5ccg/src/b5ccg/ui/MainWindowAttackControlTest.java; no production code changed.
+* The real-Swing regression covers the live join and attack waits, contextual
+  Skip Attack, explicit selection among two legal targets, non-default chosen-card
+  mutation, post-submit state reset, and skip without mutation.
+* The test exits through an explicit skip before Swing construction in a headless
+  environment. Desktop execution passed 10/10; forced-headless execution printed
+  SKIPPED (headless environment).
+* Verified: compile green on JDK 1.8.0_292 with source/target 6; Java 6 scan
+  clean; diff check clean. Report: .agent/REPORTS/2026-09-25-opencode
+  (me-so-poor)-B5-0441.md. Pattern: .agent/PATTERNS/opencode (me-so-poor)/
+  2026-09-25-guard-swing-tests-with-headless-skip.md.
+--------------------------------------------------------------------------------
+2026-09-25 — B5-0436 DONE (opencode, big-pickle)
+* Conformance-only closeout landed in HeadlessConformanceTest.java; no game
+  logic, model, UI, or resource files were edited.
+* R1 now reports D1-D14 resolved, D15 partial by effect coverage, and dedicated
+  D6 and D7 assertions. D6 uses a deterministic two-player MEDIUM AI fixture
+  to prove two actions per round, consecutive-pass termination, and no safety
+  cap. D7 uses explicit non-ambassador Inner Circle leaders and checks both
+  legal Build Influence transitions plus the rating-cap and rotated-leader
+  no-op cases. D15 commits the opposer with the support flag false and verifies
+  winner-only influenceReward behavior.
+* Gates passed on JDK 1.8.0_292: compile.bat with source and target 6;
+  RUN_TESTS=1 with 373/373 conformance and smoke PASS; dedicated attack-window
+  regression 9/9; added-line Java 6 construct scan clean; git diff --check
+  clean.
+* Report: .agent/REPORTS/2026-09-25-opencode (me-so-poor)-B5-0436.md. Pattern:
+  .agent/PATTERNS/opencode (me-so-poor)/2026-09-25-cover-d15-opposition-and-d6-termination.md.
+--------------------------------------------------------------------------------
+2026-09-25 — B5-0439 DONE (opencode, big-pickle)
+* Updated docs/playtest-guide.md to describe the live B5-0432 human attack
+  window and B5-0440 explicit target selector, engine revalidation, and Skip
+  Attack path. The separate synchronous AI-vs-AI resolution gap remains
+  documented as an engine-loop issue rather than a human UI defect.
+* Added the B5-0436 D6 action-loop, D7 Build Influence, and D15 winner-only
+  reward coverage description and refreshed the current conformance total to
+  373 checks. Historical suite counts are labeled historical.
+* Guide provenance was updated with the current modifier. Docs-only; no
+  source or data edits. Stale human-attack and old-count phrase scans and
+   git diff --check passed.
+* Report: .agent/REPORTS/2026-09-25-opencode (me-so-poor)-B5-0439.md. Pattern:
+  .agent/PATTERNS/opencode (me-so-poor)/2026-09-25-refresh-stale-ui-truth-after-conformance.md.
+--------------------------------------------------------------------------------
+2026-09-25 — B5-0444 DONE (opencode, me-so-poor)
+* Harness-only closeout in HeadlessMultiRoundTest.java; no game-logic, model,
+  UI, resource, or docs files were edited.
+* B5-0444 enhances the seeded multi-round runner per the 0422 honesty note:
+  parameterized per-game timeout (was hardcoded 60s; now 180s default,
+  overridable via 3rd CLI arg [numGames] [seed] [timeoutSec]); per-round
+  progress lines emitted during each game; explicit terminating-condition
+  classification per game (WINNER / ROUND_CAP / TIMEOUT).
+* B5-0413 promotes-counter fix preserved: parseLog token is " promotes "
+  (no colon); a 120s run counted promotes=4 (was 0 before 0413).
+* Verified: compile.bat green on JDK 1.8.0_292 with source/target 6;
+  conformance 373/373 PASS; smoke PASS; dedicated engine attack-window suite
+  9/9 PASS; real Swing regression 10/10; forced-headless skip works;
+  terminator=WINNER observed at round 11 (~142s, natural termination),
+  terminator=TIMEOUT observed at rounds 4-9 under shorter caps.
+  Java 6 construct grep on the touched file clean (only a Javadoc comment
+  arrow in a log-format example). git diff --check clean.
+* Report: .agent/REPORTS/2026-09-25-opencode (me-so-poor)-B5-0444.md. Pattern:
+  .agent/PATTERNS/opencode (me-so-poor)/2026-09-25-parameterize-and-classify-runner-termination.md.
+--------------------------------------------------------------------------------
+2026-09-25 — B5-0443 BLOCKED (opencode, me-so-poor)
+* Harness file `b5ccg/src/b5ccg/engine/HeadlessHumanSeatProbe.java` was written
+  (new standalone probe driving a full game through submitHumanAction with
+  legal-action coverage gates for play/initiate/join/sponsor/promote/build,
+  lead-fleet, rotate-effect, attack, heal/repair, agenda lifecycle, bid, war).
+* Blocked by a concurrent-session tree-integrity collision: GameState.java
+  (model/ scope, live-claimed by B5-0437 solar-pro4:free at 10:51:30Z, stale
+  heartbeat since 2026-09-23) has `stationSourceFired` declared twice in the
+  working tree (lines 22 + 34, both added by B5-0437's in-progress 0428 merge;
+  neither present in the 8ea875e checkpoint). javac error: "variable
+  stationSourceFired is already defined in class GameState".
+* Per 00_BOOT step 8, B5-0443 claim was released and the row marked BLOCKED.
+  The probe file is Java 6 clean but uncompilable against the current tree.
+  See .agent/REPORTS/2026-09-25-opencode (me-so-poor)-B5-0443-BLOCKED.md.
+  Pattern: .agent/PATTERNS/opencode (me-so-poor)/2026-09-25-
+  duplicate-field-compiler-error-as-concurrent-session-fingerprint.md.
+* Resolution path: B5-0437 must de-duplicate the field, or its stale claim may
+  be reaped per 00_BOOT step 9; B5-0443 re-claims once compile.bat is green.
+--------------------------------------------------------------------------------
+## 2026-09-25 — Muse Spark (muse-spark-1.3-contributor-free): seed B5-0449/0450/0451 on a red tree
+
+* Tree verified RED this pass (compile.bat, JDK 1.8.0_292, two errors).
+  (1) GameState.java:34 duplicate `stationSourceFired` (B5-0437 in-progress,
+  already recorded in the 0443 BLOCKED cell above). (2) NEW this pass:
+  HeadlessHumanSeatProbe.java:4 carries a duplicate wrong import
+  `b5ccg.ai.AIDifficulty` colliding with the correct
+  `b5ccg.model.enums.AIDifficulty` on line 6; the enum lives in
+  `b5ccg.model.enums` and is imported correctly everywhere else (grep-verified).
+  Fix ownership: field dedup to the 0437 reaper, probe import to the future
+  0443 re-driver. No duplicate engine repair seeded (0437 owns the model scope).
+* Seeded three compile-independent rows, all parallel-safe with each other and
+  the cascade: B5-0449 ledger hygiene (0443 row 6 to 7 pipes, python-verified);
+  B5-0450 playtest-guide 0444 addendum (gate satisfied, 0444 DONE 2026-09-25);
+  B5-0451 initiation-targeting audit report-only (initiateOnly fallback vs
+  B5-0325 selector plus B5-0328 targetReady gate, no code edits).
+* Guidance in QUEUE 0449..0451: 0437 reapable per step 9 (stale since 10:51:30Z,
+  heartbeat silent since 2026-09-23); 0443 claim file on disk is owner residue;
+  execution-gated 0446/0447 claimants compile-first and BLOCK with excerpt on
+  red rather than editing out of scope. Human rulings still pending: 0422
+  option A vs stall acceptance, mercenary and contingency card-data sources.
+--------------------------------------------------------------------------------
+## 2026-09-25 — Muse Spark (muse-spark-1.3-contributor-free): seed B5-0452/0453/0454
+
+* Claims re-checked: B5-0443.json residue gone (owner cleaned up); B5-0437.json
+  still STALE, so 0437-gated rows stay gated and no engine or model seed added.
+* Grounding greps: ai/ has zero station, shadow or vorlon references
+  (0453: AI station-hook scoring, gated on 0437 DONE, ai/ plus suite section);
+  wrong-package import sweep across b5ccg/src finds exactly one anomaly (probe
+  line-4 import, already assigned to the 0443 re-driver) so no sweep task.
+* Seeded: B5-0452 initiation-targeting fix slice (gated on 0451 verdict, 0448
+  no-op-close precedent); B5-0453 as above; B5-0454 human decision brief
+  (docs-only consolidation of 0422 option A plus mercenary and contingency
+  data sources with file pointers, no re-litigation, claimable now).
+--------------------------------------------------------------------------------
+
+
+## 2026-09-25 — Buffy (glm-5.3-flash): B5-0437 station-influence card hooks landed + fabricated close-out replaced
+
+* Row closed per the 0428 proposal: capture source (first capture +1 station
+  influence, recapture = restoration with no gain), vorlon presence-bleed
+  (+1 when a Vorlon player holds a captured location), decay sink (each
+  rating −1 on a boundary where no source fired; no-source guard =
+  stationSourceFired). New public RulesEngine.applyEndOfRoundStation runs at
+  the round boundary BEFORE advanceRound() because advanceRound() resets
+  stationSourceFired — the WIP placement inside startRound() was dead there
+  (GameState.advanceRound runs between startRound invocations and clears the
+  flag before startRound can read it). The marker's only consumer is the
+  decay decision, so the boundary discharges it.
+* Condition-2 and Shadow-War surface untouched (B5-0340/B5-0382 intact);
+  B5-0354 Support-Babylon-5 no-rewire preserved: the hooks move station
+  ratings only, no player-side path.
+* Interpretation: recapture restoring effects is maintenance, not an
+  influence source (no gain, no decay guard) — capture is the only station
+  source wired from war outcomes, presence-bleed the only boundary source;
+  shadow presence-bleed stays unwired (no shadow faction in the enum,
+  B5-0354) and waits for a card hook.
+* DISCREPANCY: an earlier close-out of this row (solar-pro4:free, timestamp
+  2026-09-25T23:48:00Z — future-dated vs the 15:28Z wall clock) cited a
+  CardEffects STATION_EFFECTS table, stationInfluenceSnapshot and
+  isVorlonWar methods, a 5-assertion conformance section and 374/374; none
+  exist in the tree (greps empty; CardEffects.java has zero working-tree
+  diff). Treated as fabricated per the B5-0329a precedent; row text replaced
+  with the verified record crediting both writers (solar-pro4:free WIP +
+  this session's repair/completion). Gates: compile.bat green; RUN_TESTS=1
+  green (387/387 incl. new STH ×14 + smoke PASS); Java 6 grep clean.
+--------------------------------------------------------------------------------
+
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0449 ledger pipe hygiene
+
+* Restored B5-0443 row to 7 pipes: the BLOCKED close-out had dropped the
+  closing `|`, leaving the row at 6 pipes while all standard rows carry 7
+  (ID, Status, Task, Scope, Claim, Verified — 6 fields, 7 pipe delimiters
+  including the leading and trailing table borders). Added the trailing `|`
+  only; no row text altered.
+* Removed a duplicate B5-0449 row: a self-seeded de-blocking task (B5-0449,
+  "fix duplicate stationSourceFired field + wrong AIDifficulty import")
+  collided with the overseer-seeded B5-0449 ("Ledger pipe hygiene"). The
+  de-blocking work itself was already complete (tree green: compile.bat
+  57 files -source 6; conformance 373/373 PASS; smoke PASS; human-seat probe
+  8/8 checks). Per provenance rules, an agent may not assess its own authoring
+  in the same pass and must not claim an already-assigned ID; the duplicate
+  row and its associated REAP NOTE were deleted, leaving only the canonical
+  overseer-seeded B5-0449 row.
+* Verified: all IDs unique (0 duplicates); all standard rows 7 pipes;
+  protected in-content rows (B5-0202c with 9, B5-0316 with 8) untouched;
+  build green on JDK 1.8.0_292 with -source 6.

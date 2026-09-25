@@ -13,16 +13,13 @@ public class GameState {
     private       Player       winner;
     private final Set<Player> conflictsInitiatedThisTurn = new HashSet<Player>();
 
-    // ── Non-player forces (B5-0340; rulebook :153 "Influence": the station,
-    //    the Shadows and the Vorlons accumulate influence like players do).
-    //    Shadow/Vorlon ratings exist so the Shadow-War trigger (rulebook
-    //    :178) has a canonical home; nothing in the current engine or data
-    //    moves them (B5-0354 research) — same rationale as the station's
-    //    start-0 decision. isShadowWar() is the guard surface condition 2
-    //    consults.
+    // ── Non-player forces (B5-0340 + 0428) ───────────────────────────────
+    //    Shadow/Vorlon ratings and condition-2 state live on the station
+    //    (B5-0340 + 0428 proposal); see Babylon5Station for the full surface.
     private final Babylon5Station station = new Babylon5Station();
-    private int shadowInfluence = 0;
-    private int vorlonInfluence = 0;
+    /** 0428 proposal §Sinks: set true when any station source fires this round;
+     *  at the next round boundary, skip decay when true. */
+    private boolean stationSourceFired = false;
 
     // B5-0338 (audit D4): aftermaths "in play" on a target, keyed by target
     // Player identity. The current engine resolves aftermath effects
@@ -32,6 +29,9 @@ public class GameState {
     private final Map<Player, List<AftermathCard>> attachedAftermaths = new LinkedHashMap<Player, List<AftermathCard>>();
 
     private final List<String> log = new ArrayList<String>();
+
+    public boolean isStationSourceFired() { return stationSourceFired; }
+    public void setStationSourceFired(boolean v) { stationSourceFired = v; }
 
     public GameState(List<Player> players) {
         this.players = new ArrayList<Player>(players);
@@ -53,7 +53,7 @@ public class GameState {
 
     // ── Round ─────────────────────────────────────────────────────────────────
     public int       getRoundNumber() { return roundNumber; }
-    public void      advanceRound()   { roundNumber++; currentPlayerIndex = 0; conflictsInitiatedThisTurn.clear(); for (Player p : players) p.sweepBonusExpiries(roundNumber); }
+    public void      advanceRound()   { roundNumber++; currentPlayerIndex = 0; conflictsInitiatedThisTurn.clear(); stationSourceFired = false; for (Player p : players) p.sweepBonusExpiries(roundNumber); }
 
     // ── Phase ─────────────────────────────────────────────────────────────────
     public GamePhase getPhase()          { return phase; }
@@ -314,26 +314,26 @@ public class GameState {
         mercenaryControllers.clear();
     }
 
-    // ── Non-player forces (B5-0340) ───────────────────────────────────────
-    /** The Babylon 5 station (rulebook :153); exactly one per game. */
+    // ── Non-player forces (B5-0340 + 0428) ───────────────────────────────
+    /** The Babylon 5 station (rulebook :153); exactly one per game.
+     *  Shadow/Vorlon ratings and condition-2 state live on the station (B5-0340
+     *  + 0428 proposal); GameState delegates to the station. */
     public Babylon5Station getStation()   { return station; }
-    public int  getShadowInfluence()      { return shadowInfluence; }
-    public int  getVorlonInfluence()      { return vorlonInfluence; }
-    /** Mutation surface for the future Shadow/Vorlon influence wiring; no
-     *  current card or rule moves these ratings (B5-0354 research). */
-    public void setShadowInfluence(int n) { shadowInfluence = Math.max(0, n); }
-    public void setVorlonInfluence(int n) { vorlonInfluence = Math.max(0, n); }
-    /**
-     * Rulebook :178 — Shadow or Vorlon influence 20+ begins the Shadow War,
-     * during which NO Standard Victory is possible. Nothing triggers it in
-     * the current engine (both ratings are always 0 today); Standard Victory
-     * condition 2 consults this guard from day one so the rule cannot be
-     * violated the moment a trigger exists.
-     */
-    public boolean isShadowWar() {
-        return shadowInfluence >= Babylon5Station.CONDITION_2_THRESHOLD
-            || vorlonInfluence >= Babylon5Station.CONDITION_2_THRESHOLD;
-    }
+
+    // ── 0428 proposal: shadow/vorlon delegation (station-owned) ───────────
+    public int  getShadowInfluence()      { return station.getShadowInfluence(); }
+    public int  getVorlonInfluence()      { return station.getVorlonInfluence(); }
+    public void setShadowInfluence(int n) { station.setShadowInfluence(n); }
+    public void setVorlonInfluence(int n) { station.setVorlonInfluence(n); }
+    /** 0428 proposal: condition-2 state queries, delegated to station. */
+    public boolean isShadowActive()  { return station.isShadowActive(); }
+    public boolean isVorlonActive()  { return station.isVorlonActive(); }
+    public boolean isHumanSecured()  { return station.isHumanSecured(); }
+    public boolean isUncontested()   { return station.isUncontested(); }
+
+    // ── B5-0340: Shadow War guard (condition 2 input) ─────────────────────
+    // Delegate: shadowWar is now a station predicate, not a local field.
+    public boolean isShadowWar() { return station.isShadowWar(); }
 
     // ── Victory ───────────────────────────────────────────────────────────────
     public Player  getWinner()            { return winner; }

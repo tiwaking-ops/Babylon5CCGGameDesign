@@ -23,6 +23,8 @@ public class GameController {
     private volatile GameAction     pendingHumanAction;
     private volatile boolean        waitingForHumanConflictJoin = false;
     private volatile GameAction     pendingHumanConflictJoin;
+    private volatile boolean        waitingForHumanConflictAttack = false;
+    private volatile GameAction     pendingHumanConflictAttack;
 
     public GameController(GameState state, List<AIPlayer> aiPlayers,
                           GameStateCallback uiCallback) {
@@ -49,6 +51,13 @@ public class GameController {
             if (state.isGameOver()) break;
 
             runDrawPhase();
+
+            // B5-0437: station end-of-round maintenance must run BEFORE
+            // advanceRound() — advanceRound() resets stationSourceFired,
+            // which the maintenance consults to decide decay
+            // (RulesEngine.applyEndOfRoundStation).
+            rules.applyEndOfRoundStation(state);
+
             state.advanceRound();
             notifyUI();
         }
@@ -531,6 +540,16 @@ public class GameController {
         // allPlayersMustCommit, mustCommitAmbassador) before resolution.
         rules.enforceMandatoryParticipation(conflict, state);
 
+        if (uiCallback != null && human.isHuman() && !human.hasForfeited()
+                && hasLegalHumanConflictAttack(human, conflict)) {
+            state.log(human.getName() + " may attack a participant in the active conflict.");
+            GameAction attack = waitForHumanConflictAttack();
+            if (attack != null
+                    && attack.getType() == GameAction.Type.ATTACK_CONFLICT_PARTICIPANT) {
+                processAction(human, attack);
+            }
+        }
+
         Player winner = rules.resolveConflict(conflict, state);
 
         Player primaryLoser = null;
@@ -659,10 +678,24 @@ public class GameController {
             }
             return;
         }
+        if (waitingForHumanConflictAttack) {
+            Player human = state.getHumanPlayer();
+            boolean validAttack = action != null
+                    && action.getType() == GameAction.Type.ATTACK_CONFLICT_PARTICIPANT
+                    && rules.canAttackConflictParticipant(human, action.getCard(),
+                            action.getTargetCard(), state.getActiveConflict());
+            if (action != null && (action.getType() == GameAction.Type.PASS || validAttack)) {
+                pendingHumanConflictAttack = action;
+                waitingForHumanConflictAttack = false;
+                notifyAll();
+            }
+            return;
+        }
         // Join actions are only valid in the explicit conflict decision window;
         // ignore stale/double clicks after the controller has collected a side.
         if (action != null && (action.getType() == GameAction.Type.JOIN_CONFLICT_SUPPORT
-                || action.getType() == GameAction.Type.JOIN_CONFLICT_OPPOSE)) return;
+                || action.getType() == GameAction.Type.JOIN_CONFLICT_OPPOSE
+                || action.getType() == GameAction.Type.ATTACK_CONFLICT_PARTICIPANT)) return;
         pendingHumanAction = action;
         waitingForHuman    = false;
         notifyAll();
@@ -680,6 +713,28 @@ public class GameController {
 
     public boolean isWaitingForHuman() { return waitingForHuman; }
 
+    private boolean hasLegalHumanConflictAttack(Player human, Conflict conflict) {
+        List<Card> attackers = new ArrayList<Card>();
+        if (human.getAmbassador() != null) attackers.add(human.getAmbassador());
+        attackers.addAll(human.getInnerCircle());
+        attackers.addAll(human.getSupportingRole());
+        attackers.addAll(human.getFleets());
+        attackers.addAll(human.getLocations());
+        attackers.addAll(human.getGroups());
+        attackers.addAll(human.getEnhancements());
+        if (human.getAgenda() != null) attackers.add(human.getAgenda());
+        for (Card attacker : attackers) {
+            for (Player participant : conflict.getParticipants()) {
+                for (Card target : conflict.getCommittedCards(participant)) {
+                    if (rules.canAttackConflictParticipant(human, attacker, target, conflict)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     private synchronized GameAction waitForHumanConflictJoin() {
         waitingForHumanConflictJoin = true;
         pendingHumanConflictJoin = null;
@@ -696,6 +751,23 @@ public class GameController {
     /** True only while the active conflict is waiting for the human side choice. */
     public boolean isWaitingForHumanConflictJoin() {
         return waitingForHumanConflictJoin;
+    }
+
+    private synchronized GameAction waitForHumanConflictAttack() {
+        waitingForHumanConflictAttack = true;
+        pendingHumanConflictAttack = null;
+        notifyUI();
+        while (waitingForHumanConflictAttack) {
+            try { wait(200); } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                waitingForHumanConflictAttack = false;
+            }
+        }
+        return pendingHumanConflictAttack;
+    }
+
+    public boolean isWaitingForHumanConflictAttack() {
+        return waitingForHumanConflictAttack;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

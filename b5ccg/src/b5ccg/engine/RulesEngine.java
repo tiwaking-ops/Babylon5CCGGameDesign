@@ -411,8 +411,16 @@ public class RulesEngine {
                 state.log("War outcome: " + initiator.getName()
                         + " captures " + loc.getTitle() + " ("
                         + suppressIncome + "/round suppressed).");
+                // B5-0437: station capture is a source — raise the capturing
+                // faction's station influence rating (B5-0428 proposal
+                // §Sources). Only the human-side station rating is wired
+                // today; shadow/vorlon ratings stay inert until a card hook
+                // lands (B5-0354 discipline).
+                state.getStation().gainInfluence(1);
+                state.setStationSourceFired(true);
             }
         }
+
         Player target;
         if (conflict.getWarKind() == WarKind.LOCATION_TARGET) {
             // Tension runs toward the location's original faction owner (the
@@ -1116,6 +1124,48 @@ public class RulesEngine {
         // with the round; the offer list (a game-setup surface) persists.
         state.clearMercenaryState();
         state.log("=== Round " + state.getRoundNumber() + " begins ===");
+    }
+
+    // ── B5-0437: station end-of-round maintenance ────────────────────────────
+    /** B5-0437 (0428 proposal §Sources/§Sinks), called by GameController at
+     *  the END of each round, BEFORE advanceRound() resets the source marker
+     *  (state mutation order matters: the marker must still be readable
+     *  here). Sequence: (1) presence-bleed source — a Vorlon player holding
+     *  any captured location raises vorlon influence 1 (Shadow has no faction
+     *  in the enum, B5-0354, so shadow presence-bleed waits for a card hook);
+     *  (2) capture-source decay sink — if NO source fired this round (neither
+     *  capture nor bleed), all three ratings decay 1 toward the neutral
+     *  baseline; small step so a burst of captures is not erased at once.
+     *  Rounds with a capture or a bleed keep their rating (no-source guard). */
+    public void applyEndOfRoundStation(GameState state) {
+        Babylon5Station stn = state.getStation();
+        boolean sourceFired = state.isStationSourceFired();
+        for (Player p : state.getPlayers()) {
+            if (p.getFaction() == Faction.VORLON) {
+                for (Card c : p.getLocations()) {
+                    if (c instanceof LocationCard) {
+                        LocationCard lc = (LocationCard) c;
+                        if (lc.getCapturedBy() != null) {
+                            stn.gainVorlonInfluence(1);
+                            sourceFired = true;
+                            state.log("Station: Vorlon presence-bleed raises "
+                                    + "vorlon influence to "
+                                    + stn.getVorlonInfluence() + ".");
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        // The marker's only consumer is the decay decision above; the
+        // boundary discharges it so the next round starts clean (capture and
+        // bleed hooks re-set it the moment a source fires again).
+        state.setStationSourceFired(false);
+        if (!sourceFired) {
+            if (stn.getInfluence() > 0)        stn.loseInfluence(1);
+            if (stn.getShadowInfluence() > 0)  stn.loseShadowInfluence(1);
+            if (stn.getVorlonInfluence() > 0)  stn.loseVorlonInfluence(1);
+        }
     }
 
     // ── Draw phase ───────────────────────────────────────────────────────────

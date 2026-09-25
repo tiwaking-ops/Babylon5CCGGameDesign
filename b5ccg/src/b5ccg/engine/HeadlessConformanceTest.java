@@ -1392,6 +1392,165 @@ public class HeadlessConformanceTest {
                 hardD.chooseAction(sD, pD).getType() == GameAction.Type.PASS);
     }
 
+    private static void testD6ActionLoop() {
+        System.out.println("D6 (B5-0436 R2): action round ends on consecutive passes; no safety cap");
+        Player p1 = player("D6p1", Faction.CENTAURI);
+        Player p2 = player("D6p2", Faction.NARN);
+        GameState st = state(p1, p2);
+        List<AIPlayer> ais = new ArrayList<AIPlayer>();
+        for (Player p : st.getPlayers()) {
+            p.getHand().clear();
+            p.getSupportingRole().clear();
+            p.getLocations().clear();
+            p.getGroups().clear();
+            p.getEnhancements().clear();
+            p.setAgenda(null);
+            p.addCharacter(leaderCard(p.getName() + "_d6l1", 2));
+            p.addCharacter(leaderCard(p.getName() + "_d6l2", 2));
+            p.addFleet(fleetCard(p.getName() + "_d6f1", "LINE"));
+            p.addFleet(fleetCard(p.getName() + "_d6f2", "LINE"));
+            ais.add(new AIPlayer(p, AIDifficulty.MEDIUM));
+        }
+        GameController gc = new GameController(st, ais,
+                new GameStateCallback() {
+                    public void accept(GameState gs) { }
+                });
+        new RulesEngine().startRound(st);
+        try {
+            java.lang.reflect.Method loop = GameController.class
+                    .getDeclaredMethod("runActionPhase");
+            loop.setAccessible(true);
+            loop.invoke(gc);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        int p1Actions = 0;
+        int p2Actions = 0;
+        for (FleetCard fleet : p1.getFleets()) {
+            if (fleet.getLeader() != null) p1Actions++;
+        }
+        for (FleetCard fleet : p2.getFleets()) {
+            if (fleet.getLeader() != null) p2Actions++;
+        }
+        boolean capHit = false;
+        for (String line : st.getLog()) {
+            if (line.indexOf("safety cap reached") >= 0) capHit = true;
+        }
+        boolean allPassed = true;
+        for (Player p : st.getPlayers()) {
+            if (!p.isPassed()) allPassed = false;
+        }
+        check("D6", "each player can take multiple actions in one round",
+              p1Actions == 2 && p2Actions == 2);
+        check("D6", "round ends with every player passed (consecutive-pass exit)",
+              allPassed);
+        check("D6", "action round terminates without hitting the safety cap",
+              !st.isGameOver() && !capHit);
+    }
+
+    private static void testD7BuildInfluence() {
+        System.out.println("D7 (B5-0436 R3): Build Influence — rotate IC, spend 3 pool, rating +1");
+        RulesEngine rules = new RulesEngine();
+
+        Player p = player("D7p", Faction.HUMAN);
+        GameState st = state(p);
+        CharacterCard leader = leaderCard("D7leader", 2);
+        p.addCharacter(leader);
+        check("D7", "canBuildInfluence true at pool 4, rating 4, ready IC member",
+              rules.canBuildInfluence(p));
+        rules.executeBuildInfluence(p, leader, st);
+        check("D7", "execute rotates the leader, rating 4 to 5, pool 4 to 2 (net -2)",
+              leader.isRotated() && p.getInfluence() == 5 && p.getAppliedPool() == 2);
+
+        Player p9 = player("D7p9", Faction.NARN);
+        GameState st9 = state(p9);
+        CharacterCard leader9 = leaderCard("D7leader9", 2);
+        p9.addCharacter(leader9);
+        p9.gainInfluence(5);
+        check("D7", "rating 9 is still buildable (1..9 window boundary)",
+              rules.canBuildInfluence(p9));
+        rules.executeBuildInfluence(p9, leader9, st9);
+        check("D7", "rating 9 becomes 10 after the build; pool 9 to 7",
+              p9.getInfluence() == 10 && p9.getAppliedPool() == 7
+              && leader9.isRotated());
+
+        check("D7", "canBuildInfluence false once rating exceeds 9",
+              !rules.canBuildInfluence(p9));
+        rules.executeBuildInfluence(p9, leader9, st9);
+        check("D7", "execute above the cap is a no-op (rating unchanged)",
+              p9.getInfluence() == 10 && p9.getAppliedPool() == 7);
+
+        Player pR = player("D7pR", Faction.CENTAURI);
+        GameState stR = state(pR);
+        CharacterCard leaderR = leaderCard("D7leaderR", 2);
+        pR.addCharacter(leaderR);
+        leaderR.rotate();
+        int poolBefore = pR.getAppliedPool();
+        rules.executeBuildInfluence(pR, leaderR, stR);
+        check("D7", "execute with an already-rotated leader is a no-op",
+              leaderR.isRotated() && pR.getInfluence() == 4
+              && pR.getAppliedPool() == poolBefore);
+    }
+
+    private static void testD15EffectCoverage() {
+        System.out.println("D15 (B5-0436 R4): dispatched effect kinds — winner-only influenceReward");
+        RulesEngine rules = new RulesEngine();
+
+        Player initiator = player("D15i", Faction.NARN);
+        Player opposer   = player("D15o", Faction.MINBARI);
+        GameState st = state(initiator, opposer);
+        ConflictCard reward = new ConflictCard("d15_reward", "Reward Strike",
+                "CONFLICT_MILITARY", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", ConflictType.MILITARY, 3);
+        CharacterCard twoMil = new CharacterCard("d15two", "Two Mil",
+                "CHARACTER_NARN", Rarity.COMMON, Faction.NARN, CardSet.PREMIERE,
+                "x", "text", 0, 0, 0, 2, false);
+        Conflict won = new Conflict(reward, initiator);
+        won.commitCard(initiator, initiator.getAmbassador());
+        won.commitCard(initiator, twoMil);
+        won.commitCard(opposer, opposer.getAmbassador());
+        int beforeI = initiator.getInfluence();
+        int beforeO = opposer.getInfluence();
+        Player winner = rules.resolveConflict(won, st);
+        check("D15", "resolveConflict pays the card's influenceReward to the winner only",
+              winner == initiator && initiator.getInfluence() == beforeI + 3
+              && opposer.getInfluence() == beforeO);
+
+        Player i2 = player("D15i2", Faction.CENTAURI);
+        Player o2 = player("D15o2", Faction.HUMAN);
+        GameState st2 = state(i2, o2);
+        ConflictCard zero = new ConflictCard("d15_zero", "Plain Strike",
+                "CONFLICT_DIPLOMACY", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", ConflictType.DIPLOMACY, 0);
+        Conflict plain = new Conflict(zero, i2);
+        plain.commitCard(i2, i2.getAmbassador());
+        plain.commitCard(o2, o2.getAmbassador());
+        int b2 = i2.getInfluence();
+        rules.resolveConflict(plain, st2);
+        check("D15", "zero-reward conflict pays nothing",
+              i2.getInfluence() == b2);
+
+        CharacterCard big = new CharacterCard("d15big", "Big Minbari",
+                "CHARACTER_MINBARI", Rarity.RARE, Faction.MINBARI, CardSet.PREMIERE,
+                "x", "text", 0, 0, 0, 5, false);
+        Player i3 = player("D15i3", Faction.CENTAURI);
+        Player o3 = player("D15o3", Faction.MINBARI);
+        GameState st3 = state(i3, o3);
+        ConflictCard r3 = new ConflictCard("d15_reward3", "Reward Strike 3",
+                "CONFLICT_MILITARY", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", ConflictType.MILITARY, 2);
+        Conflict lost = new Conflict(r3, i3);
+        lost.commitCard(i3, i3.getAmbassador());
+        lost.commitCard(o3, o3.getAmbassador());
+        lost.commitCard(o3, big, false);
+        int b3i = i3.getInfluence();
+        int b3o = o3.getInfluence();
+        Player w3 = rules.resolveConflict(lost, st3);
+        check("D15", "opposer win collects the reward; losing initiator gains nothing",
+              w3 == o3 && o3.getInfluence() == b3o + 2 && i3.getInfluence() == b3i);
+    }
+
     // ── main ─────────────────────────────────────────────────────────────────
 
     // ── D12: standard victory strictly-greatest + major-agenda block ───────
@@ -2125,6 +2284,120 @@ public class HeadlessConformanceTest {
         st.getStation().loseInfluence(20);
         check("STA", "station influence floors at 0",
                 st.getStation().getInfluence() == 0);
+    }
+
+    // ── B5-0437: station-influence card hooks (0428 proposal) ───────────────
+
+    /** B5-0437 helper: the pool's location capture fixture (matches the WAR
+     *  section, line 1835): Centauri-loyal location, influencePerRound 2. */
+    private static LocationCard stationHookLoc() {
+        return new LocationCard("loc_b5", "Caster",
+                "LOCATION_CENTAURI", Rarity.RARE, Faction.CENTAURI, CardSet.PREMIERE,
+                "x", "text", 2, 3);
+    }
+
+    private static void testStationHooks() {
+        System.out.println("STH (B5-0437): station-influence card hooks (0428 proposal)");
+        RulesEngine rules = new RulesEngine();
+
+        Player narn = player("STH-Narn", Faction.NARN);
+        Player centauri = player("STH-Cent", Faction.CENTAURI);
+        LocationCard loc = stationHookLoc();
+        centauri.getLocations().add(loc);
+        GameState st = state(narn, centauri);
+        st.getTensionMatrix().enterWar(Faction.CENTAURI, Faction.NARN);
+        rules.startRound(st);
+
+        // 1: no-source guard — decay on a round boundary only when no source
+        //    fired. With all ratings 0 there is nothing to decay and the
+        //    marker stays clear.
+        rules.applyEndOfRoundStation(st);
+        check("STH", "idle round: ratings stay 0 and marker stays clear",
+                st.getStation().getInfluence() == 0
+                && !st.isStationSourceFired());
+
+        // 2: capture source — a won LOCATION_TARGET war raises the station
+        //    rating 1 and sets the no-source guard for this round.
+        Conflict capWar = rules.declareWarConflict(narn, WarKind.LOCATION_TARGET,
+                null, loc, st);
+        check("STH", "location-target war conflict declared", capWar != null);
+        rules.resolveWarOutcome(capWar, narn, st);
+        check("STH", "capture raises station influence to 1",
+                st.getStation().getInfluence() == 1);
+        check("STH", "capture sets the no-source marker",
+                st.isStationSourceFired());
+        check("STH", "capture suppresses location effects",
+                loc.isEffectsSuppressed() && loc.getCapturedBy() == narn);
+
+        // 3: decay sink skipped this round — a source fired, so the boundary
+        //    maintenance must NOT decay the capture gain away.
+        rules.applyEndOfRoundStation(st);
+        check("STH", "round with a capture skips decay (rating holds)",
+                st.getStation().getInfluence() == 1);
+        check("STH", "maintenance resets the marker after the boundary",
+                !st.isStationSourceFired());
+
+        // 4: decay sink — next idle round decays the unguarded rating 1.
+        rules.applyEndOfRoundStation(st);
+        check("STH", "next idle round decays rating 1 toward baseline",
+                st.getStation().getInfluence() == 0);
+
+        // 5: recapture — suppressed location retaken by its owner restores it
+        //    without a capture gain (gain lives only on first capture).
+        Conflict recapWar = rules.declareWarConflict(centauri, WarKind.LOCATION_TARGET,
+                null, loc, st);
+        rules.resolveWarOutcome(recapWar, centauri, st);
+        check("STH", "recapture restores effects and clears the occupier",
+                !loc.isEffectsSuppressed() && loc.getCapturedBy() == null);
+        check("STH", "recapture is restoration, not a source (no marker, no gain)",
+                !st.isStationSourceFired()
+                && st.getStation().getInfluence() == 0);
+
+        // 6: presence-bleed — a Vorlon player holding a captured location
+        //    raises vorlon influence 1 at the boundary, which also guards
+        //    against decay in the same pass.
+        Player vorlon = player("STH-Vor", Faction.VORLON);
+        LocationCard vloc = stationHookLoc();
+        vloc.setCapturedBy(vorlon);
+        vorlon.getLocations().add(vloc);
+        GameState st3 = state(narn, centauri, vorlon);
+        st3.getStation().gainVorlonInfluence(1);
+        st3.getStation().gainShadowInfluence(1);
+        LocationCard vloc3 = stationHookLoc();
+        vloc3.setCapturedBy(vorlon);
+        vorlon.getLocations().add(vloc3);
+        rules.applyEndOfRoundStation(st3);
+        check("STH", "Vorlon presence-bleed raises vorlon rating",
+                st3.getStation().getVorlonInfluence() == 2);
+        check("STH", "presence-bleed suppresses decay on other ratings",
+                st3.getStation().getShadowInfluence() == 1);
+
+        // 7: isolation — the B5-0354 trap. The capture/bleed hooks raise the
+        //    station ratings; Support Babylon 5 player-side effects are not
+        //    consulted (stationSourceFired moves no player influence).
+        Player narn2 = player("STH-Narn2", Faction.NARN);
+        Player cent2 = player("STH-Cent2", Faction.CENTAURI);
+        LocationCard loc2 = stationHookLoc();
+        cent2.getLocations().add(loc2);
+        GameState st4 = state(narn2, cent2);
+        st4.getTensionMatrix().enterWar(Faction.CENTAURI, Faction.NARN);
+        int narnInfBefore = narn2.getInfluence();
+        rules.startRound(st4);
+        Conflict capWar2 = rules.declareWarConflict(narn2, WarKind.LOCATION_TARGET,
+                null, loc2, st4);
+        rules.resolveWarOutcome(capWar2, narn2, st4);
+        check("STH", "capture hook moves the station rating only",
+                st4.getStation().getInfluence() == 1
+                && narn2.getInfluence() == narnInfBefore);
+
+        // 8: ordering guard — capture fired this round must survive the FULL
+        //    live loop boundary (runGame order: maintenance, then
+        //    advanceRound resets the marker, then next startRound).
+        int held = st4.getStation().getInfluence();
+        st4.advanceRound();
+        rules.startRound(st4);
+        check("STH", "full loop boundary holds a captured-round rating",
+                st4.getStation().getInfluence() == held && held == 1);
     }
 
     // ── B5-0344: agenda/aftermath/event AI scoring ──────────────────────────
@@ -3253,9 +3526,12 @@ public class HeadlessConformanceTest {
             testContingencyAI();
 
             testMercenaryBiddingAI();   // B5-0403 (rulebook §Mercenaries :735–:741)
-            System.out.println("Still-open findings (no assertion possible yet):");
-            System.out.println("  [info] D2/D4-D7/D9-D11/D15 need effect/target"
-                    + " plumbing; partially addressed by B5-0307 (see audit report).");
+
+            testD6ActionLoop();
+            testD7BuildInfluence();
+            testD15EffectCoverage();
+            testStationHooks();   // B5-0437: station-influence card hooks
+            System.out.println("All B5-0203 deviations D1-D14 resolved; D15 partial by effect-coverage; D6/D7 now have dedicated named assertions (B5-0436). B5-0437 station hooks covered (STH).");
 
             System.out.println();
             System.out.println(failed == 0

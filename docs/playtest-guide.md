@@ -1,7 +1,7 @@
 ---
 document:
   title: "Human playtest guide — running the B5 CCG prototype"
-  status: "Guide (describes the working tree as of 2026-09-25)"
+  status: "Guide (describes the working tree as of 2026-09-26)"
 provenance:
   author_llm: {name: "Buffy", version: "deepseek-v4-flash"}
   created_date: "2026-09-23"
@@ -13,15 +13,18 @@ provenance:
     - {name: "opencode (me-so-poor)", version: "big-pickle"}
     - {name: "Buffy", version: "glm-5.3-flash"}
     - {name: "Buffy", version: "glm-5.3-flash"}
-  last_modified_by_llm: {name: "Buffy", version: "glm-5.3-flash"}
-  last_modified_date: "2026-09-25"
+    - {name: "Buffy", version: "glm-5.3-flash"}
+    - {name: "opencode (me-so-poor)", version: "big-pickle"}
+    - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
+  last_modified_by_llm: {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
+  last_modified_date: "2026-09-26"
 ---
 
 # Human playtest guide — B5 CCG prototype
 
 This guide tells a human how to run the current build, what every control
 does, and where the honest gaps are. It describes the working tree as of
-2026-09-25; features landed after that date may not be covered. The
+2026-09-26; features landed after that date may not be covered. The
 canonical rules reference is `BABYLON5_CCG_RULEBOOK.md` (do not edit);
 known deviations are recorded in `docs/DECISIONS.md`.
 
@@ -64,31 +67,50 @@ assistant-bonus and sponsor-discount reset, bonus-layer expiry sweep,
 leadership-rotation expiry), then
 the **Action phase** — players act in initiative order (human clicks, AI
 decides) one action at a time
-until every player has passed consecutively (a non-rulebook safety cap of
-8×playerCount guards against infinite loops) — then the draw phase, then
-the next round. One simplification to know before you playtest: **a
+until every player has passed consecutively. The implementation retains a
+non-rulebook 8×playerCount safety backstop against infinite loops, but the
+B5-0436 D6 fixture verifies that a normal action round reaches the
+consecutive-pass exit without hitting that backstop. The draw phase follows,
+then the next round. One simplification to know before you playtest: **a
 declared conflict resolves immediately when initiated** (not in a separate
 Resolution Round as the rulebook structures it). Joining now offers a real
 decision window when you are eligible to participate:
 AI seats choose first, then the controller pauses during conflict resolution
 for your Support or Oppose choice. Your face-up ambassador, if present, is
-committed to that side and play resumes. Mandatory-participation conflicts (B5-0336) still
-apply, including cases where the engine compels your ambassador without a
-voluntary choice. The conflict still resolves as part of the initiation action;
-there is no separate Resolution Round.
+committed to that side and play resumes. After mandatory participation, if
+you are eligible and at least one legal opposing target exists, the controller
+opens the optional human **Attack** window before resolution. Select a ready
+attacker and an explicit target, or choose **Skip Attack**; the controller
+revalidates the pair and then resumes resolution. Mandatory-participation
+conflicts (B5-0336) still apply, including cases where the engine compels
+your ambassador without a voluntary choice. The conflict still resolves as
+part of the initiation action; there is no separate Resolution Round.
 
 ## 4. What you can do today — control reference
 
 Main window buttons (enabled contextually; a disabled button is illegal for
 you right now, not broken):
 
-> **B5-0414 audit caveat (P0):** the **Lead Fleet, Use Rotate Effect, Attack,
-> Heal, and Repair** buttons enable from a *selected* card, but today only
-> **hand** cards can be selected — board characters/fleets/locations have no
-> selection hooks. In a real game those five controls stay dark because their
-> eligible targets are board cards. The fix (a board CardSelectedListener) is
-> the B5-0423 slice. The rows below describe the intended behavior once that
-> lands.
+> **B5-0423 update (board selection landed):** the five selection-driven
+> controls — **Lead Fleet, Use Rotate Effect, Attack, Heal, and Repair** —
+> now select their targets on the board as well as in hand: board
+> characters, fleets, groups and locations are clickable (a click chain
+> whose hit-test geometry is copied from the paint code, so the clickable
+> area cannot drift from the drawn area), and hand and board selections run
+> through one shared handler (`applyCardSelection`), so target population,
+> enablement and cost preview behave identically for both. Heal/Repair
+> enablement uses the engine's own predicate rather than a hand-rolled copy,
+> and Play Card requires the selection to actually be in your hand (a board
+> card can never be played from hand — B5-0423 guard). Face-down cards stay
+> unresolvable so their identity remains hidden (B5-0381).
+>
+> **B5-0432/B5-0440 update (human attack window live):** after mandatory
+> participation, MainWindow observes the controller's optional attack wait.
+> Select a ready board attacker, choose an explicit legal target from the
+> target selector, and then activate Attack. The engine revalidates the pair;
+> the prior first-valid-target fallback is gone. During this wait Pass is
+> relabeled **Skip Attack**, which declines the optional attack and resumes
+> resolution. Outside the live wait, Attack and its selector remain disabled.
 
 | Control | What it does | Notes |
 |---|---|---|
@@ -107,7 +129,7 @@ you right now, not broken):
 | **Place Contingency** | Play a ContingencyCard from your hand face-down under a host card in one of your in-play zones (Inner Circle, fleet, group, or location); the host's contingency count increments and the card's identity stays hidden | Requires a valid target and a host with an available slot; race matching reads the host card's subtype (B5-0365). No contingency-typed cards exist in the current pool, so this control is engine-ready but has no in-pool cards to play. |
 | **Reveal Contingency** | Choose a face-down contingency from the dropdown selector and flip it, triggering its effect (routed through the event dispatcher) and then discarding it | Owner-gated; the selector lists each placed contingency as "<title> (under <host>)" (B5-0381); the reveal button is enabled only when it is your action turn and at least one placed contingency passes the reveal gate; no contingency cards in the current pool — engine-ready, data-pending. |
 | **Use Rotate Effect** | Rotate a character to apply a selected effect: assistant bonus (+1 Diplomacy/Intrigue/Leadership for the turn) or sponsor discount (−1 influence on a later recruit this turn) | Gated by the B5-0339 assistant mechanic (your own ready, unneutralized supporting-character assistant plus your ambassador); consumes your action (B5-0366). |
-| **Attack** | Attack a participant in the active conflict with the selected ready card; damage is mutual — each side deals its current conflict ability + 2 per its own Strife mark | Enabled on your Action turn with an active conflict and a selected ready, non-neutralized card; the target is auto-selected as the first valid opposing committed card (B5-0402, engine B5-0370, damage model B5-0368). Neutralization can trigger on either side from the overflow. |
+| **Attack** | Attack a participant in the active conflict with the selected ready card; damage is mutual — each side deals its current conflict ability + 2 per its own Strife mark | Enabled only during the live human attack wait with a ready controlled attacker and an explicit target selected from the engine-approved opposing committed cards (B5-0432/B5-0440). The engine revalidates the pair and reuses B5-0370 damage, faction, participation, and overflow rules (damage model B5-0368). Neutralization can trigger on either side from the overflow. Pass becomes **Skip Attack** only during this wait. |
 | **Heal** | Rotate to heal the selected damaged Inner Circle or supporting character | Enabled on your Action turn for a selected damaged character in those roles (B5-0402, engine B5-0371). If every IC member performed a heal action this round, your ambassador is fully healed at the round's end. |
 | **Repair** | Repair the selected damaged fleet or location: removes normal damage at 1 influence per token, paid from your per-turn applied pool (Rating untouched) | Enabled on your Action turn for a selected damaged, ready fleet/location with affordable pool cost (B5-0402, engine B5-0371). |
 | **Bid** (mercenary) | Bid the selected amount of applied-pool influence to control an offered mercenary for the turn; bids are cumulative per player per turn | Amount selector offers 1/2/3/5/10; the label above shows the offered mercenary, the controller after resolution. Enabled on your Action turn when the selected amount is affordable now (B5-0404, engine B5-0395). Highest cumulative total controls at the MERCENARY phase; a tie crowns nobody (D12 discipline). No mercenary-typed cards exist in the current pool (B5-0386), so in a normal game this control shows "(no mercenary offers)". |
@@ -127,7 +149,14 @@ conflict sides and per-participant card lists with totals (supporters
 green, opposers orange); a green **WON BY** banner appears after a conflict
 resolves; agenda slots show MAJOR/minor and a `[WIN]` marker when the
 agenda's condition is currently met; `A+`/`A$` mark the assistant
-assist-bonus and sponsor-discount states (B5-0339).
+assist-bonus and sponsor-discount states (B5-0339). Captured/suppressed
+locations show red `CAP:<player>`/`SUP` markers on their mini-cards, a red
+board pill lists at-war faction pairs whenever a war exists, and a bottom
+line always shows station influence plus Shadow/Vorlon ratings — gaining a
+red `[SHADOW WAR]` marker when either rating reaches the condition-2
+threshold — with any nonzero tension pairs listed just above it (B5-0427/
+B5-0429; all of these stay clear in normal games, since nothing in the pool
+moves tension yet).
 
 ## 5. The AI seats
 
@@ -156,13 +185,24 @@ assist-bonus and sponsor-discount states (B5-0339).
 ## 6. Headless testing (no UI)
 
 `sh compile.sh` with `RUN_TESTS=1` runs the full conformance suite
-(360 checks) plus a smoke game. Several standalone CLI harnesses exist
+(373 checks) plus a smoke game. B5-0436 added named D6 action-loop termination
+coverage, D7 Build Influence boundary and no-op coverage, and D15 winner-only
+`influenceReward` coverage. Several standalone CLI harnesses exist
 (not wired into RUN_TESTS — run directly with `java -cp out`):
 
-* Seeded multi-round runner from B5-0349 prints N games of aggregate stats:
+* Seeded multi-round runner from B5-0349 prints N games of aggregate stats.
+  **B5-0444 update:** the per-game timeout is now parameterized (180s default,
+  overridable via a 3rd CLI arg) and each game reports a `terminator=` classification:
+  `WINNER` (rulebook victory), `ROUND_CAP` (natural round exhaustion without a
+  winner), or `TIMEOUT` (the per-game window fired while the game thread was
+  still running). Per-round progress lines are emitted as each round is reached.
   ```
-  java -cp out b5ccg.engine.HeadlessMultiRoundTest <games> <seed>
+  java -cp out b5ccg.engine.HeadlessMultiRoundTest <games> <seed> [timeoutSec]
   ```
+  The default 180s window is long enough for natural termination in seeded games
+  (observed WINNER at round 11, ~142s, at the 300s cap); shorter caps produce
+  TIMEOUT-terminated games for testing. See the B5-0444 report for observed
+  termination classes across 60s/120s/300s caps.
 * Reporting tiebreak probe (B5-0350) evaluates the round-cap tiebreak chain.
 * AI difficulty contract test (B5-0351) asserts EASY randomness bounds and
   MEDIUM/HARD cost-aware ordering; exits 0/1.
@@ -180,11 +220,9 @@ action-by-action audit lives in
 `.agent/REPORTS/2026-09-23-freebuff-01-B5-0345.md`; the short version
 reflects the working tree as of 2026-09-25:
 
-**Engine + AI done, no human UI yet — the AI can do these; you cannot trigger them from the window:**
-
-* (empty as of this refresh — the last entries in this bucket, Lead Fleet /
-  Use Rotate Effect (B5-0401) and Attack / Heal / Repair (B5-0402), now have
-  UI controls; see the control reference above and the live list below.)
+**Human-action controls now reachable:** Lead Fleet, Use Rotate Effect, Attack,
+Heal, and Repair have live UI controls; see the control reference above and
+the live list below.
 
 **Engine done and live — visible or materially affects gameplay today:**
 
@@ -195,19 +233,28 @@ reflects the working tree as of 2026-09-25:
   free-participant waiver (B5-0374, E3) is also live. The E1 double-cost
   pool interaction (B5-0373) is DONE: the named `isDoubleCostRequired`
   helper and neutral exemption are wired into the applyInfluence spend site
-  — behaviour-preserving (base recruit cost math unchanged); conformance
-  360/360 PASS.
+  — behaviour-preserving (base recruit cost math unchanged); its coverage remains
+  green in the current 373-check suite.
 * **Damage subsystem** — characters can be damaged and neutralised; the
   damage/neutralisation model (B5-0368) plus attack (B5-0370) and
   heal/repair (B5-0371) are all live, with UI controls landed (B5-0402).
-  **But the controls are unreachable in real play** pending B5-0423 (the
-  B5-0414 audit caveat above: board-card selection is missing), **and in
-  AI-vs-AI play they do not fire**: conflicts resolve synchronously inside the initiating
-  action (B5-0409 finding A), so the active-conflict state those actions
-  require never exists when an AI seat picks its action — pure AI-vs-AI
-  rounds observed zero attacks, heals, repairs, and neutralisations across
-  all verification probes. This is a real engine-loop gap (the rulebook's
-  separate Resolution Round is the fix direction), not a UI bug.
+  Board-card selection landed (B5-0423), so **Heal and Repair are reachable
+  in real play**: select the damaged character, fleet or location on the
+  board and the buttons enable via the engine's own predicates.
+  **Human attack window** — live (B5-0432 engine plus B5-0440 UI): after
+  mandatory participation, an eligible human can select a ready board
+  attacker, choose an explicit legal target, and activate Attack. The
+  controller revalidates the pair and reuses B5-0370 damage, faction,
+  participation, and overflow rules. Pass becomes **Skip Attack** during
+  this optional wait. This supersedes the former human-seat structural gate
+  from B5-0409 finding A.
+  **In AI-vs-AI play attacks do not fire either**: conflicts still resolve
+  synchronously inside the initiating action, so the active-conflict state
+  the attack requires never exists when an AI seat picks its action — pure
+  AI-vs-AI rounds observed zero attacks, heals, repairs, and neutralisations
+  across all verification probes. That remains a separate real engine-loop
+  gap (the rulebook's separate Resolution Round is the fix direction), not
+  a human UI bug.
 * **Assistant mechanic** — real (B5-0339): rotate your assistant for +1
   Diplomacy/Intrigue/Leadership, or consume a sponsor discount on a later
   recruit. The A+/A$ markers on the ambassador mini-card reflect live state.
@@ -218,7 +265,8 @@ reflects the working tree as of 2026-09-25:
 * **AI mercenary bidding** — live (B5-0403): MEDIUM/HARD offer and score
   BID_ON_MERCENARY actions for offered mercenaries (minimal strictly-winning
   increment, pool-affordability gated); EASY picks uniformly from the same
-  legal list. MER-AI conformance section ×10 landed with it (suite 350→360).
+  legal list. MER-AI conformance section ×10 landed with it (historical suite
+  expansion; current total is 373 after B5-0436).
 * **Declare War UI** — live (B5-0407): a war target selector + Declare War
   button wired to the B5-0376 engine branch; the selector lists races at
   war, then their locations. Inert in normal games (no tension sources in
@@ -231,6 +279,12 @@ reflects the working tree as of 2026-09-25:
   and bid UI (B5-0404) are all DONE using synthetic fixtures; a real game
   still has nothing to bid on until real mercenary cards are sourced (needs
   human direction).
+* **Bid control reads only the first offer** — the B5-0423 audit's P3
+  residual: the bid handler hardcodes the first offered mercenary
+  (`offers.get(0)`), so if several mercenaries were ever offered
+  simultaneously only the first would be bidable. Latent today: the
+  mercenary pool is empty (B5-0386), so the control shows "(no mercenary
+  offers)" in every real game.
 
 **Honesty notes for playtesters:**
 
@@ -274,8 +328,11 @@ reflects the working tree as of 2026-09-25:
 * Conflict resolution is synchronous at initiation, not in a separate
   Resolution Round. The human join window is real (B5-0363): when a conflict
   is active and you are eligible, the Support/Oppose controls light up and
-  your click unblocks the controller. Mandatory-participation conflicts
-  (B5-0336) still compel your ambassador when the rules require it.
+  your click unblocks the controller. After mandatory participation, the
+  human attack window (B5-0432/B5-0440) is live when a legal opposing target
+  exists: choose an explicit target and Attack, or choose Skip Attack. The
+  engine revalidates the pair before resolving. Mandatory-participation
+  conflicts (B5-0336) still compel your ambassador when the rules require it.
 * **Conflict initiators win more often than not.** B5-0409 reproduction
   measured ~64% initiator wins on trackable lines (58-71% varied by seed and
   trackability); 0408 reported 71%. This is consistent with the B5-0309

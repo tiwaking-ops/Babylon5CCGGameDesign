@@ -15,18 +15,25 @@ import java.lang.reflect.*;
  * per-game winners. No game-logic files are edited.
  *
  * Usage:
- *   java -cp b5ccg/out b5ccg.engine.HeadlessMultiRoundTest [numGames] [seed]
+ *   java -cp b5ccg/out b5ccg.engine.HeadlessMultiRoundTest [numGames] [seed] [timeoutSec]
  *
- * Default: 10 games, seed 42. Each game runs until a winner, stall, or
- * 60s timeout via GameController.runGame(); the log is parsed afterward for
- * action stats. AIPlayer RNG is seeded via reflection so identical seeds
- * reproduce identical games.
+ * Default: 10 games, seed 42, 180s timeout per game. Each game runs until a
+ * rulebook winner (state.getWinner != null), the per-action safety cap ends a
+ * stalled round, or the per-game timeout fires via GameController.runGame();
+ * the log is parsed afterward for action stats. AIPlayer RNG is seeded via
+ * reflection so identical seeds reproduce identical games.
+ *
+ * B5-0444 enhancements: parameterized timeout (was hardcoded 60s), per-round
+ * progress lines during each game, and an explicit terminating-condition
+ * classification per game (WINNER / ROUND_CAP / TIMEOUT). The B5-0413
+ * promotes-counter fix (" promotes " token, no colon) is preserved.
  */
 public class HeadlessMultiRoundTest {
 
     public static void main(String[] args) {
         int numGames = 10;
         long seed = 42;
+        long timeoutMs = 180000L;  // B5-0444: was hardcoded 60s; now parameterized.
 
         if (args.length >= 1) {
             try { numGames = Integer.parseInt(args[0]); }
@@ -40,9 +47,16 @@ public class HeadlessMultiRoundTest {
                 System.err.println("Invalid seed '" + args[1] + "', using default 42");
             }
         }
+        if (args.length >= 3) {
+            try { timeoutMs = Long.parseLong(args[2]) * 1000L; }
+            catch (NumberFormatException e) {
+                System.err.println("Invalid timeout '" + args[2] + "', using default 180s");
+            }
+        }
 
-        System.out.println("=== B5 CCG seeded multi-round runner (B5-0349) ===");
-        System.out.println("Games: " + numGames + ", Seed: " + seed);
+        System.out.println("=== B5 CCG seeded multi-round runner (B5-0349 / B5-0444) ===");
+        System.out.println("Games: " + numGames + ", Seed: " + seed
+                + ", Per-game timeout: " + (timeoutMs / 1000) + "s");
 
         // ── 1. Deck loading ───────────────────────────────────────────────────
         long deckStart = System.currentTimeMillis();
@@ -116,8 +130,7 @@ public class HeadlessMultiRoundTest {
 
             Thread t = new Thread(new Runnable() {
                 public void run() {
-                    try { controller.runGame(); }
-                    catch (Throwable th) { th.printStackTrace(System.err); }
+                    try { controller.runGame(); } catch (Throwable th) { th.printStackTrace(System.err); }
                     finally { done[0] = true; }
                 }
             }, "b5-game-" + game);
@@ -125,16 +138,36 @@ public class HeadlessMultiRoundTest {
             long start = System.currentTimeMillis();
             t.start();
 
+            int lastRound = 0;
             while (!done[0] && t.isAlive()) {
-                if (System.currentTimeMillis() - start > 60000L) {
-                    System.err.println("Game " + (game + 1) + " timed out after 60s — stopping");
+                long now = System.currentTimeMillis();
+                if (now - start > timeoutMs) {
+                    int r = state.getRoundNumber();
+                    System.err.println("Game " + (game + 1) + " timed out after "
+                            + (timeoutMs / 1000) + "s at round " + r + " — stopping");
                     break;
                 }
-                try { Thread.sleep(100); } catch (InterruptedException e) { break; }
+                int curRound = state.getRoundNumber();
+                if (curRound > lastRound && curRound != 0) {
+                    lastRound = curRound;
+                    System.out.println("    [game " + (game + 1) + "] reached round "
+                            + curRound + " after " + (System.currentTimeMillis() - start) / 1000 + "s");
+                }
+                try { Thread.sleep(250); } catch (InterruptedException e) { break; }
             }
+            try { t.join(2000); } catch (InterruptedException e) { /* ignore */ }
 
             long elapsed = System.currentTimeMillis() - start;
             totalRunMs += elapsed;
+
+            String terminator;
+            if (state.getWinner() != null) {
+                terminator = "WINNER";
+            } else if (!done[0] && !t.isAlive()) {
+                terminator = "ROUND_CAP";
+            } else {
+                terminator = "TIMEOUT";
+            }
 
             // Parse log for stats
             int[] stats = parseLog(state);
@@ -146,7 +179,8 @@ public class HeadlessMultiRoundTest {
 
             System.out.println("  round=" + state.getRoundNumber()
                 + " elapsed=" + elapsed + "ms"
-                + " winner=" + gameWinners[game]);
+                + " winner=" + gameWinners[game]
+                + " terminator=" + terminator);
             System.out.println("  conflicts init/won/lost="
                 + stats[0] + "/" + stats[1] + "/" + stats[2]
                 + " promotes=" + stats[3]

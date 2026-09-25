@@ -105,6 +105,9 @@ public class MainWindow extends JFrame {
 
     // B5-0402: Tier-3 action UI — Attack + Heal + Repair
     private JButton attackButton;
+    private JComboBox<String> attackTargetSelector;
+    private final java.util.ArrayList<Card> attackTargetCards = new java.util.ArrayList<Card>();
+    private Card selectedAttackTarget;
     private JButton healButton;
     private JButton repairButton;
 
@@ -223,6 +226,9 @@ public class MainWindow extends JFrame {
         passButton = makeButton("Pass Turn", new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                if (MainWindow.this.controller.isWaitingForHumanConflictAttack()) {
+                    clearSelection();
+                }
                 MainWindow.this.controller.submitHumanAction(GameAction.pass());
             }
         });
@@ -470,30 +476,32 @@ public class MainWindow extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 Player hp = humanPlayer();
                 Conflict conflict = MainWindow.this.controller.getState().getActiveConflict();
-                if (hp == null || conflict == null) return;
-                if (!(selectedCard instanceof Card)) return;
-                Card attacker = (Card) selectedCard;
-                // Find a valid target from participants on another faction's side
-                Card validTarget = null;
-                for (Player p : conflict.getParticipants()) {
-                    if (p == hp) continue; // can't attack ourselves
-                    for (Card c : conflict.getCommittedCards(p)) {
-                        if (rules.canAttackConflictParticipant(hp, attacker, c, conflict)) {
-                            validTarget = c;
-                            break;
-                        }
-                    }
-                    if (validTarget != null) break;
-                }
-                if (validTarget != null) {
+                if (!MainWindow.this.controller.isWaitingForHumanConflictAttack()
+                        || hp == null || conflict == null || selectedCard == null
+                        || selectedAttackTarget == null) return;
+                Card attacker = selectedCard;
+                if (rules.canAttackConflictParticipant(hp, attacker, selectedAttackTarget, conflict)) {
                     MainWindow.this.controller.submitHumanAction(
-                        GameAction.attackConflictParticipant(attacker, validTarget));
+                        GameAction.attackConflictParticipant(attacker, selectedAttackTarget));
                     clearSelection();
                 }
             }
         });
         attackButton.setEnabled(false);
-        attackButton.setToolTipText("Attack a participant in the active conflict (B5-0370).");
+        attackButton.setToolTipText("Attack a selected participant in the live conflict window (B5-0370).");
+
+        attackTargetSelector = new JComboBox<String>(new String[] { "(select target)" });
+        attackTargetSelector.setEnabled(false);
+        attackTargetSelector.setMaximumSize(new Dimension(220, 24));
+        attackTargetSelector.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int index = attackTargetSelector.getSelectedIndex();
+                selectedAttackTarget = index > 0 && index - 1 < attackTargetCards.size()
+                    ? attackTargetCards.get(index - 1) : null;
+                updateAttackButton();
+            }
+        });
 
         healButton = makeButton("Heal", new ActionListener() {
             @Override
@@ -762,6 +770,8 @@ public class MainWindow extends JFrame {
         toolbar.add(supportButton);
         toolbar.add(opposeButton);
         toolbar.add(Box.createHorizontalStrut(12));
+        toolbar.add(attackTargetSelector);
+        toolbar.add(Box.createHorizontalStrut(4));
         toolbar.add(attackButton);
         toolbar.add(healButton);
         toolbar.add(repairButton);
@@ -1022,6 +1032,62 @@ public class MainWindow extends JFrame {
             && rules.canInitiateWarConflict(hp, kind, raceTarget, locTarget, gs));
     }
 
+    private void refreshAttackControl(Player human, boolean attackWindow) {
+        Card previous = selectedAttackTarget;
+        selectedAttackTarget = null;
+        attackTargetCards.clear();
+        attackTargetSelector.removeAllItems();
+        attackTargetSelector.addItem("(select target)");
+        if (!attackWindow || human == null || selectedCard == null) {
+            attackTargetSelector.setEnabled(false);
+            attackButton.setEnabled(false);
+            return;
+        }
+        Conflict conflict = MainWindow.this.controller.getState().getActiveConflict();
+        if (conflict == null) {
+            attackTargetSelector.setEnabled(false);
+            attackButton.setEnabled(false);
+            return;
+        }
+        java.util.ArrayList<Player> participants =
+            new java.util.ArrayList<Player>(conflict.getParticipants());
+        for (int i = 0; i < participants.size(); i++) {
+            Player participant = participants.get(i);
+            if (participant == human) continue;
+            java.util.ArrayList<Card> committed =
+                new java.util.ArrayList<Card>(conflict.getCommittedCards(participant));
+            for (int j = 0; j < committed.size(); j++) {
+                Card target = committed.get(j);
+                if (rules.canAttackConflictParticipant(human, selectedCard, target, conflict)) {
+                    attackTargetCards.add(target);
+                    attackTargetSelector.addItem(participant.getName() + " - " + target.getTitle());
+                }
+            }
+        }
+        if (attackTargetCards.isEmpty()) {
+            attackTargetSelector.setEnabled(false);
+            attackButton.setEnabled(false);
+            return;
+        }
+        int previousIndex = previous == null ? -1 : attackTargetCards.indexOf(previous);
+        if (previousIndex >= 0) {
+            attackTargetSelector.setSelectedIndex(previousIndex + 1);
+            selectedAttackTarget = previous;
+        }
+        attackTargetSelector.setEnabled(true);
+        updateAttackButton();
+    }
+
+    private void updateAttackButton() {
+        Player human = humanPlayer();
+        Conflict conflict = MainWindow.this.controller.getState().getActiveConflict();
+        boolean canAttack = MainWindow.this.controller.isWaitingForHumanConflictAttack()
+            && human != null && conflict != null && selectedCard != null
+            && selectedAttackTarget != null
+            && rules.canAttackConflictParticipant(human, selectedCard, selectedAttackTarget, conflict);
+        attackButton.setEnabled(canAttack);
+    }
+
     /** B5-0326 F5: show preview of the cost for the currently selected card. */
     private void refreshCostPreview() {
         CharacterCard ch = (selectedCard instanceof CharacterCard)
@@ -1127,6 +1193,8 @@ public class MainWindow extends JFrame {
         boolean myTurn = state.getActivePlayer() == human
             && MainWindow.this.controller.isWaitingForHuman();
         boolean activeConflict = state.getActiveConflict() != null;
+        boolean attackWindow = activeConflict
+            && MainWindow.this.controller.isWaitingForHumanConflictAttack();
         GamePhase phase = state.getPhase();
 
         // B5-0363: join controls are enabled only while the controller is
@@ -1139,7 +1207,8 @@ public class MainWindow extends JFrame {
         opposeButton.setEnabled(joiningConflict);
         refreshParticipantList(state, human, joiningConflict);
 
-        passButton.setEnabled(myTurn);
+        passButton.setText(attackWindow ? "Skip Attack" : "Pass Turn");
+        passButton.setEnabled(myTurn || attackWindow);
 
         // B5-0328 F4: split Play/Initiate Ã¢â‚¬â€ enablement lives in one authority,
         // updatePlayInitiateButtons(); dispatch in playOnly() / initiateOnly().
@@ -1171,12 +1240,9 @@ public class MainWindow extends JFrame {
         buildInfluenceButton.setEnabled(actionPhase && myTurn
             && rules.canBuildInfluence(human));
 
-        // B5-0402: Attack - enabled when ACTION phase, my turn, active conflict, selected card can attack
+        // B5-0402: Attack - enabled only for a selected legal pair in the live conflict window
         Card selCard = selectedCard;
-        boolean canAttack = actionPhase && myTurn && activeConflict && selCard instanceof Card
-            && !selCard.isFaceDown() && !selCard.isRotated()
-            && selCard.canActAfterNeutralization();
-        attackButton.setEnabled(canAttack);
+        refreshAttackControl(human, attackWindow);
 
         // Heal / Repair: the engine is the authority (B5-0423). The action
         // handlers already gate on rules.canHealCharacter / canRepairCard, so
@@ -1221,7 +1287,10 @@ public class MainWindow extends JFrame {
             playCardOnlyButton.setEnabled(false);
             initiateConflictButton.setEnabled(false);
         } else {
-            if (joiningConflict) {
+            if (attackWindow) {
+                statusLabel.setText("Round " + state.getRoundNumber()
+                    + "  |  Conflict: select attacker and target, or Pass");
+            } else if (joiningConflict) {
                 statusLabel.setText("Round " + state.getRoundNumber()
                     + "  |  Conflict: choose Support or Oppose");
             } else {
@@ -1507,6 +1576,8 @@ public class MainWindow extends JFrame {
      */
     private void applyCardSelection(Card card, boolean fromHand) {
         selectedCard = card;
+        refreshAttackControl(humanPlayer(),
+            MainWindow.this.controller.isWaitingForHumanConflictAttack());
         if (fromHand && card instanceof ConflictCard) {
             // B5-0325 F2: populate target selector with non-human players
             targetSelector.removeAllItems();
@@ -1552,6 +1623,14 @@ public class MainWindow extends JFrame {
         selectedAssistant = null;
         targetSelector.setSelectedIndex(-1);
         targetSelector.setEnabled(false);
+        if (attackTargetSelector != null) {
+            attackTargetSelector.removeAllItems();
+            attackTargetSelector.addItem("(select target)");
+            attackTargetSelector.setSelectedIndex(0);
+            attackTargetSelector.setEnabled(false);
+            attackTargetCards.clear();
+            selectedAttackTarget = null;
+        }
         if (leadFleetSelector != null) {
             leadFleetSelector.setSelectedIndex(-1);
             leadFleetSelector.setEnabled(false);
