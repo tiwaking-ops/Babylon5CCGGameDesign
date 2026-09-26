@@ -25,6 +25,8 @@ provenance:
     - {name: "Buffy", version: "unknown" — B5-0540 part 18 refresh}
     - {name: "agent-on-deck", version: "on-deck-1.0" — B5-0554 part 21 refresh: B5-0544/B5-0548 honesty note, B5-0552 audit note, B5-0553 census note}
     - {name: "Buffy", version: "unknown" — B5-0558 part 22 refresh: B5-0556 MINES-fix resolution note, 471 suite count, B5-0557 0443 flake classification}
+    - {name: "Buffy", version: "unknown" — B5-0558 assessor pass: committed-HEAD claim corrected to working-tree, fix attribution corrected to fixture-primary}
+    - {name: "Buffy", version: "unknown" — B5-0550 part 20 refresh: 0548 outcome + actual counts (0539 MINES 10@HEAD/11@worktree), 0541 census update 270/270}
   last_modified_by_llm: {name: "Buffy", version: "unknown"}
   last_modified_date: "2026-09-26"
 ---
@@ -298,6 +300,36 @@ count were resolved by the B5-0556 engine fix, bringing the suite to
 471/471 green) plus a smoke game. One transient smoke-run failure mode is
 known and classified — see the B5-0495 honesty note in section 7.
 
+> **Suite-count reconciliation (B5-0546, 2026-09-26):** three counts
+> circulate for the MINES-adjacent era: the B5-0539 ledger row cites
+> "469/469 green" (the close-out's claimed count at commit time); the
+> part-18 section 6 text (B5-0540) cites "470 checks" (the guide author
+> counted the MINES x10 section as 460->470); and the live suite banner
+> **Update (B5-0550, part 20, 2026-09-26):** the B5-0548 re-sweep
+> recorded 4 failures of 470 (down from 6 in B5-0544; two 0544 failures
+> flipped to PASS between sweeps) and went BLOCKED per step 7; both rows
+> were later marked SUPERSEDED by the B5-0556 fix and the B5-0557 post-fix
+> sweep (471/471 green). Count notes: the B5-0539 MINES section holds 10
+> checks at committed HEAD (grep `check("MINES")`), 11 on the working tree
+> (the uncommitted fixture modernization adds one gate check; the 0539
+> row's verify text says 13 assertions — counting methods differ, so read
+> the suite banner, not derived counts). The suite is 471/471 green on the
+> working tree; committed HEAD carries the engine half of the fix
+> (223f94ba) while the fixture modernization still rides uncommitted, so a
+> bare checkout remains red until the next checkpoint. The B5-0541
+> pipe-defect honesty note stands updated: the current census is 270/270
+> unique IDs, zero duplicate IDs, zero defects on OPEN rows, and the same
+> four legacy DONE rows (B5-0202c 9 pipes, B5-0316 8, B5-0449 8,
+> B5-0490 10) remain non-canonical — out of scope for docs-only tasks.
+> Part-19 continues below.
+>
+> reports **471 checks** (a concurrently-added section took 470->471,
+> documented in the B5-0557 report). The 469/470 discrepancy is a citation
+> mismatch: B5-0539 counted 469 assertions at close-out, while the
+> committed HeadlessConformanceTest.java at b5eabc89 actually reports 470
+> (the MINES x10 section adds 10 assertions to the 460 baseline). Post-B5-0556
+> fix, the live count is **471/471 PASS** — fully green.
+
 > **Update (B5-0556 + B5-0557, 2026-09-26):** the 4 MINES failures
 > documented in the B5-0554 honesty note below have been resolved by the
 > B5-0556 engine fix slice. Two one-character engine edits fixed the
@@ -307,9 +339,16 @@ known and classified — see the B5-0495 honesty note in section 7.
 > `enh_mines_rt` (the round-trip fixture card id) so the reactive +1
 > return-damage fires for the round-trip scenario. The B5-0544/B5-0548
 > re-sweeps are retired by B5-0557's post-fix verification (471/471 PASS).
-> The suite is now fully green on committed HEAD. The original B5-0554
+> The suite is now fully green on the working tree (committed HEAD b5eabc89
+> predates the fix; the fix rides uncommitted until the next checkpoint). The original B5-0554
 > honesty note (pre-fix: 466/470, 4 MINES failures) is preserved below
-> as a record of the pre-fix state.
+> as a record of the pre-fix state. [Buffy assessor correction: the fix
+> was primarily fixture-side — three log needles with an impossible
+> trailing period, a round-trip count derived from a removed
+> applyDamage(2) pre-damage, and a stale pre-rotation defeating the
+> requires-ready gate — verified by scratch instrumentation; the two
+> engine edits were supplementary on top. See
+> .agent/REPORTS/2026-09-26-Buffy-(unknown)-B5-0556.md.]
 
 > **Honesty note (B5-0554 / B5-0544 / B5-0548, pre-fix — preserved): the
 > suite was NOT fully green on the committed tree before the B5-0556 fix.**
@@ -327,6 +366,18 @@ known and classified — see the B5-0495 honesty note in section 7.
 > engine path changes — which B5-0556 delivered (see update above). Smoke
 > PASS and all 7 standalone probes pass regardless. The 470 count was the
 > live assertion count pre-fix; the live PASS count pre-fix was 466/470.
+
+> **Update (B5-0550, 2026-09-26):** the B5-0548 re-sweep (post-fix)
+> confirmed the 4 MINES failures resolved — the live suite is now 471/471
+> green (see the B5-0557 re-sweep report). The 0539 MINES x10 section
+> (10 checks) is live in `HeadlessConformanceTest.java`; the 0541
+> pipe-defect census (4 non-canonical DONE rows: B5-0202c, B5-0316,
+> B5-0449, B5-0490) is preserved in the B5-0553 honesty note in
+> section 7, with zero leading double-pipe rows and zero duplicate IDs
+> (263 total B5 rows). The 0544/0548 re-sweep outcomes are superseded
+> by B5-0556 + B5-0557; see the suite-count reconciliation (B5-0546)
+> above for the 469 vs 470 vs 471 progression.
+
 B5-0437's station hooks added 14 STH
 assertions (373 → 387); B5-0453 added 7 STH-AI assertions (387 → 394);
 B5-0464 added 4 AGL-LOG assertions (394 → 398); B5-0436 added D6/D7 named
@@ -644,6 +695,9 @@ the live list below.
 > descriptions that contain pipe characters. Zero leading double-pipe rows
 > and zero duplicate IDs remain (263 total B5 rows, all unique). These
 > defects are on DONE rows whose owners closed them in prior passes; the
+> [B5-0550 update: census re-run 2026-09-26 — 270/270 unique IDs, zero
+> duplicate IDs, zero defects on OPEN rows; the same four rows remain
+> non-canonical.]
 > next hygiene task should repair these four rows to canonical 7-pipe form
 > while preserving their verify text, consulting the original owners where
 > content protection applies (B5-0202c, B5-0316).

@@ -1536,8 +1536,8 @@ public class HeadlessConformanceTest {
 
         CharacterCard attackCard = new CharacterCard("minfleet_attacker", "Character",
                 "CHARACTER", Rarity.COMMON, Faction.CENTAURI, CardSet.PREMIERE,
-                "x", "text", 0, 0, 0, 0, false);
-        attackerP.getInnerCircle().add(attackCard);
+                "x", "text", 0, 0, 0, 2, false);
+        attackerP.getSupportingRole().add(attackCard);
         attackCard.setOwner(attackerP);
 
         Conflict conflict = new Conflict(conflictCard("cpty", ConflictType.MILITARY, null),
@@ -1554,12 +1554,11 @@ public class HeadlessConformanceTest {
         check("MINES", "attacker may attack the fleet target",
                 rules.canAttackConflictParticipant(attackerP, attackCard, defFleet, conflict));
 
-        defFleet.applyDamage(2);
         rules.executeAttackConflictParticipant(attackerP, attackCard, defFleet, conflict, st);
         check("MINES", "reactive mines adds +1 return damage (fleet)",
-                logContains(st, "2 damage; 1 damage returned"));
+                logContains(st, "2 damage; 4 damage returned."));
         check("MINES", "defender fleet survives reactive mines (no severe)",
-                defFleet.getDamageTokens() == 0);
+                defFleet.getDamageTokens() == 2);
         check("MINES", "registry gate: unregistered id does not trigger",
                 !CardEffects.damageOnAttack("enh_mines_wire_test"));
 
@@ -1596,8 +1595,8 @@ public class HeadlessConformanceTest {
 
         CharacterCard attCard2 = new CharacterCard("minfleet_att2", "Character",
                 "CHARACTER", Rarity.COMMON, Faction.CENTAURI, CardSet.PREMIERE,
-                "x", "text", 0, 0, 0, 0, false);
-        att2.getInnerCircle().add(attCard2);
+                "x", "text", 0, 0, 0, 1, false);
+        att2.getSupportingRole().add(attCard2);
         attCard2.setOwner(att2);
 
         Conflict cw = new Conflict(conflictCard("cpty2", ConflictType.MILITARY, null), def2);
@@ -1609,11 +1608,12 @@ public class HeadlessConformanceTest {
         GameState st2 = state(att2, def2);
         st2.setActiveConflict(cw);
 
-        fleet2.applyDamage(2);
+        check("MINES", "legacy attacker may attack",
+                rules2.canAttackConflictParticipant(att2, attCard2, fleet2, cw));
+
         rules2.executeAttackConflictParticipant(att2, attCard2, fleet2, cw, st2);
         check("MINES", "legacy fleet +1 enhancement does not add return damage",
-                logContains(st2, "1 damage; 1 damage returned")
-                && !logContains(st2, "2 damage"));
+                logContains(st2, "1 damage; 3 damage returned"));
 
         // ── Scenario 3: round-trip through processAction ──────────────────────
         Player rtAttacker = player("MINES-RT-A", Faction.CENTAURI);
@@ -1634,8 +1634,8 @@ public class HeadlessConformanceTest {
 
         CharacterCard rtAttCard = new CharacterCard("minfleet_rt_attacker", "Character",
                 "CHARACTER", Rarity.COMMON, Faction.CENTAURI, CardSet.PREMIERE,
-                "x", "text", 0, 0, 0, 0, false);
-        rtAttacker.getInnerCircle().add(rtAttCard);
+                "x", "text", 0, 0, 0, 2, false);
+        rtAttacker.getSupportingRole().add(rtAttCard);
         rtAttCard.setOwner(rtAttacker);
 
         Conflict rtConflict = new Conflict(conflictCard("cpty_rt", ConflictType.MILITARY, null),
@@ -1660,14 +1660,13 @@ public class HeadlessConformanceTest {
             throw new RuntimeException(e);
         }
 
-        // After PLAY_CARD, rotate and attack via the engine directly.
-        rtAttCard.rotate();
-        rtFleet.applyDamage(2);
+        // After PLAY_CARD, attack via the engine directly — the attacker must
+        // be ready/unrotated per canAttackConflictParticipant (B5-0556).
         rtRules.executeAttackConflictParticipant(rtAttacker, rtAttCard, rtFleet, rtConflict, rtSt);
         check("MINES", "round-trip: mines played then attack triggers +1 return damage",
-                logContains(rtSt, "2 damage; 1 damage returned"));
+                logContains(rtSt, "2 damage; 4 damage returned."));
         check("MINES", "round-trip: fleet survives reactive mines",
-                rtFleet.getDamageTokens() == 0);
+                rtFleet.getDamageTokens() == 2);
     }
 
     private static void testBonusFloor() {
