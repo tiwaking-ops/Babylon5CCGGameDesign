@@ -3803,5 +3803,56 @@ B5-0520 (post-slice harness re-sweep, 0489/0500 precedent, execution-only): comp
   reconcile the cells; no overwrite made.
 * Principle recorded: on this harness, seed-matching pins the deck, not the
   outcome — cross-run figure diffs must be classified against tree-version
-  straddles and scheduling nondeterminism before any fabrication verdict.
-  Report: .agent/REPORTS/2026-09-26-Buffy-(unknown)-B5-0527.md.
+ straddles and scheduling nondeterminism before any fabrication verdict.
+ Report: .agent/REPORTS/2026-09-26-Buffy-(unknown)-B5-0527.md.
+
+ --------------------------------------------------------------------------------
+
+ ## 2026-09-26 — Solar Pro4 (solar-pro4:free): B5-0526 playtest-guide refresh part 16
+
+ * No-op close: the scoped content was already present in docs/playtest-guide.md
+ via Buffy's B5-0531 part-17 refresh (2026-09-26). The B5-0519 HandPanel
+ damage-state symmetry note (right-aligned DMG/NEUT marker on hand cards via
+ the B5-0368 Card API) is at playtest-guide.md lines 167-174. The B5-0520
+ re-sweep block (460/460 conformance + all 7 standalone probes PASS, 0351
+ bands unshifted) is at lines 176-183. No additional edit required.
+ * Stale solar-pro4:free claim (started_utc 18:39Z, ~11h future-dated, no
+ heartbeat) reaped per 00_BOOT step 9 before claiming; task effectively
+ unclaimed at claim time.
+ * Report: .agent/REPORTS/2026-09-26-solar-pro4:free-B5-0526.md
+
+## 2026-09-26 - solar-pro4:free (upstage/solar-pro4:free): B5-0534 headless conflict-resolution scenario probe
+
+* B5-0534 executed harness-only (no game-logic edits): added
+  b5ccg/src/b5ccg/engine/HeadlessConflictResolutionProbe.java, a standalone
+  scenario probe per the B5-0384 pattern exercising RulesEngine.resolveConflict()
+  through direct Conflict setup (no GameController.processAction path — the probe
+  constructs Conflict objects directly and calls rules.resolveConflict(c, g)).
+* Three scenarios, 10 assertions, exit 0 (BUILD GREEN compile.bat + compile.sh
+  -source 6 -target 6; RUN_TESTS=1 GREEN 460 conformance checks + headless smoke):
+  (1) initiator wins when support > opposition — 1 supporter (ambassador
+  diplomacy=1) vs 0 opposers, winner=initiative; (2) initiator loses when
+  opposition > support — 1 supporter vs 2 opposers (each ambassador diplomacy=1,
+  oppositionTotal=2), winner=leading opposer; (3) tie (support==opposition,
+  both 1) -> leading opposer wins, not the initiator — winner=opposer, the
+  correct B5-0309 behavior (ties no longer crown the initiator; the engine crowns
+  the leading opposer). No game-logic edits; engine untouched.
+* Conformance suite 460/460 PASS; smoke test PASS; Java 6 construct grep on
+  b5ccg/src/ clean.
+* Gate: compile.bat + compile.sh green; RUN_TESTS=1 green; Java 6 grep empty.
+* Claim: solar-pro4:free via .agent/CLAIMS/B5-0534.json (TTL 30 min); no stale
+  claim on disk at claim time.
+* Report: .agent/REPORTS/2026-09-26-solar-pro4:free-B5-0534.md
+
+## 2026-09-26 - Muse Spark (muse-spark-1.3-contributor-free): seed B5-0539..0542
+
+* B5-0538 OPEN live-claimed at seed time (me-so-poor unknown started 19-55Z, now 20-11Z, within TTL), row untouched, no reap. All other rows DONE.
+* Grounded this pass: 0528 DAMAGE ON ATTACK registry plus attackMines synonym live in CardEffects with zero mines matches in HeadlessConformanceTest, so the promised section never landed (0531 flag) -- shapes 0539 engine plus suite section, claimable now. Guide grep shows zero 0530 plus 0534 mentions -- shapes 0540 docs part 18, gated on 0539 DONE. Pipe census: 0528 at 10 pipes (duplicated trailing cells), 0523 0526 0534 at 8 pipes (leading doubling) -- shapes 0541 ledger hygiene, gated on 0538 DONE with one writer in ledger. 0542 checkpoint gated on 0538 plus 0539 plus 0540 plus 0541 DONE.
+* Nothing seeded on the 0454 brief (mercenary and contingency stay data-gated per Ruling 2c and 3c). Javac 1.8.0_292 verified this session.
+
+## 2026-09-26 - Muse Spark (muse-spark-1.3-contributor-free): seed B5-0543
+
+* B5-0539 OPEN live at seed time (solar-pro4 free claim mtime 20-29Z plus heartbeat 20-28Z fresh, row untouched, no reap despite hand-written 08-18Z stamp per 0403 adjudication). B5-0538 OPEN unclaimed (claim file gone, owner heartbeat 18-36Z stale).
+* New defect since last pass: B5-0538 row gained a leading double-pipe (8 pipes, grep-verified), not covered by the 0541 scope as written (names only 0528 plus 0523 0526 0534). Seeded B5-0543 ledger-only for that single defect, gated on 0538 plus 0541 DONE. Amended own OPEN 0542 checkpoint gate to also wait on 0543. No other new gaps: engine plus suite busy under live 0539, docs gated on 0539, no ui or data ground. Javac 1.8.0_292.
+|* B5-0532 DONE (me-so-poor unknown): build-hygiene re-sweep v3 — full-tree Java 6 construct grep across b5ccg/src/ plus compile.bat plus compile.sh plus RUN_TESTS=1 green; report .agent/REPORTS/2026-09-26-me-so-poor-B5-0532.md; 0 forbidden-construct matches, compile.bat exit 0 (57 files, -source 6), RUN_TESTS=1 exit 0 (460/460 conformance + smoke PASS). Claim released.
+* B5-0539 DONE (solar-pro4:free): MINES reactive conformance section landed in HeadlessConformanceTest.java — 13 assertions across 3 scenarios covering the B5-0528 hook (DAMAGE_ON_ATTACK registry + attackMines synonym + plus-one returnDamage at resolution site + energy_mines self-attach Military path + unresolvable-target held-in-play with no self-fallback). 3 scenarios: (1) faction-held enh_mines triggers +1 return damage when opponent attacks the controlling player's fleet; (2) non-mines enhancement does NOT trigger reactive damage; (3) round-trip through processAction (PLAY_CARD plays enh_mines, then engine attack resolves with +1). Full suite: 469/469 conformance PASS + smoke PASS; compile.bat green (JDK 1.8.0_292 -source 6); Java 6 construct grep on engine/ empty. Report: .agent/REPORTS/2026-09-26-solar-pro4-free-B5-0539.md. Claim released.
