@@ -1515,7 +1515,118 @@ public class HeadlessConformanceTest {
                 legacy.toAttachedBonus(StatKey.MILITARY, Expiry.END_OF_TURN, 1) == null);
     }
 
-    // ── B5-0473: opponent-targeted enhancement engine wiring ──────────────────
+    // ── B5-0486: minimum-1 bonus floor (Censure-class printed floors) ─────────
+
+    private static void testBonusFloor() {
+        System.out.println("FLOOR (B5-0486): per-bonus floor field lifts penalty outcome, capped at printed base");
+
+        // Hook 1: floor lifts a -2 on printed-1 fleet to exactly 1.
+        Player p1 = player("FLOOR-1", Faction.CENTAURI);
+        FleetCard fleet1 = new FleetCard("floor_fleet1", "FRIGATE", "FLEET", Rarity.COMMON,
+                Faction.CENTAURI, CardSet.PREMIERE, "x", "text", 1);
+        p1.getFleets().add(fleet1);
+        fleet1.setOwner(p1);
+        p1.grantBonus(new StatBonus("floor_censure1", StatKey.MILITARY, -2,
+                BonusScope.ATTACHED, fleet1.getId(), null,
+                Expiry.WHILE_IN_PLAY, false, true, 1, 1));
+        check("FLOOR", "floor lifts -2 on printed-1 to exactly 1",
+                fleet1.getEffectiveMilitary() == 1);
+
+        // Hook 2: floor does NOT lift a -2 on printed-4 fleet (4-2=2 above floor 1).
+        Player p2 = player("FLOOR-2", Faction.CENTAURI);
+        FleetCard fleet2 = new FleetCard("floor_fleet2", "DESTROYER", "FLEET", Rarity.COMMON,
+                Faction.CENTAURI, CardSet.PREMIERE, "x", "text", 4);
+        p2.getFleets().add(fleet2);
+        fleet2.setOwner(p2);
+        p2.grantBonus(new StatBonus("floor_censure2", StatKey.MILITARY, -2,
+                BonusScope.ATTACHED, fleet2.getId(), null,
+                Expiry.WHILE_IN_PLAY, false, true, 1, 1));
+        check("FLOOR", "floor does not lift -2 on printed-4 (stays 2)",
+                fleet2.getEffectiveMilitary() == 2);
+
+        // Hook 3: highest-floor-wins with two floored sources.
+        Player p3 = player("FLOOR-3", Faction.CENTAURI);
+        FleetCard fleet3 = new FleetCard("floor_fleet3", "FRIGATE", "FLEET", Rarity.COMMON,
+                Faction.CENTAURI, CardSet.PREMIERE, "x", "text", 3);
+        p3.getFleets().add(fleet3);
+        fleet3.setOwner(p3);
+        p3.grantBonus(new StatBonus("floor_low3", StatKey.MILITARY, -2,
+                BonusScope.ATTACHED, fleet3.getId(), null,
+                Expiry.WHILE_IN_PLAY, false, true, 1, 1));
+        p3.grantBonus(new StatBonus("floor_high3", StatKey.MILITARY, 0,
+                BonusScope.ATTACHED, fleet3.getId(), null,
+                Expiry.WHILE_IN_PLAY, false, true, 1, 3));
+        // printed 3, delta -2 = 1 raw; high floor 3 caps at printed base 3.
+        check("FLOOR", "highest floor wins (3 > 1, capped at printed base 3)",
+                fleet3.getEffectiveMilitary() == 3);
+
+        // Hook 4: floor capped at printed base (floor 5 on printed-1 stays 1).
+        Player p4 = player("FLOOR-4", Faction.CENTAURI);
+        FleetCard fleet4 = new FleetCard("floor_fleet4", "FRIGATE", "FLEET", Rarity.COMMON,
+                Faction.CENTAURI, CardSet.PREMIERE, "x", "text", 1);
+        p4.getFleets().add(fleet4);
+        fleet4.setOwner(p4);
+        p4.grantBonus(new StatBonus("floor_caps4", StatKey.MILITARY, 0,
+                BonusScope.ATTACHED, fleet4.getId(), null,
+                Expiry.WHILE_IN_PLAY, false, true, 1, 5));
+        check("FLOOR", "floor 5 on printed-1 stays 1 (capped)",
+                fleet4.getEffectiveMilitary() == 1);
+
+        // Hook 5: damage after floor — printed-1 fleet, floor 1, -2 penalty,
+        //          then 1 damage token → 0.
+        Player p5 = player("FLOOR-5", Faction.CENTAURI);
+        FleetCard fleet5 = new FleetCard("floor_fleet5", "FRIGATE", "FLEET", Rarity.COMMON,
+                Faction.CENTAURI, CardSet.PREMIERE, "x", "text", 1);
+        p5.getFleets().add(fleet5);
+        fleet5.setOwner(p5);
+        p5.grantBonus(new StatBonus("floor_dmg5", StatKey.MILITARY, -2,
+                BonusScope.ATTACHED, fleet5.getId(), null,
+                Expiry.WHILE_IN_PLAY, false, true, 1, 1));
+        // Floor lifts -2+1 to 1; damage then subtracts 1 → 0.
+        fleet5.applyDamage(1);
+        check("FLOOR", "floor 1 protects then 1 damage → 0 (printed-1, floor 1, -2, dmg 1)",
+                fleet5.getEffectiveMilitary() == 0);
+
+        // Hook 6: default-0 invariance — all existing suite sections green.
+        Player p6 = player("FLOOR-6", Faction.CENTAURI);
+        FleetCard fleet6 = new FleetCard("floor_fleet6", "FRIGATE", "FLEET", Rarity.COMMON,
+                Faction.CENTAURI, CardSet.PREMIERE, "x", "text", 3);
+        p6.getFleets().add(fleet6);
+        fleet6.setOwner(p6);
+        p6.grantBonus(new StatBonus("floor_zero6", StatKey.MILITARY, 2,
+                BonusScope.ATTACHED, fleet6.getId(), null,
+                Expiry.WHILE_IN_PLAY, false, true, 1, 0));
+        check("FLOOR", "default floor 0 is byte-identical to pre-floor behavior (3+2=5)",
+                fleet6.getEffectiveMilitary() == 5);
+
+        // Hook 7: composition with B5-0473 wiring — floored bonus granted into
+        // the VICTIM registry reads correctly through getEffectiveMilitary.
+        Player owner7 = player("FLOOR-7A", Faction.CENTAURI);
+        Player victim7 = player("FLOOR-7B", Faction.NARN);
+        GameState st7 = state(owner7, victim7);
+        FleetCard oppFleet7 = new FleetCard("floor_opp7", "FRIGATE", "FLEET", Rarity.COMMON,
+                Faction.NARN, CardSet.PREMIERE, "x", "text", 3);
+        victim7.addFleet(oppFleet7);
+        oppFleet7.setOwner(victim7);
+        victim7.grantBonus(new StatBonus("floor_wire7", StatKey.MILITARY, -2,
+                BonusScope.ATTACHED, oppFleet7.getId(), null,
+                Expiry.WHILE_IN_PLAY, false, true, 1, 1));
+        check("FLOOR", "floor composes with B5-0473 victim-registry path (printed 3, -2, floor 1 → 1)",
+                oppFleet7.getEffectiveMilitary() == 1);
+
+        // Hook 8: character-path parity — CharacterCard read sites honor the
+        // same floor pass (asserted on a fixture with a floored Leadership bonus,
+        // which is the character's Military ability per B5-0337 D5).
+        CharacterCard ch8 = leaderCard("floor_char8", 2);
+        ch8.setOwner(p1);
+        p1.grantBonus(new StatBonus("floor_char8_bonus", StatKey.LEADERSHIP, 0,
+                BonusScope.ATTACHED, ch8.getId(), null,
+                Expiry.WHILE_IN_PLAY, false, true, 1, 5));
+        // printed Leadership 2, delta 0, floor 5 → capped at printed base 2;
+        // query MILITARY (which routes through leadership for characters).
+        check("FLOOR", "character path floor capped at printed base (2, floor 5 → 2)",
+                ch8.getPrimaryStatValue(ConflictType.MILITARY) == 2);
+    }
 
     private static void testOpponentEnhancementWiring() {
         System.out.println("ENH-WIRE (B5-0473): explicit-target fleet enhancements attach into the opponent registry");
@@ -3286,7 +3397,7 @@ public class HeadlessConformanceTest {
         check("BON", "generic Psi cannot rise from printed zero",
                 zeroPsi.getPrimaryStatValue(ConflictType.PSI) == 0);
         p.grantBonus(new StatBonus("specific", StatKey.PSI, 1, BonusScope.ATTACHED,
-                zeroPsi.getId(), null, Expiry.WHILE_IN_PLAY, true, true, 1));
+                zeroPsi.getId(), null, Expiry.WHILE_IN_PLAY, true, true, 1, 0));
         check("BON", "specific Psi unlocks the full stacked value",
                 zeroPsi.getPrimaryStatValue(ConflictType.PSI) == 2);
 
@@ -3806,6 +3917,7 @@ public class HeadlessConformanceTest {
             testAgendaInstallLog();   // B5-0464: sets-agenda token emitter paired with the runner parser
             testOpponentEnhancementSeam(); // B5-0469: opponent-targeted enhancement model seam shape
             testOpponentEnhancementWiring(); // B5-0473: explicit-target fleet enhancement engine wiring
+            testBonusFloor(); // B5-0486: minimum-1 bonus floor (Censure-class printed floors)
             System.out.println("All B5-0203 deviations D1-D14 resolved; D15 partial by effect-coverage; D6/D7 now have dedicated named assertions (B5-0436). B5-0437 station hooks covered (STH). B5-0453 AI station-awareness covered. B5-0469 enhancement seam asserted (ESM).");
 
             System.out.println();

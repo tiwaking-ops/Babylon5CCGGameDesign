@@ -233,11 +233,13 @@ public final class CardEffects {
                         ? null : fleetById(victim, card.getTargetCardId());
                 if (target != null && delta != 0) {
                     target.setOwner(victim);
+                    int floor = floorFor(card.getId());
                     victim.grantBonus(card.toAttachedBonus(StatKey.MILITARY,
-                            Expiry.WHILE_IN_PLAY, state.getRoundNumber()));
+                            Expiry.WHILE_IN_PLAY, state.getRoundNumber(), floor));
                     state.log(p.getName() + " attaches " + card.getTitle()
                             + " to " + victim.getName() + "'s " + target.getTitle()
-                            + " (Military " + (delta >= 0 ? "+" : "") + delta + ").");
+                            + " (Military " + (delta >= 0 ? "+" : "") + delta
+                            + (floor > 0 ? ", floor " + floor : "") + ").");
                 } else {
                     state.log(p.getName() + " holds " + card.getTitle()
                             + " (opponent target unavailable; held in play).");
@@ -249,11 +251,13 @@ public final class CardEffects {
             if (target != null && delta != 0) {
                 // B5-0366: route the bonus through the registry, not field mutation.
                 target.setOwner(p);
+                int floor = floorFor(card.getId());
                 p.grantBonus(StatBonus.attached(card.getId(), StatKey.MILITARY, delta,
-                        target.getId(), Expiry.WHILE_IN_PLAY, state.getRoundNumber()));
+                        target.getId(), Expiry.WHILE_IN_PLAY, state.getRoundNumber(), floor));
                 state.log(p.getName() + " attaches " + card.getTitle() + " to "
                         + target.getTitle() + " (Military "
-                        + (delta >= 0 ? "+" : "") + delta + ").");
+                        + (delta >= 0 ? "+" : "") + delta
+                        + (floor > 0 ? ", floor " + floor : "") + ").");
             } else {
                 state.log(p.getName() + " holds " + card.getTitle()
                         + " (no fleet target in play).");
@@ -404,7 +408,13 @@ public final class CardEffects {
         return e != null && ENH_LOCATION_INCOME.containsKey(e.getId());
     }
 
-    // ── Mercenaries (B5-0395) ─────────────────────────────────────────────────
+    // ── Bonus floors: card id → minimum stat value after penalty (B5-0486) ──
+    // Data: printed "minimum 1" on Censure-class fleet enhancements.
+    private static final Map<String, Integer> BONUS_FLOORS = new HashMap<String, Integer>();
+    static {
+        BONUS_FLOORS.put("enh_censure",    Integer.valueOf(1));
+        BONUS_FLOORS.put("de_enh_censure", Integer.valueOf(1));
+    }
     // A controlled mercenary's effect fires once at the MERCENARY phase for
     // its controller. The pool carries zero mercenary cards (B5-0386 no-
     // evidence verdict), so this table holds only the synthetic fixture used
@@ -452,6 +462,14 @@ public final class CardEffects {
             if (cardId.equals(f.getId()) && !f.isFaceDown()) return f;
         }
         return null;
+    }
+
+    /** B5-0486: returns the minimum-stat floor for an enhancement card id,
+     *  or 0 when no floor is registered (default behavior). */
+    private static int floorFor(String cardId) {
+        if (cardId == null) return 0;
+        Integer f = (Integer) BONUS_FLOORS.get(cardId);
+        return f == null ? 0 : f.intValue();
     }
 
     private static FleetCard bestFleet(Player p) {

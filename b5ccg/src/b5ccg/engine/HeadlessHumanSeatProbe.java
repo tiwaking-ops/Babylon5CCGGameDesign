@@ -29,16 +29,36 @@ import java.util.*;
  * controller parks submissions outside a live wait-window, so synthetic
  * paths assert at the engine boundary instead.
  *
+ * B5-0482: determinism hardening. The starter-deck random draw is seeded via
+ * StarterDeckBuilder.setRandomSeed (public setter, no reflection) alongside
+ * the AI RNG reflection seeds, removing the largest run-to-run variance
+ * source at a fixed seed. The agenda-lifecycle COVERAGE gate is relaxed to
+ * soft coverage (like bid/war): the model Deck's constructor shuffle
+ * (b5ccg/model/Deck.java, game logic outside this probe's edit scope) takes
+ * no Random, so hand contents cannot be made fully deterministic from here
+ * and the hard gate was the intermittent 0476 failure. The deterministic
+ * agenda-install path stays asserted by scenarioAgendaFaceUpInstall (B5-0471)
+ * and lifecycle actions are suite-covered (AGL section, B5-0364).
+ *
  * Usage:
  *   java -cp b5ccg/out b5ccg.engine.HeadlessHumanSeatProbe [seed] [timeoutSec]
  *
  * Default: seed 42, 180s. Exit 0 = all assertions + coverage gates met.
+ *
+ * B5-0482: AIPlayer.rng is seeded via the B5-0349 reflection precedent
+ * (already in main). The human driver also consumes a seeded Random so
+ * join support/oppose is seed-reproducible rather than seed-parity-constant.
+ * Agenda lifecycle remains data-dependent (an agenda only exists if drafted)
+ * so that coverage check is a soft-gate like bid/war — a legal game can
+ * finish with zero agenda-lifecycle submits (B5-0476).
  */
 public class HeadlessHumanSeatProbe {
 
     private static int checks = 0;
     private static int failed = 0;
     private static int humanSubmits = 0;
+    // B5-0482: driver-side RNG, seeded from the CLI seed in main.
+    private static Random driverRng = new Random(42L);
 
     private static void check(String label, boolean ok) {
         checks++;
@@ -73,9 +93,17 @@ public class HeadlessHumanSeatProbe {
         }
         final long seed = seedVal;
         final long timeoutMs = timeoutMsVal;
+        driverRng = new Random(seed);
 
         System.out.println("=== B5 CCG human-seat end-to-end probe (B5-0443) ===");
         System.out.println("Seed: " + seed + ", Per-game timeout: " + (timeoutMs / 1000) + "s");
+
+        // B5-0482: seed the starter-deck random draw too. The AI RNGs are
+        // reflection-seeded below (B5-0349 precedent), but StarterDeckBuilder
+        // drew its 10 random uncommons/rares per faction from an unseeded
+        // Random, so deck — and therefore hand — composition varied run to
+        // run at the same seed. Public setter, no reflection needed.
+        StarterDeckBuilder.setRandomSeed(seed);
 
         List<Card> pool = DeckLoader.loadBothSets();
         check("card pool loaded", pool.size() == 446);
@@ -117,6 +145,8 @@ public class HeadlessHumanSeatProbe {
             }
         }
 
+        StarterDeckBuilder.setRandomSeed(0L); // B5-0482: restore default draw behavior
+
         final GameState state = new GameState(players);
         for (Player p : players) p.setGameState(state);
 
@@ -156,7 +186,7 @@ public class HeadlessHumanSeatProbe {
                     }
                     // Window 2: conflict side-choice (B5-0363).
                     else if (controller.isWaitingForHumanConflictJoin()) {
-                        boolean sup = coinFlip(seed);
+                        boolean sup = coinFlip();
                         GameAction a = sup ? GameAction.joinSupport() : GameAction.joinOppose();
                         trackSubmit(a);
                         controller.submitHumanAction(a);
@@ -203,13 +233,13 @@ public class HeadlessHumanSeatProbe {
                 (nPlay + nInitiate + nJoinSup + nJoinOpp + nHeal + nRepair) > 0);
         check("COVERAGE: sponsor/promote/build/lead/rotate/attack exercised",
                 (nRecruit + nPromote + nBuild + nLeadFleet + nRotate + nAttack) > 0);
-        check("COVERAGE: agenda lifecycle exercised",
-                (nAgD + nAgR + nAgRe) > 0);
         check("COVERAGE: pass submitted when no action available", nPass > 0);
 
-        // Soft coverage (data-dependent — pool may lack mercenaries/wars).
+        // Soft coverage (data-dependent — pool may lack mercenaries/wars;
+        // agenda lifecycle only fires if an agenda was drafted, B5-0476/0482).
         if (nBid > 0) mark("COVERAGE: bid exercised");
         if (nWar > 0) mark("COVERAGE: war exercised");
+        if ((nAgD + nAgR + nAgRe) > 0) mark("COVERAGE: agenda lifecycle exercised");
 
         // ── B5-0460: synthetic scenarios for the 0443 soft-gated paths ────
         // Dedicated fixture state (fresh, not game-over, no driver thread)
@@ -385,8 +415,11 @@ public class HeadlessHumanSeatProbe {
         return null;
     }
 
-    private static boolean coinFlip(long seed) {
-        return (int)(seed % 2) == 0;
+    // B5-0482: successive joins consume the seeded driver RNG so both
+    // support and oppose can appear in one run, and the sequence is
+    // reproducible for a given CLI seed. (Seed-parity was constant per run.)
+    private static boolean coinFlip() {
+        return driverRng.nextBoolean();
     }
 
     private static void trackSubmit(GameAction a) {

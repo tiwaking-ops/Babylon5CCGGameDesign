@@ -101,6 +101,20 @@ public class MainWindow extends JFrame {
     private JLabel mercenaryControllerLabel;
     private JButton mercenaryBidButton;
 
+    // B5-0487: Censure opponent-fleet target picker. When the human selects an
+    // Enhancement FLEET card (Censure-class) from hand, this dropdown lists the
+    // opponent factions' face-up fleets; picking one sets the explicit opponent
+    // target via the B5-0468 seam before the card is played. If no target is
+    // picked (or none are legal), the engine's held-in-play policy applies —
+    // no self-fallback onto the owner's own fleet.
+    private JComboBox<String> censureTargetSelector;
+    private JLabel             censureTargetLabel;
+    private JButton            censurePlayButton;
+    private final java.util.ArrayList<FleetCard> censureTargetCards = new java.util.ArrayList<FleetCard>();
+    private final java.util.ArrayList<String>    censureTargetOwnerNames = new java.util.ArrayList<String>();
+    private FleetCard selectedCensureTarget;
+    private String    selectedCensureTargetOwner;
+
     // B5-0401: Tier-1 remainder action UI — Lead Fleet + Use Rotate Effect
     private JButton leadFleetButton;
     private JComboBox<String> leadFleetSelector;
@@ -583,6 +597,45 @@ public class MainWindow extends JFrame {
         mercenaryOfferLabel.setFont(new Font("SansSerif", Font.PLAIN, 11));
         mercenaryOfferLabel.setMaximumSize(new Dimension(160, 24));
 
+        // B5-0487: Censure opponent-fleet target picker
+        censureTargetSelector = new JComboBox<String>(new String[] { "(select opponent fleet)" });
+        censureTargetSelector.setEnabled(false);
+        censureTargetSelector.setMaximumSize(new Dimension(200, 24));
+        censureTargetSelector.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                updateCensurePlayButton();
+            }
+        });
+
+        censureTargetLabel = new JLabel("Opponent fleet target:");
+        censureTargetLabel.setForeground(new Color(200, 220, 200));
+        censureTargetLabel.setFont(new Font("SansSerif", Font.PLAIN, 10));
+        censureTargetLabel.setMaximumSize(new Dimension(140, 24));
+
+        censurePlayButton = makeButton("Play (opponent target)", new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Player hp = humanPlayer();
+                if (hp == null) return;
+                if (!(selectedCard instanceof EnhancementCard)) return;
+                EnhancementCard enh = (EnhancementCard) selectedCard;
+                if (!(enh.getSubtype() != null && enh.getSubtype().endsWith("_FLEET"))) return;
+                // Only Censure-class cards carry the explicit-target seam today;
+                // other fleet enhancements keep self-target via the normal Play path.
+                if (!enh.hasExplicitTarget()) {
+                    // No explicit target set — fall through to normal self-target play
+                    MainWindow.this.controller.submitHumanAction(GameAction.playCard(enh));
+                    clearSelection();
+                    return;
+                }
+                // Explicit opponent target is set — submit with the target
+                playCensureWithTarget();
+            }
+        });
+        censurePlayButton.setEnabled(false);
+        censurePlayButton.setToolTipText("Play this Enhancement targeting the selected opponent fleet (B5-0487).");
+
         // B5-0407: declare-war UI
         warTargetSelector = new JComboBox<String>(new String[] { "(select target)" });
         warTargetSelector.setEnabled(false);
@@ -789,6 +842,12 @@ public class MainWindow extends JFrame {
         toolbar.add(mercenaryBidButton);
         toolbar.add(Box.createHorizontalStrut(8));
         toolbar.add(mercenaryOfferLabel);
+        toolbar.add(Box.createHorizontalStrut(8));
+        toolbar.add(censureTargetLabel);
+        toolbar.add(Box.createHorizontalStrut(4));
+        toolbar.add(censureTargetSelector);
+        toolbar.add(Box.createHorizontalStrut(4));
+        toolbar.add(censurePlayButton);
         toolbar.add(Box.createHorizontalStrut(8));
         toolbar.add(warTargetSelector);
         toolbar.add(Box.createHorizontalStrut(4));
@@ -1223,7 +1282,7 @@ public class MainWindow extends JFrame {
         // updatePlayInitiateButtons(); dispatch in playOnly() / initiateOnly().
         updatePlayInitiateButtons();
 
-        // B5-0327 F8: initiative order display Ã¢â‚¬â€ show active player as the current
+        // B5-0327 F8: initiative order display — show active player as the current
         // initiative holder. The human player's initiative position is tracked in the
         // status bar for clarity; the full initiative chain is rendered on the board.
         initiativeLabel.setText("Initiative: " + state.getActivePlayer().getName()
@@ -1231,6 +1290,9 @@ public class MainWindow extends JFrame {
         boolean actionPhase = (phase == GamePhase.ACTION);
         CharacterCard ch = (selectedCard instanceof CharacterCard)
             ? (CharacterCard) selectedCard : null;
+
+        // B5-0487: Censure opponent-fleet target picker
+        refreshCensureControl(human, actionPhase && myTurn);
 
         // Sponsor: ACTION phase, my turn, selected card is a ready character in hand
         sponsorButton.setEnabled(actionPhase && myTurn
@@ -1280,11 +1342,17 @@ public class MainWindow extends JFrame {
         // B5-0401: Tier-1 remainder action UI — Lead Fleet + Use Rotate Effect
         refreshLeadFleetAndRotateEffect(human, actionPhase && myTurn);
 
+        // B5-0487: Censure opponent-fleet target picker
+        refreshCensureControl(human, actionPhase && myTurn);
+
         // B5-0404: mercenary bid control
         refreshMercenaryBidControl(human, actionPhase && myTurn);
 
         // B5-0407: declare-war control
         refreshDeclareWarControl(human, actionPhase && myTurn);
+
+        // B5-0487: Censure opponent-fleet target picker
+        refreshCensureControl(human, actionPhase && myTurn);
 
         // B5-0326 F5: refresh cost preview
         refreshCostPreview();
@@ -1444,6 +1512,106 @@ public class MainWindow extends JFrame {
         leadFleetButton.setEnabled(actionTurn && hasFleet && leader != null && hp != null
             && rules.canLeadFleet(hp, leader, selectedFleet));
     }
+
+    /** B5-0487: refresh the Censure opponent-fleet target picker from current state. */
+    private void refreshCensureControl(Player human, boolean actionTurn) {
+        if (human == null || censureTargetSelector == null) {
+            if (censureTargetSelector != null) {
+                censureTargetSelector.setEnabled(false);
+            }
+            censurePlayButton.setEnabled(false);
+            return;
+        }
+        // Only relevant when an Enhancement FLEET card is selected and it carries
+        // the explicit-target seam (Censure-class today).
+        if (selectedCard == null || !(selectedCard instanceof EnhancementCard)) {
+            censureTargetSelector.setEnabled(false);
+            censurePlayButton.setEnabled(false);
+            censureTargetLabel.setText("");
+            return;
+        }
+        EnhancementCard enh = (EnhancementCard) selectedCard;
+        if (enh.getSubtype() == null || !enh.getSubtype().endsWith("_FLEET")) {
+            censureTargetSelector.setEnabled(false);
+            censurePlayButton.setEnabled(false);
+            censureTargetLabel.setText("");
+            return;
+        }
+        // Populate opponent fleets — face-up, unrotated fleets owned by non-human players.
+        censureTargetCards.clear();
+        censureTargetOwnerNames.clear();
+        censureTargetSelector.removeAllItems();
+        censureTargetSelector.addItem("(select opponent fleet)");
+        GameState gs = MainWindow.this.controller.getState();
+        for (Player p : gs.getPlayers()) {
+            if (p.isHuman() || p.hasForfeited()) continue;
+            for (FleetCard fl : p.getFleets()) {
+                if (fl.isFaceDown() || fl.isRotated()) continue;
+                censureTargetCards.add(fl);
+                censureTargetOwnerNames.add(p.getName());
+                censureTargetSelector.addItem(p.getName() + " — " + fl.getTitle());
+            }
+        }
+        if (censureTargetCards.isEmpty()) {
+            censureTargetSelector.setEnabled(false);
+            censurePlayButton.setEnabled(false);
+            censureTargetLabel.setText("No opponent fleets available.");
+            return;
+        }
+        // Restore previous selection if it is still present.
+        if (selectedCensureTarget != null) {
+            int idx = censureTargetCards.indexOf(selectedCensureTarget);
+            if (idx >= 0) {
+                censureTargetSelector.setSelectedIndex(idx + 1);
+            } else {
+                censureTargetSelector.setSelectedIndex(0);
+                selectedCensureTarget = null;
+                selectedCensureTargetOwner = null;
+            }
+        } else {
+            censureTargetSelector.setSelectedIndex(0);
+        }
+        censureTargetSelector.setEnabled(actionTurn);
+        updateCensurePlayButton();
+    }
+
+    /** B5-0487: enable the Censure play button when a fleet is explicitly selected. */
+    private void updateCensurePlayButton() {
+        if (censureTargetSelector == null || censurePlayButton == null) return;
+        int idx = censureTargetSelector.getSelectedIndex();
+        boolean hasSelection = idx > 0 && idx - 1 < censureTargetCards.size();
+        if (hasSelection) {
+            selectedCensureTarget = censureTargetCards.get(idx - 1);
+            selectedCensureTargetOwner = censureTargetOwnerNames.get(idx - 1);
+        } else {
+            selectedCensureTarget = null;
+            selectedCensureTargetOwner = null;
+        }
+        // Must be ACTION phase, my turn, and an opponent fleet is explicitly
+        // selected (the target seam is set BY the user's pick, so gating on
+        // hasExplicitTarget() here would never enable — the card has no target
+        // until the picker fires).
+        Player hp = humanPlayer();
+        GameState gs = MainWindow.this.controller.getState();
+        boolean actionTurn = gs.getPhase() == GamePhase.ACTION
+            && gs.getActivePlayer() == hp
+            && MainWindow.this.controller.isWaitingForHuman();
+        censurePlayButton.setEnabled(actionTurn && hasSelection);
+        censureTargetLabel.setText(hasSelection
+            ? "Target: " + selectedCensureTargetOwner + " — " + selectedCensureTarget.getTitle()
+            : "Opponent fleet target:");
+    }
+
+    /** B5-0487: play the selected Enhancement targeting the chosen opponent fleet. */
+    private void playCensureWithTarget() {
+        if (selectedCensureTarget == null || selectedCensureTargetOwner == null) return;
+        if (!(selectedCard instanceof EnhancementCard)) return;
+        EnhancementCard enh = (EnhancementCard) selectedCard;
+        // Set the explicit opponent target via the B5-0468 seam.
+        enh.setOpponentTarget(selectedCensureTarget.getId(), selectedCensureTargetOwner);
+        MainWindow.this.controller.submitHumanAction(GameAction.playCard(enh));
+        clearSelection();
+    }
  
     /**
      * B5-0379: rebuild the read-only join-window participant list from the
@@ -1556,6 +1724,16 @@ public class MainWindow extends JFrame {
     /** B5-0328 F4: dispatch for the "Play Card" button (never initiates). */
     private void playOnly() {
         if (selectedCard == null || selectedCard instanceof ConflictCard) return;
+        // B5-0487: if the selected card is a Censure-class enhancement with an
+        // explicit opponent target seam, the censure play button is the dedicated
+        // path; the generic Play Card button stays for non-targeted plays.
+        if (selectedCard instanceof EnhancementCard) {
+            EnhancementCard enh = (EnhancementCard) selectedCard;
+            if (enh.getSubtype() != null && enh.getSubtype().endsWith("_FLEET")
+                    && enh.hasExplicitTarget()) {
+                return;   // censure play button owns this path
+            }
+        }
         MainWindow.this.controller.submitHumanAction(GameAction.playCard(selectedCard));
         clearSelection();
     }
@@ -1625,11 +1803,14 @@ public class MainWindow extends JFrame {
         } else {
             selectedAssistant = null;
         }
+        // B5-0401: Refresh Tier-1 remainder action UI
+        GameState gs = controller.getState();
+        // B5-0487: refresh censure opponent-fleet picker when a card is selected
+        refreshCensureControl(hp, gs.getPhase() == GamePhase.ACTION
+            && gs.getActivePlayer() == hp && controller.isWaitingForHuman());
         updatePlayInitiateButtons();
         // B5-0326 F5: refresh cost preview immediately
         refreshCostPreview();
-        // B5-0401: Refresh Tier-1 remainder action UI
-        GameState gs = controller.getState();
         refreshLeadFleetAndRotateEffect(hp, gs.getPhase() == GamePhase.ACTION
             && gs.getActivePlayer() == hp && controller.isWaitingForHuman());
     }
@@ -1657,6 +1838,16 @@ public class MainWindow extends JFrame {
         if (rotateEffectKindSelector != null) {
             rotateEffectKindSelector.setSelectedIndex(0);
             rotateEffectKindSelector.setEnabled(false);
+        }
+        // B5-0487: Censure opponent-fleet target picker reset
+        if (censureTargetSelector != null) {
+            censureTargetSelector.setSelectedIndex(-1);
+            censureTargetSelector.setEnabled(false);
+            censureTargetCards.clear();
+            censureTargetOwnerNames.clear();
+            selectedCensureTarget = null;
+            selectedCensureTargetOwner = null;
+            censurePlayButton.setEnabled(false);
         }
         // B5-0423: these three were populated by the submit that just resolved
         // but never reset, so the next turn started showing the previous card's

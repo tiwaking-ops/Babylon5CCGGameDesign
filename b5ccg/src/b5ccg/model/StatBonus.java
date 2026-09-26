@@ -15,6 +15,8 @@ public final class StatBonus {
     public final StatKey      stat;
     /** The modifier (may be negative for penalties). */
     public final int          delta;
+    /** Minimum value this bonus lifts its host stat to (0 = no floor). */
+    public final int          floor;
     /** Where the bonus applies (ATTACHED to a card, or FACTION-wide). */
     public final BonusScope   scope;
     /** The cardId the ATTACHED scope points at (null for FACTION). */
@@ -33,10 +35,11 @@ public final class StatBonus {
     public StatBonus(String sourceCardId, StatKey stat, int delta,
                      BonusScope scope, String targetCardId, String ownerName,
                      Expiry expiry, boolean psiFromZero, boolean cumulative,
-                     int createdRound) {
+                     int createdRound, int floor) {
         this.sourceCardId = sourceCardId == null ? "" : sourceCardId;
         this.stat        = stat;
         this.delta       = delta;
+        this.floor       = floor;
         this.scope       = scope;
         this.targetCardId = targetCardId;
         this.ownerName   = ownerName;
@@ -46,19 +49,33 @@ public final class StatBonus {
         this.createdRound = createdRound;
     }
 
-    /** Convenience factory for an ATTACHED non-Psi bonus. */
+    /** Convenience factory for an ATTACHED non-Psi bonus (default floor 0). */
     public static StatBonus attached(String sourceId, StatKey stat, int delta,
                                      String targetCardId, Expiry expiry,
                                      int createdRound) {
-        return new StatBonus(sourceId, stat, delta, BonusScope.ATTACHED,
-                             targetCardId, null, expiry, false, true, createdRound);
+        return attached(sourceId, stat, delta, targetCardId, expiry, createdRound, 0);
     }
 
-    /** Convenience factory for a FACTION-scope bonus (target-card-independent). */
+    /** Convenience factory for an ATTACHED non-Psi bonus with an explicit floor. */
+    public static StatBonus attached(String sourceId, StatKey stat, int delta,
+                                     String targetCardId, Expiry expiry,
+                                     int createdRound, int floor) {
+        return new StatBonus(sourceId, stat, delta, BonusScope.ATTACHED,
+                             targetCardId, null, expiry, false, true, createdRound, floor);
+    }
+
+    /** Convenience factory for a FACTION-scope bonus (default floor 0). */
     public static StatBonus faction(String sourceId, StatKey stat, int delta,
                                     String ownerName, Expiry expiry,
                                     int createdRound) {
+        return faction(sourceId, stat, delta, ownerName, expiry, createdRound, 0);
+    }
+
+    /** Convenience factory for a FACTION-scope bonus with an explicit floor. */
+    public static StatBonus faction(String sourceId, StatKey stat, int delta,
+                                    String ownerName, Expiry expiry,
+                                    int createdRound, int floor) {
         return new StatBonus(sourceId, stat, delta, BonusScope.FACTION,
-                             null, ownerName, expiry, false, true, createdRound);
+                             null, ownerName, expiry, false, true, createdRound, floor);
     }
 }

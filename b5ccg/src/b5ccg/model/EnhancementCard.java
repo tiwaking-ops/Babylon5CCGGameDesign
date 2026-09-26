@@ -67,14 +67,20 @@ public class EnhancementCard extends Card {
     }
 
     /**
-     * B5-0468: construct a StatBonus for this enhancement.
+     * B5-0486: construct a StatBonus for this enhancement with an optional
+     * minimum-floor value (0 = no floor, the default).
      * Returns null if there is no explicit target (self-target effects are
      * applied differently via the card's base bonus fields).
      */
     public StatBonus toAttachedBonus(StatKey stat, Expiry expiry, int createdRound) {
         if (!hasExplicitTarget()) return null;
+        return toAttachedBonus(stat, expiry, createdRound, 0);
+    }
+
+    public StatBonus toAttachedBonus(StatKey stat, Expiry expiry, int createdRound, int floor) {
+        if (!hasExplicitTarget()) return null;
         return StatBonus.attached(this.getId(), stat, bonusFor(stat),
-                                  targetCardId, expiry, createdRound);
+                                  targetCardId, expiry, createdRound, floor);
     }
 
     @Override

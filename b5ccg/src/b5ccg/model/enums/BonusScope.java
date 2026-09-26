@@ -7,5 +7,7 @@ package b5ccg.model.enums;
  */
 public enum BonusScope {
     ATTACHED,
-    FACTION
+    FACTION,
+    /** B5-0486: marks an ATTACKED-scope bonus for the damage-after-floor path. */
+    ATTACKED
 }

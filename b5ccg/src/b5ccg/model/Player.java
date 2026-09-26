@@ -319,6 +319,7 @@ public class Player {
 
     public int effectiveStat(String cardId, StatKey stat, int printedBase, boolean includeFaction) {
         int bonus = 0;
+        int floor = 0;
         boolean psiUnlocked = false;
         if (stat == StatKey.PSI && printedBase == 0) {
             for (StatBonus b : bonuses) {
@@ -331,9 +332,14 @@ public class Player {
         for (StatBonus b : bonuses) {
             if (stat == b.stat && appliesTo(b, cardId, includeFaction)) {
                 if (stat != StatKey.PSI || printedBase != 0 || psiUnlocked) bonus += b.delta;
+                if (b.floor > floor) floor = b.floor;
             }
         }
-        return printedBase + bonus;
+        int raw = printedBase + bonus;
+        if (floor > 0) {
+            raw = Math.max(raw, Math.min(printedBase, floor));
+        }
+        return raw;
     }
 
     private boolean appliesTo(StatBonus b, String cardId, boolean includeFaction) {

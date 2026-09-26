@@ -17,6 +17,7 @@ provenance:
     - {name: "opencode (me-so-poor)", version: "big-pickle"}
     - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
     - {name: "Buffy (unknown)", version: "unknown"}
+    - {name: "Buffy (unknown)", version: "unknown" — B5-0484 part 11 refresh}
   last_modified_by_llm: {name: "Buffy (unknown)", version: "unknown"}
   last_modified_date: "2026-09-26"
 ---
@@ -233,16 +234,16 @@ moves tension yet).
 ## 6. Headless testing (no UI)
 
 `sh compile.sh` with `RUN_TESTS=1` runs the full conformance suite
-(436 checks) plus a smoke game. B5-0437's station hooks added 14 STH
+(444 checks; see the suite banner for the live count) plus a smoke game.
+B5-0437's station hooks added 14 STH
 assertions (373 → 387); B5-0453 added 7 STH-AI assertions (387 → 394);
 B5-0464 added 4 AGL-LOG assertions (394 → 398); B5-0436 added D6/D7 named
 assertions and D15
 winner-only `influenceReward` coverage; B5-0469 added 22 ENH-SEAM assertions
 (398 → 420ish band, see suite banner for the live count); **B5-0473 added 14
-ENH-WIRE assertions (current total 436)** covering the opponent-targeted
-enhancement wiring. Several standalone CLI harnesses exist
-(not wired into RUN_TESTS — run directly with `java -cp out`):
-winner-only `influenceReward` coverage. Several standalone CLI harnesses exist
+ENH-WIRE assertions** covering the opponent-targeted enhancement wiring;
+**B5-0486 added 8 FLOOR assertions (current total 444)** for the minimum-1
+bonus-floor path. Several standalone CLI harnesses exist
 (not wired into RUN_TESTS — run directly with `java -cp out`):
 
 * Human-seat end-to-end probe (B5-0443, extended B5-0460 to 26 checks,
@@ -253,11 +254,15 @@ winner-only `influenceReward` coverage. Several standalone CLI harnesses exist
   are hard coverage on every run. **B5-0478 addition:** an opponent-targeted
   enhancement scenario (Censure-shape fixture) asserts the penalty lands in
   the opponent's bonus registry via the public read path — the fixture part
-  is deterministic. Known honesty note (B5-0476): the game-loop coverage
-  gates (`COVERAGE: agenda lifecycle` / `pass submitted`) are intermittent
-  across identical invocations because the driver schedules on wall time
-  with no seeded RNG — rerun before diagnosing; the synthetic scenarios are
-  stable. **B5-0471 addition:** a face-up agenda install check asserts the
+  is deterministic. **B5-0482 determinism outcome (supersedes the B5-0476
+  flake note):** the human driver RNG and the starter-deck random draw are
+  both now seeded from the CLI seed (`StarterDeckBuilder.setRandomSeed`), and
+  the `COVERAGE: agenda lifecycle` gate is a SOFT gate like bid/war — a
+  rulebook-faithful game can legally end with zero agenda lifecycle actions,
+  so it no longer fails runs. Residual honesty: because the soft gate marks a
+  check only when the path fires, the printed check count can differ between
+  runs (e.g. 36 vs 37) with the same seed; the PASS/FAIL verdict, not the
+  count, is the gate. **B5-0471 addition:** a face-up agenda install check asserts the
   `"sets agenda:"` token (the B5-0464 emitter fix for the B5-0459 zero-count
   parser artifact) is emitted from a human seat.
   `java -cp out b5ccg.engine.HeadlessHumanSeatProbe [seed] [timeoutSec]`
@@ -305,7 +310,7 @@ the live list below.
   pool interaction (B5-0373) is DONE: the named `isDoubleCostRequired`
   helper and neutral exemption are wired into the applyInfluence spend site
   — behaviour-preserving (base recruit cost math unchanged); its coverage remains
-  green in the current 436-check suite.
+  green in the current 444-check suite.
 * **Damage subsystem** — characters can be damaged and neutralised; the
   damage/neutralisation model (B5-0368) plus attack (B5-0370) and
   heal/repair (B5-0371) are all live, with UI controls landed (B5-0402).
@@ -335,9 +340,9 @@ the live list below.
   existing markers, but it means round-boundary expiry and stacking now work.
 * **AI mercenary bidding** — live (B5-0403): MEDIUM/HARD offer and score
   BID_ON_MERCENARY actions for offered mercenaries (minimal strictly-winning
-  increment, pool-affordability gated); EASY picks uniformly from the same
+  increment, pool-affordability gated);  EASY picks uniformly from the same
   legal list. MER-AI conformance section ×10 landed with it (historical suite
-  expansion; current total is 436 after B5-0436 (373) + B5-0437 STH ×14 + B5-0453 STH-AI ×7 + B5-0464 AGL-LOG ×4 + B5-0469 ENH-SEAM ×22 + B5-0473 ENH-WIRE ×14).
+  expansion; current total is 444 after B5-0436 (373) + B5-0437 STH ×14 + B5-0453 STH-AI ×7 + B5-0464 AGL-LOG ×4 + B5-0469 ENH-SEAM ×22 + B5-0473 ENH-WIRE ×14 + B5-0486 FLOOR ×8).
 * **Declare War UI** — live (B5-0407): a war target selector + Declare War
   button wired to the B5-0376 engine branch; the selector lists races at
   war, then their locations. Inert in normal games (no tension sources in
@@ -355,20 +360,20 @@ the live list below.
   (`offers.get(0)`), so if several mercenaries were ever offered
   simultaneously only the first would be bidable. Latent today: the
   mercenary pool is empty (B5-0386), so the control shows "(no mercenary
-  offers)" in every real game.
-* **Opponent-targeted enhancements have engine but no target-picking UI** —
+  offers)" in every real game.* **Opponent-targeted enhancements** —
   the engine path is live (B5-0468 model seam + B5-0473 wiring: an explicit
   opponent target routes the penalty into that owner's fleet registry, held
   in play if the target cannot resolve), and the pool's only exact-class
   card is Censure (B5-0477: `enh_censure` premiere + `de_enh_censure`
-  deluxe, Military −2). But no UI control or AI scoring yet SETS the target
-  at play time — cards default to self-target semantics (legacy own-fleet
-  path), so in a real game Censure currently attaches to your own best
-  fleet, which for a penalty is the wrong side. A future UI slice must
-  populate the B5-0468 target before play. Also recorded: the printed
-  "(minimum 1)" floor on Censure is not expressible in the current bonus
-  layer (final clamp 0, B5-0367) — flagged in the B5-0477 report for a
-  future task, not fixed.
+  deluxe, Military −2). No UI control or AI scoring yet SETS the target
+  at play time — cards default to self-target semantics (legacy own-fleet
+  path), so in a real game Censure currently attaches to your own best
+  fleet, which for a penalty is the wrong side. A UI target-picker slice
+  (B5-0487) is in flight to populate the B5-0468 target before play.
+  RESOLVED (B5-0484 status update): the printed
+  "(minimum 1)" floor on Censure is now implemented via B5-0486 (per-bonus
+  floor field on StatBonus + effectiveStat floor pass + BONUS_FLOORS table;
+  FLOOR ×8 suite section) — the B5-0477 flag is closed.
 
 **Honesty notes for playtesters:**
 

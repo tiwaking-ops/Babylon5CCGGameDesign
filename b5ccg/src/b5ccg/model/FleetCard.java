@@ -55,7 +55,16 @@ public class FleetCard extends Card {
         if (owner != null) {
             base = owner.effectiveStat(getId(), StatKey.MILITARY, base, true);
         }
-        return Math.max(0, base - getDamageTokens());
+        int floored = base;
+        for (StatBonus b : owner.getBonuses()) {
+            if (b.stat == StatKey.MILITARY && b.scope == BonusScope.ATTACHED
+                    && b.targetCardId != null && b.targetCardId.equals(getId())
+                    && b.floor > 0) {
+                int cap = military; // printed base before leader contribution
+                floored = Math.max(floored, Math.min(cap, b.floor));
+            }
+        }
+        return Math.max(0, floored - getDamageTokens());
     }
 
     @Override
