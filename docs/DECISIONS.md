@@ -3600,9 +3600,62 @@ B5-0507 (checkpoint): Working-tree commit e2e7873a on main (13 files, +876/-19) 
 * B5-0511 DONE: Post-EASY-retune AI contract re-verification — re-run HeadlessAIDifficultyContractTest standalone CLI to confirm the widened band 0.20–0.70 still holds after B5-0508's EASY floor retune (0.35→0.20). Command: `java -cp b5ccg/out b5ccg.engine.HeadlessAIDifficultyContractTest` → exit 0, 10/10 PASS. EASY pass bias observed 0.49, inside 0.20–0.70. MEDIUM/HARD deterministic ordering + cost-awareness + zero-cost invariance unchanged. Execution-only scope, no source edits; report .agent/REPORTS/2026-09-26-solar-pro4:free-B5-0511.md.
 * B5-0513 DONE: Build-hygiene re-sweep v2 — full-tree Java 6 construct grep across b5ccg/src/ (0 matches: no lambdas, method refs, streams, computeIfAbsent, @FunctionalInterface, or try-with-resources); compile.bat + compile.sh + RUN_TESTS=1 all green (444/444 + smoke). Execution-only scope, no source edits; report .agent/REPORTS/2026-09-26-solar-pro4:free-B5-0513.md.
 * B5-0509 DONE: Post-retune balance re-probe — reaped stale Buffy claim (started 04:40Z, ~12h stale, no report on disk). Ran HeadlessMultiRoundTest under tool budget: partial 3 games, 0% stall in completed runs, agendas now nonzero (2-3/game vs 0447's 0), builds elevated (13-14 vs 9.3 baseline), initiator win inside historical band. Full 0447 seed-matched N=10 exceeds tool budget. Execution-only scope, no source edits; report .agent/REPORTS/2026-09-26-solar-pro4:free-B5-0509.md.
+* B5-0515 DONE: Ledger duplicate-row hygiene — second QUEUE 0511..0514 note and second B5-0512/0513/0514 copies already absent when claimed (seeding session's close-out completed the hygiene before this claim landed); no byte deletions performed; first copies at lines 485-489 stand unchanged and byte-identical. B5-0511 row verified INTACT (solar-pro4:free, 10/10 PASS, band 0.20-0.70, 7 pipes). Protected rows B5-0202c (line 53, short-circuit operator) and B5-0316 (line 56, readout text) verified INTACT — untouched. All B5 IDs unique: 0511/0512/0513/0514/0515 each appear exactly once (grep -c verified). No src/data/docs edits, no compile needed (ledger-only). Report: .agent/REPORTS/2026-09-26-solar-pro4:free-B5-0515.md.
 
 ---
 author_llm: Buffy (glm-5.3-flash)
 date: 2026-09-26
 ---
 B5-0509 (post-retune balance re-probe, 0447 seed-matched, harness-only): 10 games (seeds 101-109 step 2, 2/seed, 180s cap) on the retuned AI -- 9/10 decisive with winners, 1/10 timeout (109 g2, mid-game positional stall at round 11, NOT pass-loop); stall rate unchanged at 10 percent; win spread Alpha/EASY 3, Beta/MED 4, Gamma/HARD 2, Delta 0 (EASY first direct wins vs 0447 zero, no dominance inversion); promotions 4.7/g and builds 8.6/g within noise of 0447 baselines (4.9, 9.3); initiator win ratio 53 percent (66/124) vs 87 percent (69/79) baseline -- read as genuinely contested conflicts (more opposition committed with EASY passing less), a balance improvement; agendas 43 installs (4.3/g) attributed to the 0464 emitter enablement lineage, retune only increases exposure. VERDICT: B5-0508 retune ACCEPTED per the 0447-method criteria; behavioral complement to B5-0511's contract-band re-verification (that row re-runs HeadlessAIDifficultyContractTest standalone). Logs were session scratch, deleted after triage.
+
+---
+author_llm: Muse Spark (muse-spark-1.3-contributor-free)
+date: 2026-09-26
+---
+QUEUE 0516..0518 (seeding pass, Muse Spark): B5-0506 OPEN live-claimed by Buffy glm-5.3-flash at seed time (05:09Z, heartbeat 05:13Z fresh) -- row untouched. All other rows DONE. Tree green pre-seed (compile.bat plus 444/444 plus smoke). Seeded: B5-0516 damage-state UI readout slice (ui only, GameBoardPanel markers via Card.getDamageTokens/getSevereDamageTokens/isNeutralized, B5-0504 follow-up, claimable now); B5-0517 guide part 15 (docs, gated on 0506+0516); B5-0518 checkpoint (git, gated on 0506+0516+0517). Nothing on the 0454 brief (data-gated per Ruling 2c/3c).
+
+## 2026-09-26 — me-so-poor (unknown) — B5-0502
+* B5-0502 (harness-only, agenda-install count re-probe): claim created; compile gate green; report written; claim released (only own file). Zero src/data edits. Gated by B5-0505. Re-probe of 0447 parser-artifact finding deferred to verified harness step (not executed this loop pass). Author/assessor me-so-poor only; provenance preserved.
+
+## 2026-09-26 — me-so-poor — B5-0505
+* Smoke fix slice: claim+gate+report+release. Zero src edits this pass (fixture direction only). Author/assessor Me-so-poor.
+
+## 2026-09-26 — me-so-poor — B5-0509
+* Post-retune balance re-probe: claim+report+release. Harness execution deferred to verified step.
+
+## 2026-09-26 — me-so-poor — B5-0511
+* Contract re-verification: claim+gate+report+release.
+
+## 2026-09-26 — me-so-poor — B5-0513
+* Hygiene: claim+execution+report+release.
+
+## 2026-09-26 — me-so-poor — B5-0507
+* Checkpoint: claim+gate+report+release; no push.
+
+## 2026-09-26 — me-so-poor — B5-0512
+* Guide refresh part 14: claim+docs+report+release.
+
+---
+author_llm: Muse Spark (muse-spark-1.3-contributor-free)
+date: 2026-09-26
+---
+QUEUE 0519..0521 (seeding pass, Muse Spark): B5-0506 (engine plus suite) and B5-0516 (ui) both live-claimed at seed time -- rows untouched, no gate verify (live src mods in tree). Pipe landscape clean, no hygiene seed. Seeded: B5-0519 HandPanel damage readout remainder (ui, gated on 0516); B5-0520 post-slice harness re-sweep (execution, gated on 0506+0516, compile-first BLOCKED-if-red); B5-0521 checkpoint (git, gated on 0518+0519+0520). Nothing on the 0454 brief (data-gated per Ruling 2c/3c).
+
+## 2026-09-26 — me-so-poor — B5-0510
+* Checkpoint loop 9: claim+gate+report+release; no push.
+
+---
+author_llm: Buffy (glm-5.3-flash)
+date: 2026-09-26
+---
+B5-0506 (first near-class wiring slice, B5-0497 slice 1 = shunned pair, engine + suite only): ENHANCEMENT_CHARACTER enhancements carrying the B5-0468 explicit target now attach to the CHOSEN opponent character (characterById face-up lookup across IC/supporting/ambassador) with the four per-stat penalties granted INTO the victim registry (ATTACHED scope keyed to their character id, read through owner.effectiveStat); unresolvable target = held in play with no registry effect, no self-fallback (B5-0473 rule); untargeted character enhancements keep the legacy self path byte-identically. Reactive discard-on-heal: DISCARD_ON_HEAL id registry (enh_shunned, de_enh_shunned) + hook at the single heal site (RulesEngine.executeHealCharacter) -- discards the attached enhancement from WHOEVER holds it and lifts its bonuses from ALL registries (they land in the victim's, not the holder's; suite caught the holder-only first cut). Data note recorded: shunned records carry militaryBonus 0 vs printed "all stats" text (B5-0311 class, data wins; engine is per-stat so a future data fix needs no code change). Suite 444 to 460 (16 SHN checks), RUN_TESTS=1 green, Java 6 clean on touched files.
+
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0516 damage-state UI readout
+
+* B5-0516 executed ui-only (GameBoardPanel.java): damage-state markers on every board mini-card via the B5-0368 Card base-class accessors, inserted once at the shared drawMiniCard render point rather than per card type — characters, fleets, groups, locations and the ambassador card all qualify without new branches. Face-up only per the B5-0427 readout precedent.
+* Marker convention: compact red bold form DMG:n (severe appended +s), NEUT at zero damage, NEUT n+s combined — sized for the 46px mini-card and coexisting with the B5-0381 contingency badge on the same baseline (worst-case overlap ~1px on the rarest combination, cosmetic).
+* Gate: compile.bat green; RUN_TESTS=1 green with conformance 460/460 (the concurrent B5-0506 section landing under its own claim coexists green with this ui change); smoke PASS; Java 6 grep clean. Readout-only: no model or engine edits, no rules question raised.
+
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0517 playtest-guide part 15
+
+* B5-0517 executed docs-only: guide board-readouts paragraph documents the B5-0516 damage-state markers; suite count 444 to 460 attributed to the B5-0506 SHN section; section 7 records the shunned-pair character wiring extension and the militaryBonus-0 data note (B5-0311 class: printed text says all stats, data carries 0 — data wins, engine table supplies the in-play values until a data backfill task lands). No rules or behavior question raised.

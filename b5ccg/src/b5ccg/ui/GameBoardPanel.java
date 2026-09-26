@@ -674,6 +674,34 @@ public class GameBoardPanel extends JPanel {
             g.drawString(marker, x + w - g.getFontMetrics().stringWidth(marker) - 2,
                          y + h - 2);
         }
+
+        // B5-0516: damage-state readout from the B5-0368 Card base-class API
+        // (getDamageTokens, getSevereDamageTokens, isNeutralized) so every
+        // mini-card qualifies — characters, fleets, groups, locations, and
+        // the large ambassador card alike. Face-up only, per the B5-0427
+        // captured/suppressed readout precedent: a face-down card's state
+        // stays as opaque as its identity (B5-0381 discipline).
+        if (!card.isFaceDown()) {
+            int dmg = card.getDamageTokens();
+            int sev = card.getSevereDamageTokens();
+            boolean neutral = card.isNeutralized();
+            // Compact form so the marker fits a 46px mini-card and stays clear
+            // of the right-aligned B5-0381 C-count badge on the same baseline:
+            // "DMG:n+s" (damage, +severe), "NEUT" (neutralized only), or
+            // "NEUT n+s" (neutralized at n damage, +s severe).
+            String state;
+            if (dmg > 0 || sev > 0) {
+                state = (neutral ? "NEUT " : "DMG:")
+                    + dmg + (sev > 0 ? "+" + sev : "");
+            } else {
+                state = neutral ? "NEUT" : "";
+            }
+            if (state.length() > 0) {
+                g.setColor(new Color(255, 80, 80));
+                g.setFont(new Font("SansSerif", Font.BOLD, 7));
+                g.drawString(state, x + 2, y + h - 2);
+            }
+        }
     }
 
     private Color factionColor(Player p) {

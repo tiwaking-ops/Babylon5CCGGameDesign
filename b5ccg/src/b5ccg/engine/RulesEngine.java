@@ -39,6 +39,27 @@ public class RulesEngine {
         int healed = ch.healDamage();
         if (p.getInnerCircle().contains(ch)) p.markInnerCircleHealed(ch);
         state.log(p.getName() + " rotates " + ch.getTitle() + " to heal (" + healed + " step).");
+        // B5-0506 (B5-0497 slice 1): shunned-class reactive discard -- after a
+        // successful heal, the discard-on-heal enhancement ATTACHED TO THIS
+        // character is discarded from WHOEVER holds it (its playing player,
+        // typically the opponent) and its granted bonuses are lifted. Matching
+        // is by targetCardId == the healed character, so other held
+        // discard-on-heal cards attached to other characters are untouched.
+        for (Player holder : state.getPlayers()) {
+            Iterator<EnhancementCard> eit = holder.getEnhancements().iterator();
+            while (eit.hasNext()) {
+                EnhancementCard enh = eit.next();
+                if (CardEffects.discardsOnHeal(enh.getId())
+                        && ch.getId().equals(enh.getTargetCardId())) {
+                    eit.remove();
+                    for (Player r : state.getPlayers()) {
+                        r.removeBonusesBySource(enh.getId());
+                    }
+                    state.log(holder.getName() + "'s " + enh.getTitle()
+                            + " is discarded (" + ch.getTitle() + " healed).");
+                }
+            }
+        }
         return true;
     }
 

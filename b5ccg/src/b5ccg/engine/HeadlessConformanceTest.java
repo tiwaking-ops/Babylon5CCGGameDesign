@@ -1628,6 +1628,96 @@ public class HeadlessConformanceTest {
                 ch8.getPrimaryStatValue(ConflictType.MILITARY) == 2);
     }
 
+    /** B5-0506 (B5-0497 slice 1): shunned-class opponent-character wiring. */
+    private static void testShunnedWiring() {
+        System.out.println("SHN (B5-0506): opponent-character enhancement attaches into the victim registry + discards on heal");
+
+        // Grant values mirror the enh_shunned / de_enh_shunned data exactly:
+        // Dip -2, Intr -2, Psi -2, Military 0 (data; the printed text says all
+        // stats — noted discrepancy, data wins per B5-0311), Lead -2.
+        EnhancementCard shunned = new EnhancementCard(
+                "enh_shunned", "Shunned Wire Test", "ENHANCEMENT_CHARACTER",
+                Rarity.UNCOMMON, Faction.ANY, CardSet.PREMIERE, "x", "text",
+                -2, -2, -2, 0, -2);
+
+        Player attacker = player("SHN-A", Faction.CENTAURI);
+        Player victim = player("SHN-B", Faction.NARN);
+        GameState st = state(attacker, victim);
+
+        CharacterCard target = leaderCard("shn_char_w1", 3);
+        victim.getInnerCircle().add(target);
+        target.setOwner(victim);
+        int preDip = target.getPrimaryStatValue(ConflictType.DIPLOMACY);
+        int preIntr = target.getPrimaryStatValue(ConflictType.INTRIGUE);
+        int preLead = target.getPrimaryStatValue(ConflictType.MILITARY);
+        int prePsi = target.getPrimaryStatValue(ConflictType.PSI);
+
+        shunned.setOpponentTarget("shn_char_w1", victim.getName());
+
+        // 1. Happy path: attaches to the CHOSEN opponent character.
+        CardEffects.applyPlayEnhancement(st, attacker, shunned);
+        check("SHN", "penalty granted into the victim registry (per stat)",
+                victim.hasAttachedBonusFrom("enh_shunned", "shn_char_w1"));
+        check("SHN", "attacker registry stays clean",
+                !attacker.hasAttachedBonusFrom("enh_shunned", "shn_char_w1"));
+        check("SHN", "Diplomacy drops by exactly the printed -2",
+                target.getPrimaryStatValue(ConflictType.DIPLOMACY) == preDip - 2);
+        check("SHN", "Intrigue drops by exactly the printed -2",
+                target.getPrimaryStatValue(ConflictType.INTRIGUE) == preIntr - 2);
+        check("SHN", "Leadership (Military read) drops by exactly the printed -2",
+                target.getPrimaryStatValue(ConflictType.MILITARY) == preLead - 2);
+        check("SHN", "printed-0 Psi clamps at 0 (minimum-0 rule, no unlock)",
+                target.getPrimaryStatValue(ConflictType.PSI) == prePsi
+                        && prePsi == 0);
+        check("SHN", "attach logged with victim attribution",
+                logContains(st, "attaches Shunned Wire Test to " + victim.getName()));
+        check("SHN", "card held on the playing player's list",
+                attacker.getEnhancements().contains(shunned));
+
+        // 2. Reactive discard through the real heal path (undamaged IC member
+        //    rotates to aid — legal per canHealCharacter).
+        RulesEngine rules = new RulesEngine();
+        boolean healed = rules.executeHealCharacter(victim, target, st);
+        check("SHN", "damaged-or-IC character heals through the engine", healed);
+        check("SHN", "discard-on-heal enhancement removed from its holder",
+                !attacker.getEnhancements().contains(shunned));
+        check("SHN", "bonus lifted from the victim registry on heal",
+                !victim.hasAttachedBonusFrom("enh_shunned", "shn_char_w1"));
+        check("SHN", "stats recover after the lift (Diplomacy back to pre-attach)",
+                target.getPrimaryStatValue(ConflictType.DIPLOMACY) == preDip);
+        check("SHN", "discard logged",
+                logContains(st, "Shunned Wire Test is discarded"));
+
+        // 3. Registry gate: only registered ids react.
+        check("SHN", "both pool ids registered; unregistered id is not",
+                CardEffects.discardsOnHeal("enh_shunned")
+                        && CardEffects.discardsOnHeal("de_enh_shunned")
+                        && !CardEffects.discardsOnHeal("enh_char_legacy_w1"));
+
+        // 4. Untargeted character enhancement keeps the legacy self path.
+        EnhancementCard legacy = new EnhancementCard(
+                "enh_char_legacy_w1", "Legacy Char Test", "ENHANCEMENT_CHARACTER",
+                Rarity.COMMON, Faction.ANY, CardSet.PREMIERE, "x", "text",
+                1, 0, 0, 0, 0);
+        Player own = player("SHN-C", Faction.NARN);
+        GameState st2 = state(own, attacker);
+        CardEffects.applyPlayEnhancement(st2, own, legacy);
+        check("SHN", "untargeted character enhancement keeps the legacy self path",
+                own.hasAttachedBonusFrom("enh_char_legacy_w1", own.getAmbassador().getId()));
+
+        // 5. Unresolvable explicit target: held in play, no registry effect.
+        EnhancementCard ghost = new EnhancementCard(
+                "de_enh_shunned", "Shunned Ghost Test", "ENHANCEMENT_CHARACTER",
+                Rarity.UNCOMMON, Faction.ANY, CardSet.PREMIERE, "x", "text",
+                -2, -2, -2, 0, -2);
+        ghost.setOpponentTarget("char_does_not_exist", "NO_SUCH_PLAYER");
+        GameState st3 = state(attacker, victim);
+        CardEffects.applyPlayEnhancement(st3, attacker, ghost);
+        check("SHN", "unresolvable target leaves the card held with no registry effect",
+                attacker.getEnhancements().contains(ghost)
+                        && !victim.hasAttachedBonusFrom("de_enh_shunned", "shn_char_w1"));
+    }
+
     private static void testOpponentEnhancementWiring() {
         System.out.println("ENH-WIRE (B5-0473): explicit-target fleet enhancements attach into the opponent registry");
 
@@ -3917,6 +4007,7 @@ public class HeadlessConformanceTest {
             testAgendaInstallLog();   // B5-0464: sets-agenda token emitter paired with the runner parser
             testOpponentEnhancementSeam(); // B5-0469: opponent-targeted enhancement model seam shape
             testOpponentEnhancementWiring(); // B5-0473: explicit-target fleet enhancement engine wiring
+            testShunnedWiring(); // B5-0506: opponent-character enhancement (shunned) wiring
             testBonusFloor(); // B5-0486: minimum-1 bonus floor (Censure-class printed floors)
             System.out.println("All B5-0203 deviations D1-D14 resolved; D15 partial by effect-coverage; D6/D7 now have dedicated named assertions (B5-0436). B5-0437 station hooks covered (STH). B5-0453 AI station-awareness covered. B5-0469 enhancement seam asserted (ESM).");
 

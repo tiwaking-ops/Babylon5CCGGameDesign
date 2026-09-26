@@ -20,6 +20,7 @@ provenance:
     - {name: "Buffy (unknown)", version: "unknown" — B5-0484 part 11 refresh}
     - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash" — B5-0498 part 13 refresh}
     - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash" — B5-0512 part 14 refresh}
+    - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash" — B5-0517 part 15 refresh}
   last_modified_by_llm: {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
   last_modified_date: "2026-09-26"
 ---
@@ -161,7 +162,11 @@ green, opposers orange); a green **WON BY** banner appears after a conflict
 resolves; agenda slots show MAJOR/minor and a `[WIN]` marker when the
 agenda's condition is currently met; `A+`/`A$` mark the assistant
 assist-bonus and sponsor-discount states (B5-0339). Captured/suppressed
-locations show red `CAP:<player>`/`SUP` markers on their mini-cards, a red
+locations show red `CAP:<player>`/`SUP` markers on their mini-cards, and
+damaged or neutralized cards of any type show a red damage-state marker
+on every board mini-card — `DMG:<n>` (severe appended as `+<s>`), `NEUT`
+when neutralized, or `NEUT <n>+<s>` combined (B5-0516; face-up cards
+only, read from the B5-0368 damage API). A red
 board pill lists at-war faction pairs whenever a war exists, and a bottom
 line always shows station influence plus Shadow/Vorlon ratings — gaining a
 red `[SHADOW WAR]` marker when either rating reaches the condition-2
@@ -241,8 +246,10 @@ moves tension yet).
 ## 6. Headless testing (no UI)
 
 `sh compile.sh` with `RUN_TESTS=1` runs the full conformance suite
-(444 checks; see the suite banner for the live count; re-verified green
-2026-09-26 by the B5-0500 re-sweep, which also re-ran all seven standalone
+(**460 checks**; see the suite banner for the live count; re-verified green
+2026-09-26 with the B5-0506 shunned-wiring and B5-0516 board-readout
+changes coexisting green, and by the B5-0500 re-sweep before them, which
+also re-ran all seven standalone
 probes PASS) plus a smoke game. One transient smoke-run failure mode is
 known and classified — see the B5-0495 honesty note in section 7.
 B5-0437's station hooks added 14 STH
@@ -252,8 +259,11 @@ assertions and D15
 winner-only `influenceReward` coverage; B5-0469 added 22 ENH-SEAM assertions
 (398 → 420ish band, see suite banner for the live count); **B5-0473 added 14
 ENH-WIRE assertions** covering the opponent-targeted enhancement wiring;
-**B5-0486 added 8 FLOOR assertions (current total 444)** for the minimum-1
-bonus-floor path. Several standalone CLI harnesses exist
+**B5-0486 added 8 FLOOR assertions** for the minimum-1
+bonus-floor path; **B5-0506 added 16 SHN assertions (current total
+460)** for the shunned opponent-character wiring (explicit character
+target, four per-stat penalties in the victim registry, reactive
+discard-on-heal). Several standalone CLI harnesses exist
 (not wired into RUN_TESTS — run directly with `java -cp out`):
 
 * Human-seat end-to-end probe (B5-0443, extended B5-0460 to 26 checks,
@@ -389,6 +399,14 @@ the live list below.
   "(minimum 1)" floor on Censure is now implemented via B5-0486 (per-bonus
   floor field on StatBonus + effectiveStat floor pass + BONUS_FLOORS table;
   FLOOR ×8 suite section) — the B5-0477 flag is closed.
+  **B5-0506 extended the wiring to opponent CHARACTERS** (the shunned
+  pair): a character enhancement carrying an explicit target attaches its
+  four per-stat penalties to the chosen opponent character and is
+  discarded — lifting its bonuses — when that character is healed
+  (reactive discard-on-heal, SHN ×16 suite section). Data note on record:
+  the shunned records carry `militaryBonus: 0` against their printed
+  "all stats" text (B5-0311 class; data wins), so the penalty values in
+  play come from the engine table until a data task backfills them.
 
 **Honesty notes for playtesters:**
 

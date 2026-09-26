@@ -266,6 +266,43 @@ public final class CardEffects {
         }
 
         if (subtype.endsWith("_CHARACTER")) {
+            // B5-0506 (B5-0497 slice 1): shunned-class CHARACTER enhancements
+            // carry an explicit opponent target and attach to the CHOSEN
+            // opponent character instead of the owner's best. The penalty is
+            // granted INTO the target owner's registry (ATTACHED scope keyed to
+            // their character id), read back through owner.effectiveStat. An
+            // explicit target that cannot be resolved (unknown player, unknown
+            // or face-down character) leaves the card held in play with no
+            // registry effect — no self-fallback (B5-0473 rule).
+            if (card.hasExplicitTarget()) {
+                p.getEnhancements().add(card);
+                Player victim = findPlayerByName(state, card.getTargetOwnerName());
+                CharacterCard victimChar = victim == null
+                        ? null : characterById(victim, card.getTargetCardId());
+                if (victimChar != null) {
+                    victimChar.setOwner(victim);
+                    int r = state.getRoundNumber();
+                    victim.grantBonus(StatBonus.attached(id, StatKey.DIPLOMACY,
+                            card.getDiplomacyBonus(), victimChar.getId(),
+                            Expiry.WHILE_IN_PLAY, r));
+                    victim.grantBonus(StatBonus.attached(id, StatKey.INTRIGUE,
+                            card.getIntrigueBonus(), victimChar.getId(),
+                            Expiry.WHILE_IN_PLAY, r));
+                    victim.grantBonus(StatBonus.attached(id, StatKey.PSI,
+                            card.getPsiBonus(), victimChar.getId(),
+                            Expiry.WHILE_IN_PLAY, r));
+                    victim.grantBonus(StatBonus.attached(id, StatKey.LEADERSHIP,
+                            card.getLeadershipBonus(), victimChar.getId(),
+                            Expiry.WHILE_IN_PLAY, r));
+                    state.log(p.getName() + " attaches " + card.getTitle()
+                            + " to " + victim.getName() + "'s " + victimChar.getTitle()
+                            + " (all stats " + card.getDiplomacyBonus() + ").");
+                } else {
+                    state.log(p.getName() + " holds " + card.getTitle()
+                            + " (opponent target unavailable; held in play).");
+                }
+                return;
+            }
             CharacterCard target = bestCharacter(p);
             int dip = card.getDiplomacyBonus();
             int inr = card.getIntrigueBonus();
@@ -410,6 +447,16 @@ public final class CardEffects {
 
     // ── Bonus floors: card id → minimum stat value after penalty (B5-0486) ──
     // Data: printed "minimum 1" on Censure-class fleet enhancements.
+    // B5-0506 (B5-0497 slice 1): character enhancements whose text discards them
+    // on a printed trigger ("Discard when that character is healed"). The
+    // discard is executed by the heal site (RulesEngine.executeHealCharacter)
+    // via discardsOnHeal(); this registry only answers "does this card react?".
+    private static final Set<String> DISCARD_ON_HEAL = new HashSet<String>();
+    static {
+        DISCARD_ON_HEAL.add("enh_shunned");
+        DISCARD_ON_HEAL.add("de_enh_shunned");
+    }
+
     private static final Map<String, Integer> BONUS_FLOORS = new HashMap<String, Integer>();
     static {
         BONUS_FLOORS.put("enh_censure",    Integer.valueOf(1));
@@ -461,6 +508,27 @@ public final class CardEffects {
         for (FleetCard f : victim.getFleets()) {
             if (cardId.equals(f.getId()) && !f.isFaceDown()) return f;
         }
+        return null;
+    }
+
+    /** B5-0506: true when the enhancement id is registered to discard when
+     *  its host character is healed. */
+    public static boolean discardsOnHeal(String cardId) {
+        return cardId != null && DISCARD_ON_HEAL.contains(cardId);
+    }
+
+    /** B5-0506: face-up character lookup by card id on the target player.
+     *  Face-down characters are unresolvable (identity stays hidden). */
+    private static CharacterCard characterById(Player victim, String cardId) {
+        if (cardId == null) return null;
+        for (CharacterCard ch : victim.getInnerCircle()) {
+            if (cardId.equals(ch.getId()) && !ch.isFaceDown()) return ch;
+        }
+        for (CharacterCard ch : victim.getSupportingRole()) {
+            if (cardId.equals(ch.getId()) && !ch.isFaceDown()) return ch;
+        }
+        CharacterCard amb = victim.getAmbassador();
+        if (amb != null && cardId.equals(amb.getId()) && !amb.isFaceDown()) return amb;
         return null;
     }
 
