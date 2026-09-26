@@ -37,8 +37,9 @@ provenance:
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
+    - {name: "Buffy", version: "unknown"}
   created_date: "2026-09-21"
-  last_modified_by_llm: {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
+  last_modified_by_llm: {name: "Buffy (unknown)", version: "unknown"}
   last_modified_date: "2026-09-26"
 ---
 
@@ -3669,8 +3670,107 @@ B5-0506 (first near-class wiring slice, B5-0497 slice 1 = shunned pair, engine +
 * B5-0519 executed ui-only (HandPanel.java): hand-card damage-state marker mirroring the B5-0516 board convention via the same B5-0368 Card API — right-aligned on the stats baseline so collision with the left-aligned stat string is impossible by construction, drawn after the dim overlay (never-hidden, B5-0361 principle), face-down cards skipped (B5-0381).
 * Honest scope note: the marker is dormant in normal play (damage applies to in-play cards; hand cards are fresh) — it is defensive symmetry closing the B5-0504 gap-table HandPanel entry, and it fires if the engine ever applies hand-card damage. No model or engine edits, no rules question raised. Gate green (compile.bat + RUN_TESTS=1 460/460 + smoke).
 
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0521 checkpoint
+
+* B5-0521 executed git-only: checkpoint e41775d2 on main (7 files, +266/−3) — the 0519 HandPanel damage readout, DECISIONS 0518-0520, ledger through 0521, 3 reports + 1 pattern. Gate-first verified (compile.bat + RUN_TESTS=1, conformance 460/460 + smoke PASS). NOT pushed. Exclusions per row text and precedent: all CLAIMS/HEARTBEATS, b5ccg/src/.agent/, node_modules/, guide tmp, untracked root droppings. Ledger terminal at close: zero OPEN rows.
+
+## 2026-09-26 — Buffy (glm-5.3-flash): seeding pass B5-0522..0525
+
+* Seeded four OPEN rows onto the terminal queue, grounded in verified tree state: B5-0522 mines + energy_mines wiring slice (B5-0497 slice 2 — one shared damage-on-attacked reactive hook at the executeAttackConflictParticipant site, GameController.java:398, damage via B5-0368 counters, id-registry pattern per the 0506 DISCARD_ON_HEAL precedent at CardEffects.java:454-457, double-trigger guard for the energy_mines self-host, engine + suite only); B5-0523 shunned printed-values data triage with an honest contingency (verify DeckLoader non-military stat-bonus hydration FIRST; populate values-only if supported, record the loader gap and stop if not — no invented schema); B5-0524 guide part 16 (gated 0522+0523); B5-0525 checkpoint (gated 0522+0523+0524, ordered after 0521).
+* Grounding recorded: tension is moved only by engine war resolution (RulesEngine.java:466), so no pool card is blocked by the 0522 slice; nothing seeded on the 0454 brief (mercenary/contingency remain data-gated per Rulings 2c/3c).
+
 ---
 author_llm: Buffy (glm-5.3-flash)
 date: 2026-09-26
 ---
 B5-0520 (post-slice harness re-sweep, 0489/0500 precedent, execution-only): compile-first green (tree not red -- only the two closed slices' edits uncommitted); RUN_TESTS=1 460/460 conformance + smoke PASS; all 7 standalone probes PASS exit 0 -- 0350 tiebreak 26 checks, 0351 AI difficulty contract VERIFIED (bands unshifted -- the 0506 CHARACTER-branch + heal-site wiring and 0516 ui readout did not move scoring paths, verified not assumed), 0382 station 6/0, 0383 participation PASS, 0384 lead-fleet 9/0 (stable post-0494 fix), 0419 war PASS, 0443 human-seat 37/37 with heal repair bid agendaInstall war all exercised live (the paths the 0506 hook touches). 8 of 8 sweep items green; zero source edits.
+
+## 2026-09-26 - Muse Spark (muse-spark-1.3-contributor-free): seed B5-0522..0524
+
+* Ledger terminal at seed time (zero OPEN rows, B5-0521 verifies terminal). Claims on disk all residue on DONE rows (0468, 0470, 0471 empty; 0472, 0476, 0514 non-empty markers), left for owners. Heartbeats idle. Tree holds only governance plus guide plus report mods, zero src mods vs e41775d2.
+* Seeded three OPEN rows, all grounded in-tree this pass: B5-0522 CHARACTER picker extension (MainWindow.java 1517-1539 gates refreshCensureControl on Enhancement FLEET only; 0506 explicit-target ENHANCEMENT CHARACTER branch live for AI; 0517 advisory flags the human shunned self-path gap) ui-only, claimable now. B5-0523 guide part 16 (0519 hand-symmetry pointer riding next refresh plus undocumented 0520 re-sweep) docs-only, claimable now, parallel-safe with 0522. B5-0524 checkpoint git-only, gated on 0522 plus 0523 DONE.
+* Nothing seeded on the 0454 brief (mercenary and contingency stay data-gated per Ruling 2c and 3c).
+
+## 2026-09-26 - Muse Spark (muse-spark-1.3-contributor-free): seed correction (wipe plus collision)
+
+* CORRECTION to the seed entry above (supersede-never-rewrite, original untouched): the B5-0522..0524 rows it describes never survived. A three-way seeding collision occurred in one window (my picker plus guide plus checkpoint block, a Buffy mines plus shunned-triage 0522..0525 block, a Buffy direct-user-order 0522..0525 block), followed by a concurrent whole-file ledger rewrite that kept ONLY the direct-order set (0522 opponent-character picker, 0523 shunned data fix, 0524 dual-0509 reconciliation, 0525 checkpoint). Grep-verified: zero bytes of my block survive in TASK_LEDGER.md, and the Buffy mines block is likewise gone. No claims or heartbeat intent ever attached to the removed rows, so no work was lost, only seed text.
+* The surviving direct-order set already covers my picker and checkpoint intent, so I seeded only the genuinely uncovered gap as B5-0526 (guide part 16: 0519 hand-symmetry pointer plus 0520 re-sweep), docs-only, parallel-safe. The above entry's ID references (0522..0524 as my rows) are therefore stale and must not be used to claim.
+* Residual collision NOT mine to fix here: me-so-poor self-seeded OPEN rows reusing retired DONE IDs B5-0517 and B5-0518 (still in the ledger at note time). Flagged for their owner or the next hygiene pass; I touched neither row.
+* ADDENDUM (same session, post-verify): precise state is worse than reuse and better than ambiguity -- the original DONE 0517 (guide part 15) and DONE 0518 (checkpoint 8e062c8e) history rows are absent from the ledger; the me-so-poor OPEN rows occupy those IDs alone, so the all-IDs-unique invariant currently HOLDS (verified: 7 OPEN rows, zero duplicates, zero double-pipe rows). The lost history survives in git commits, DECISIONS entries, and close-out reports. Restoration (re-inserting the two DONE rows under fresh IDs vs accepting the overwrite) is left to the owner or next hygiene pass; I will not rewrite another agent's rows.
+
+## 2026-09-26 - Muse Spark (muse-spark-1.3-contributor-free): verify plus seed B5-0530..0533
+
+* VERIFY (this session, JDK 1.8.0_292): compile.bat exit 0 (only the expected bootstrap warning); HeadlessConformanceTest 460/460 PASS; HeadlessSmokeTest PASS (446 cards, 32 AI actions, 4/4 legal); Java 6 grep zero code-context offenders (28 arrows all comment or string-literal class incl. one GameAction string append; zero method refs; getOrDefault hits are DeckLoader's own private helper).
+* SEED: B5-0522 live-claimed by Buffy (unknown) with MainWindow.java in flight, so no ui seed. Seeded B5-0530 post-slice re-sweep (gated on 0522 plus 0523 plus 0528, 0489/0500 precedent), B5-0531 guide part 17 (gated on 0522 plus 0523 plus 0527 plus 0528), B5-0533 checkpoint (gated on 0529 plus 0530 plus 0531). Flagged for the 0529 owner without touching the row: its gate cites ghost rows 0524/0525 (renumbered to 0527 / withdrawn per the repair record).
+* HYGIENE (same pass, B5-0515 precedent): me-so-poor's OPEN self-seeds reused live DONE IDs 0519 and 0520 (the DONE originals sit at ledger lines 544-545, so this was a genuine duplicate, unlike the 0517 plus 0518 case where the originals are absent). Owner idle (heartbeat status done, current_task null, zero claim files for either ID), so I renumbered the two OPEN rows to B5-0534 (smoke-test extension) and B5-0535 (DECISIONS hygiene), content otherwise byte-identical; no other bytes touched.
+
+## 2026-09-26 - Buffy (unknown): B5-0522 opponent-character target-picker extension
+
+* B5-0522 (ui-only, seeded by Muse Spark): extended the B5-0487 opponent-fleet
+  target-picker pattern to Enhancement CHARACTER cards carrying the B5-0468
+  explicit-target seam (shunned-class today), making the B5-0506 engine path
+  human-reachable for the first time. New charCensure picker trio in
+  MainWindow.java mirrors the 0487 flow (empty-state disable, held-in-play
+  fallback, selection restore); refresh rides refreshCensureControl's three
+  call sites; playOnly() yields targeted CHARACTER plays to the new button.
+  Target population scope = CardEffects.characterById (face-up IC + supporting
+  role + ambassador of non-human, non-forfeited players).
+* Same-class defect fixed (B5-0435/0490 precedent, disclosed in the row
+  report): the 0487 fleet button handler gated the targeted path on
+  enh.hasExplicitTarget() — a value its own delegate sets immediately before
+  submit — so every targeted click fell through to the self-target path. Both
+  handlers now route on the picker's selection. Pattern filed:
+  .agent/PATTERNS/Buffy (unknown)/2026-09-26-dispatch-on-picker-selection-not-post-submit-state.md.
+* Interpretation: the row text's "non-won opponent characters" filter does not
+  exist in code (descends from the fabricated 0487 mechanism sentence, B5-0493
+  F1); implemented face-up + non-human + non-forfeited per the live 0506
+  engine resolution. No rotate filter (engine checks face-up only).
+* VERIFY (this session, JDK 1.8.0_292): Java 6 grep on MainWindow.java 0;
+  compile.bat exit 0; RUN_TESTS=1 exit 0 (conformance 460/460 + smoke PASS);
+  HeadlessHumanSeatProbe 42 exit 0 (37/37). Report:
+  .agent/REPORTS/2026-09-26-Buffy-(unknown)-B5-0522.md.
+
+## 2026-09-26 - Solar Pro4 (solar-pro4:free): B5-0523 shunned militaryBonus data fix
+
+* B5-0523 DONE (solar-pro4:free, data-only): set `militaryBonus` from 0 to -2 in
+  `enh_shunned` (premiere.json line 3599) and `de_enh_shunned` (deluxe.json line 2848)
+  so the data matches the printed "loses 2 from all stats" text. Two fields only, no
+  text or other stats touched. The B5-0506 SHN engine path grants each bonusFor value
+  per-stat, so the fix makes the printed Military penalty live — previously the card
+  granted -2 to Diplomacy/Intrigue/Psi/Leadership but 0 to Military, contradicting
+  "all stats". Verified: exact-value grep confirms militaryBonus -2 on both records;
+  RUN_TESTS=1 green (compile 57 files -source 6, conformance 460/460 PASS, smoke PASS
+  with 446 cards, 32 AI actions, 4/4 legal); SHN conformance fixture (B5-0506) builds
+  its own card and does not read JSON, so no test change needed. No code, suite, UI,
+  or docs edits. Report: .agent/REPORTS/2026-09-26-solar-pro4-free-B5-0523.md.
+
+## 2026-09-26 - Solar Pro4 (solar-pro4:free): B5-0526 playtest-guide refresh part 16
+
+* B5-0526 DONE (solar-pro4:free, docs-only): refreshed
+  `docs/playtest-guide.md` to cover the B5-0519 HandPanel damage-state
+  readout (mirror of B5-0516 board marker, right-aligned, dormant in
+  normal play) and the B5-0520 post-slice harness health re-sweep (460/460
+  conformance PASS plus all 7 standalone probes PASS, 0351 bands
+  unshifted). The B5-0519 hand-symmetry note was added to the board-readouts
+  paragraph and the B5-0520 re-sweep outcome was recorded under the board
+  readouts as well. Suite count 460 unchanged (current per the 0520 gate
+  run). No src or resources edits; gate not re-run (docs-only). Report:
+  .agent/REPORTS/2026-09-26-solar-pro4-free-B5-0526.md.
+
+## 2026-09-26 - Solar Pro4 (solar-pro4:free): B5-0527 dual B5-0509 reconciliation audit
+
+* B5-0527 DONE (solar-pro4:free, report-only): audited the asserted "two
+  independently produced 0509 reports" premise against disk state. FINDING:
+  only ONE 0509 report exists on disk — `.agent/REPORTS/2026-09-26-Buffy-(glm-5.3-flash)-B5-0509.md`
+  (Buffy, glm-5.3-flash, 05:05Z, 92 lines). The solar-pro4:free 05:04Z report
+  named in the queue note is absent (file not found). The ledger-tail absorption
+  note's "my recorded set: 9 of 10 decisive, wins A3 B4 G2 D0, 124 initiated
+  66 won, prom 47 builds 86 aftermaths 82 agendas 43" matches the Buffy report
+  exactly; the "my" attribution is to Buffy, not solar-pro4:free. VERDICT: no
+  divergence to reconcile — the "two reports" premise was a terminology error in
+  the seed note, not a real conflict. The Buffy 0509 record stands as the sole
+  accepted 0509 record. No arithmetic errors found (Buffy numbers internally
+  consistent); no tree-version difference (both reference the post-B5-0508
+  retune tree; B5-0506 wiring pre-dates the probe). Report:
+  .agent/REPORTS/2026-09-26-solar-pro4-free-B5-0527.md.
+2026-09-26 B5-0532: build-hygiene re-sweep v3 completed (me-so-poor unknown); compile.bat + RUN_TESTS=1 green; forbidden Java 6 construct grep 0 hits across b5ccg/src; no source edits; claim released; report .agent/REPORTS/2026-09-26-me-so-poor-B5-0532.md; reusable lesson filed .agent/PATTERNS/me-so-poor/2026-09-26-b5-0532-build-hygiene.md. No interpretation of rulebook needed (execution only).

@@ -836,6 +836,20 @@ public class RulesEngine {
         ConflictType ability = conflict.getConflictType();
         int attackDamage = attacker.getAttackDamage(ability);
         int returnDamage = target.getAttackDamage(ability);
+        // B5-0528: faction-held mines + energy_mines trigger +1 damage on
+        // attacking fleets (reactive effect checked at attack-resolution site).
+        if (target != null) {
+            Player targetOwner = ownerOfCard(target, conflict);
+            if (targetOwner != null) {
+                for (Card enh : targetOwner.getEnhancements()) {
+                    if (enh instanceof EnhancementCard
+                            && CardEffects.damageOnAttack(((EnhancementCard) enh).getId())) {
+                        returnDamage += 1;
+                        break;
+                    }
+                }
+            }
+        }
         boolean support = conflict.isSupporting(p);
         if (!conflict.commitCard(p, attacker, support)) return false;
         conflict.markAttackOccurred(); // B5-0376 Phase C: attack resolves → contested

@@ -115,6 +115,23 @@ public class MainWindow extends JFrame {
     private FleetCard selectedCensureTarget;
     private String    selectedCensureTargetOwner;
 
+    // B5-0522: opponent-CHARACTER target picker (shunned-class today). Mirrors
+    // the B5-0487 fleet picker: when the human selects an Enhancement CHARACTER
+    // card carrying the B5-0468 explicit-target seam (shunned-class today),
+    // this dropdown lists opponent factions' face-up characters (inner circle,
+    // supporting role, ambassador — the B5-0506 characterById scope); picking
+    // one sets the explicit opponent target via the seam before the card is
+    // played. If no target is picked (or none are legal), the engine's
+    // held-in-play policy applies — no self-fallback onto the owner's own
+    // character. Non-targeted CHARACTER enhancements keep the normal path.
+    private JComboBox<String> charCensureTargetSelector;
+    private JLabel             charCensureTargetLabel;
+    private JButton            charCensurePlayButton;
+    private final java.util.ArrayList<CharacterCard> charCensureTargetCards = new java.util.ArrayList<CharacterCard>();
+    private final java.util.ArrayList<String>        charCensureTargetOwnerNames = new java.util.ArrayList<String>();
+    private CharacterCard selectedCharCensureTarget;
+    private String        selectedCharCensureTargetOwner;
+
     // B5-0401: Tier-1 remainder action UI — Lead Fleet + Use Rotate Effect
     private JButton leadFleetButton;
     private JComboBox<String> leadFleetSelector;
@@ -621,20 +638,68 @@ public class MainWindow extends JFrame {
                 if (!(selectedCard instanceof EnhancementCard)) return;
                 EnhancementCard enh = (EnhancementCard) selectedCard;
                 if (!(enh.getSubtype() != null && enh.getSubtype().endsWith("_FLEET"))) return;
-                // Only Censure-class cards carry the explicit-target seam today;
-                // other fleet enhancements keep self-target via the normal Play path.
-                if (!enh.hasExplicitTarget()) {
-                    // No explicit target set — fall through to normal self-target play
+                // B5-0522 same-class fix (B5-0435/0490 precedent, disclosed):
+                // route on the PICKER's selection, not enh.hasExplicitTarget() —
+                // the seam is set inside playCensureWithTarget right before
+                // submit, so the old check was never true and every targeted
+                // click fell through to the self-target path.
+                if (selectedCensureTarget == null || selectedCensureTargetOwner == null) {
+                    // No opponent fleet picked (button should be disabled) —
+                    // normal self-target play path.
                     MainWindow.this.controller.submitHumanAction(GameAction.playCard(enh));
                     clearSelection();
                     return;
                 }
-                // Explicit opponent target is set — submit with the target
+                // Explicit opponent target chosen — submit with the target
                 playCensureWithTarget();
             }
         });
         censurePlayButton.setEnabled(false);
         censurePlayButton.setToolTipText("Play this Enhancement targeting the selected opponent fleet (B5-0487).");
+
+        // B5-0522: opponent-CHARACTER target picker (shunned-class seam cards)
+        charCensureTargetSelector = new JComboBox<String>(new String[] { "(select opponent character)" });
+        charCensureTargetSelector.setEnabled(false);
+        charCensureTargetSelector.setMaximumSize(new Dimension(200, 24));
+        charCensureTargetSelector.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                updateCharCensurePlayButton();
+            }
+        });
+
+        charCensureTargetLabel = new JLabel("Opponent character target:");
+        charCensureTargetLabel.setForeground(new Color(200, 220, 200));
+        charCensureTargetLabel.setFont(new Font("SansSerif", Font.PLAIN, 10));
+        charCensureTargetLabel.setMaximumSize(new Dimension(150, 24));
+
+        charCensurePlayButton = makeButton("Play (opponent char target)", new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Player hp = humanPlayer();
+                if (hp == null) return;
+                if (!(selectedCard instanceof EnhancementCard)) return;
+                EnhancementCard enh = (EnhancementCard) selectedCard;
+                if (!(enh.getSubtype() != null && enh.getSubtype().endsWith("_CHARACTER"))) return;
+                // B5-0522: route on the PICKER's selection, not enh
+                // hasExplicitTarget() — the seam is set by playCharCensureWithTarget
+                // itself right before submit, so a fresh hand card never tests true
+                // here. (The B5-0487 fleet handler's hasExplicitTarget() check sent
+                // every targeted click down the self-path; same-class fix applied
+                // to that handler in this same claim, disclosed in the close-out.)
+                if (selectedCharCensureTarget == null || selectedCharCensureTargetOwner == null) {
+                    // No opponent character picked (button should be disabled) —
+                    // normal self-target play path.
+                    MainWindow.this.controller.submitHumanAction(GameAction.playCard(enh));
+                    clearSelection();
+                    return;
+                }
+                // Explicit opponent target chosen — submit with the target
+                playCharCensureWithTarget();
+            }
+        });
+        charCensurePlayButton.setEnabled(false);
+        charCensurePlayButton.setToolTipText("Play this Enhancement targeting the selected opponent character (B5-0522).");
 
         // B5-0407: declare-war UI
         warTargetSelector = new JComboBox<String>(new String[] { "(select target)" });
@@ -848,6 +913,12 @@ public class MainWindow extends JFrame {
         toolbar.add(censureTargetSelector);
         toolbar.add(Box.createHorizontalStrut(4));
         toolbar.add(censurePlayButton);
+        toolbar.add(Box.createHorizontalStrut(8));
+        toolbar.add(charCensureTargetLabel);
+        toolbar.add(Box.createHorizontalStrut(4));
+        toolbar.add(charCensureTargetSelector);
+        toolbar.add(Box.createHorizontalStrut(4));
+        toolbar.add(charCensurePlayButton);
         toolbar.add(Box.createHorizontalStrut(8));
         toolbar.add(warTargetSelector);
         toolbar.add(Box.createHorizontalStrut(4));
@@ -1515,6 +1586,8 @@ public class MainWindow extends JFrame {
 
     /** B5-0487: refresh the Censure opponent-fleet target picker from current state. */
     private void refreshCensureControl(Player human, boolean actionTurn) {
+        // B5-0522: the parallel opponent-character picker refreshes alongside.
+        refreshCharCensureControl(human, actionTurn);
         if (human == null || censureTargetSelector == null) {
             if (censureTargetSelector != null) {
                 censureTargetSelector.setEnabled(false);
@@ -1573,6 +1646,128 @@ public class MainWindow extends JFrame {
         }
         censureTargetSelector.setEnabled(actionTurn);
         updateCensurePlayButton();
+    }
+
+    /**
+     * B5-0522: refresh the opponent-CHARACTER target picker from current state.
+     * Mirrors refreshCensureControl (B5-0487) for Enhancement CHARACTER cards
+     * carrying the B5-0468 seam (shunned-class today). Reads only: face-up
+     * characters across inner circle, supporting role, and ambassador of every
+     * non-human, non-forfeited player — the B5-0506 characterById resolution
+     * scope, so anything listed here is resolvable by the engine path.
+     */
+    private void refreshCharCensureControl(Player human, boolean actionTurn) {
+        if (human == null || charCensureTargetSelector == null) {
+            if (charCensureTargetSelector != null) {
+                charCensureTargetSelector.setEnabled(false);
+            }
+            if (charCensurePlayButton != null) {
+                charCensurePlayButton.setEnabled(false);
+            }
+            return;
+        }
+        if (selectedCard == null || !(selectedCard instanceof EnhancementCard)) {
+            charCensureTargetSelector.setEnabled(false);
+            charCensurePlayButton.setEnabled(false);
+            charCensureTargetLabel.setText("");
+            return;
+        }
+        EnhancementCard enh = (EnhancementCard) selectedCard;
+        if (enh.getSubtype() == null || !enh.getSubtype().endsWith("_CHARACTER")) {
+            charCensureTargetSelector.setEnabled(false);
+            charCensurePlayButton.setEnabled(false);
+            charCensureTargetLabel.setText("");
+            return;
+        }
+        // Populate opponent characters — face-up, owned by non-human players.
+        // Scope mirrors CardEffects.characterById (B5-0506): inner circle,
+        // supporting role, then ambassador. No rotate check — the engine
+        // resolves characters by face-up only.
+        charCensureTargetCards.clear();
+        charCensureTargetOwnerNames.clear();
+        charCensureTargetSelector.removeAllItems();
+        charCensureTargetSelector.addItem("(select opponent character)");
+        GameState gs = MainWindow.this.controller.getState();
+        for (Player p : gs.getPlayers()) {
+            if (p.isHuman() || p.hasForfeited()) continue;
+            for (CharacterCard ch : p.getInnerCircle()) {
+                if (ch.isFaceDown()) continue;
+                charCensureTargetCards.add(ch);
+                charCensureTargetOwnerNames.add(p.getName());
+                charCensureTargetSelector.addItem(p.getName() + " — " + ch.getTitle());
+            }
+            for (CharacterCard ch : p.getSupportingRole()) {
+                if (ch.isFaceDown()) continue;
+                charCensureTargetCards.add(ch);
+                charCensureTargetOwnerNames.add(p.getName());
+                charCensureTargetSelector.addItem(p.getName() + " — " + ch.getTitle());
+            }
+            CharacterCard amb = p.getAmbassador();
+            if (amb != null && !amb.isFaceDown()) {
+                charCensureTargetCards.add(amb);
+                charCensureTargetOwnerNames.add(p.getName());
+                charCensureTargetSelector.addItem(p.getName() + " — " + amb.getTitle());
+            }
+        }
+        if (charCensureTargetCards.isEmpty()) {
+            charCensureTargetSelector.setEnabled(false);
+            charCensurePlayButton.setEnabled(false);
+            charCensureTargetLabel.setText("No opponent characters available.");
+            return;
+        }
+        // Restore previous selection if it is still present.
+        if (selectedCharCensureTarget != null) {
+            int idx = charCensureTargetCards.indexOf(selectedCharCensureTarget);
+            if (idx >= 0) {
+                charCensureTargetSelector.setSelectedIndex(idx + 1);
+            } else {
+                charCensureTargetSelector.setSelectedIndex(0);
+                selectedCharCensureTarget = null;
+                selectedCharCensureTargetOwner = null;
+            }
+        } else {
+            charCensureTargetSelector.setSelectedIndex(0);
+        }
+        charCensureTargetSelector.setEnabled(actionTurn);
+        updateCharCensurePlayButton();
+    }
+
+    /** B5-0522: enable the character-target play button when a character is explicitly selected. */
+    private void updateCharCensurePlayButton() {
+        if (charCensureTargetSelector == null || charCensurePlayButton == null) return;
+        int idx = charCensureTargetSelector.getSelectedIndex();
+        boolean hasSelection = idx > 0 && idx - 1 < charCensureTargetCards.size();
+        if (hasSelection) {
+            selectedCharCensureTarget = charCensureTargetCards.get(idx - 1);
+            selectedCharCensureTargetOwner = charCensureTargetOwnerNames.get(idx - 1);
+        } else {
+            selectedCharCensureTarget = null;
+            selectedCharCensureTargetOwner = null;
+        }
+        // Must be ACTION phase, my turn, and an opponent character is
+        // explicitly selected (the target seam is set BY the user's pick, so
+        // gating on hasExplicitTarget() here would never enable — same reason
+        // as the B5-0487 fleet picker).
+        Player hp = humanPlayer();
+        GameState gs = MainWindow.this.controller.getState();
+        boolean actionTurn = gs.getPhase() == GamePhase.ACTION
+            && gs.getActivePlayer() == hp
+            && MainWindow.this.controller.isWaitingForHuman();
+        charCensurePlayButton.setEnabled(actionTurn && hasSelection);
+        charCensureTargetLabel.setText(hasSelection
+            ? "Target: " + selectedCharCensureTargetOwner + " — " + selectedCharCensureTarget.getTitle()
+            : "Opponent character target:");
+    }
+
+    /** B5-0522: play the selected Enhancement targeting the chosen opponent character. */
+    private void playCharCensureWithTarget() {
+        if (selectedCharCensureTarget == null || selectedCharCensureTargetOwner == null) return;
+        if (!(selectedCard instanceof EnhancementCard)) return;
+        EnhancementCard enh = (EnhancementCard) selectedCard;
+        // Set the explicit opponent target via the B5-0468 seam.
+        enh.setOpponentTarget(selectedCharCensureTarget.getId(), selectedCharCensureTargetOwner);
+        MainWindow.this.controller.submitHumanAction(GameAction.playCard(enh));
+        clearSelection();
     }
 
     /** B5-0487: enable the Censure play button when a fleet is explicitly selected. */
@@ -1729,9 +1924,13 @@ public class MainWindow extends JFrame {
         // path; the generic Play Card button stays for non-targeted plays.
         if (selectedCard instanceof EnhancementCard) {
             EnhancementCard enh = (EnhancementCard) selectedCard;
-            if (enh.getSubtype() != null && enh.getSubtype().endsWith("_FLEET")
+            // B5-0522: CHARACTER seam cards (shunned-class) now route through
+            // their own picker button too, mirroring the B5-0487 fleet rule.
+            if (enh.getSubtype() != null
+                    && (enh.getSubtype().endsWith("_FLEET")
+                        || enh.getSubtype().endsWith("_CHARACTER"))
                     && enh.hasExplicitTarget()) {
-                return;   // censure play button owns this path
+                return;   // censure play buttons own these paths
             }
         }
         MainWindow.this.controller.submitHumanAction(GameAction.playCard(selectedCard));

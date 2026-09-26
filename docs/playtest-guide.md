@@ -166,7 +166,20 @@ locations show red `CAP:<player>`/`SUP` markers on their mini-cards, and
 damaged or neutralized cards of any type show a red damage-state marker
 on every board mini-card — `DMG:<n>` (severe appended as `+<s>`), `NEUT`
 when neutralized, or `NEUT <n>+<s>` combined (B5-0516; face-up cards
-only, read from the B5-0368 damage API). A red
+only, read from the B5-0368 damage API). Hand cards carry the same
+marker via the same API (B5-0519, right-aligned on the stats baseline
+so it cannot collide with the left-aligned stat string) — dormant in
+normal play since damage targets in-play cards, but visible if the
+engine ever applies hand-card damage.
+
+> **B5-0520 re-sweep (post-B5-0506 + B5-0516, 2026-09-26):** after the
+> shunned wiring (B5-0506) and damage-state readouts (B5-0516) landed,
+> the harness health re-sweep re-ran RUN_TESTS=1 (460/460 conformance
+> PASS) plus all seven standalone probes (0350 tiebreak 26, 0351 AI
+> contract 10/10 bands unshifted, 0382 station 6/0, 0383 participation
+> PASS, 0384 lead-fleet 9/0, 0419 war PASS, 0443 human-seat 37/37) —
+> all exit 0. The 0351 band re-confirmation is the key check since 0506
+> moved registry/scoring-adjacent paths.
 board pill lists at-war faction pairs whenever a war exists, and a bottom
 line always shows station influence plus Shadow/Vorlon ratings — gaining a
 red `[SHADOW WAR]` marker when either rating reaches the condition-2

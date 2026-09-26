@@ -3596,7 +3596,7 @@
     "diplomacyBonus": -2,
     "intrigueBonus": -2,
     "psiBonus": -2,
-    "militaryBonus": 0,
+    "militaryBonus": -2,
     "leadershipBonus": -2,
     "cost": 1
   },
