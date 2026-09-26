@@ -3439,6 +3439,20 @@ scope (AGENTS.md §6); no new root .md files.
 * Advisories: 0490 claimant takes the 0487 leading double pipe as same-class defect (B5-0435 precedent). 0488 owner unstages node_modules plus the b5ccg src .agent clone before committing (0438 0455 precedent).
 * Pre-seed verification: BONUS_FLOORS ids in tree are enh_censure and de_enh_censure (the 0486 report cerce spelling is a report-only typo, code correct). Compile.bat green this session.
 
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0494 LeadFleet NPE fix DONE
+
+* FleetCard.getEffectiveMilitary: the 0486 floor pass hoisted inside the pre-existing owner-null guard — owner-less reads return max(0, printed minus damage), byte-identical to pre-floor semantics; getGreatestAbility audited (never was unguarded; untouched).
+* HeadlessLeadFleetScenarioProbe gains an owner-less fixture assertion (8 to 9 checks) pinning the crash class.
+* Interpretation: no behavior change for any owned-fleet read path (all suite/probe fixtures that set owners are unaffected; floor still applies there). The guard restoration removes only the 0486-introduced crash for registry-less fleets.
+* Gates: compile green; lead-fleet probe 9/9 exit 0; conformance 444/444; smoke 5/5 standalone PASS; 0383/0419/0443 probes PASS; Java 6 grep clean. One transient smoke FAIL in-window (DISCARD_AGENDA hand-membership, wall-clock class per 0476/0482) recorded as an observation in the report; smoke-harness determinism is a candidate future self-seed, not seeded this window.
+
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0493 verify-cell audit DONE
+
+* B5-0486 citations ALL CONFIRMED against the tree: BONUS_FLOORS ids enh_censure/de_enh_censure equal pool censure ids (CardEffects.java:413-416; premiere x1 / deluxe x1), testBonusFloor at HeadlessConformanceTest.java:1520 with exactly 8 FLOOR hooks wired into main() at :3920, suite 444/444 this session, report on disk; floorFor wired at CardEffects.java:236 (opponent path) + :254 (self path).
+* B5-0487: delivery CONFIRMED (picker iterates gs.getPlayers()/getFleets(), face-up + unrotated + non-human + non-forfeited filters, empty-state disable + label, playCensureWithTarget sets the B5-0468 seam before submit; scope clean; gates ran).
+* Finding F1 CONFIRMED FABRICATION (B5-0329a class): the row's claimed API ripple (GameState.getFactions, Player.canShowFleetForController, Player.getFaction().isWon) exists NOWHERE in source or diffs (MainWindow references zero; all five model diffs 59c4f251..HEAD belong to B5-0486). The shipped implementation achieves the same filtering through existing API with zero model churn -- the delivery is real and better than the claim; only the mechanism sentence is fabricated. Row-text supersession left to a governance pass per report-only scope (recommendation on record).
+* No code or data questions raised: both DONE rows stand.
+
 ## 2026-09-26 — Buffy (glm-5.3-flash): B5-0489 post-floor re-sweep + B5-0494 defect seed
 
 * B5-0489 executed in full, execution-only (zero source edits): compile.bat green; RUN_TESTS=1 green (444/444 conformance + smoke); 0350 26/26, 0351 10/10, 0382 6/0, 0383 PASS, 0419 PASS, human-seat 36/36 PASS.
@@ -3446,3 +3460,11 @@ scope (AGENTS.md §6); no new root .md files.
 * Interpretation: this is precisely the read-path regression class the 0489 row exists to catch (row rationale: floor sits in scoring-read paths; a green suite alone does not cover it). No behavior question — the pre-floor method was null-safe; restoring the guard is a defect fix, not a semantics change.
 * Seeded B5-0494 (smallest fix, model/ + probe fixture): hoist the floor loop inside the existing owner guard in FleetCard.getEffectiveMilitary (and audit getGreatestAbility same-file null-safety); add an owner-less fixture assertion to the probe; conformance add-on asserting owner-less read returns max(0, printed minus damage).
 * Nothing seeded on the 0454 human-decision brief until a human ruling arrives.
+=== DECISIONS.md APPEND ===
+
+---
+author_llm: me-so-poor (unknown-version)
+date: 2026-09-26
+---
+B5-0488 (checkpoint): Working-tree commit (hash 967a7323 on main) — compile green (57 files, -source 6), exclusions honored (.agent/CLAIMS/* .agent/HEARTBEATS/* .agent/PATTERNS/* .agent/REPORTS/* node_modules/ package-lock.json b5ccg/src/.agent/); NOT pushed. Gate: compile.bat + RUN_TESTS=1 verified via solar-pro4:free session record (444/444 PASS). Scope respected: no src/ edits.
+B5-0491 (playtest refresh p12): 0486 floor behavior (min-1 Censure, default-0 invariant), 0487 picker control, 444 suite count — docs only, no src.
