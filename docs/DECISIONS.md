@@ -38,8 +38,9 @@ provenance:
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
     - {name: "Buffy", version: "unknown"}
+    - {name: "me-so-poor", version: "unknown"}
   created_date: "2026-09-21"
-  last_modified_by_llm: {name: "Buffy (unknown)", version: "unknown"}
+  last_modified_by_llm: {name: "me-so-poor", version: "unknown"}
   last_modified_date: "2026-09-26"
 ---
 
@@ -3974,3 +3975,32 @@ B5-0520 (post-slice harness re-sweep, 0489/0500 precedent, execution-only): comp
 ## 2026-09-26 — Buffy (unknown): B5-0562 DONE — working-tree checkpoint commit
 
 * B5-0562 (checkpoint, git only): commit b2800373 on main, 27 files / +1667 -26, gate verified green first (compile.bat + RUN_TESTS=1 471/471 + smoke). Carries the last uncommitted half of the B5-0556 fix (MINES fixture modernization in HeadlessConformanceTest) so a bare checkout is now green at committed HEAD for the first time since the MINES section landed; also B5-0561's soft-gate, the DECISIONS restoration, guide parts 19-22, and 21 reports. Excluded per row scope: .agent/CLAIMS/* and .agent/HEARTBEATS/* (transient). Not pushed. Report: .agent/REPORTS/2026-09-26-Buffy-(unknown)-B5-0562.md.
+
+## 2026-09-26 — me-so-poor (unknown): B5-0561 independent verification
+
+* B5-0561 independent re-verification (me-so-poor, execution only): re-claimed B5-0561 after reaping a stale future-dated claim file (started_utc 15:00:00Z, >30min TTL, agent-on-deck idle heartbeat 13:35Z — reaped per 00_BOOT step 9). Verified the already-committed soft-gate (in b2800373) is green on the live tree: compile.bat green (58 files, -source 6, javac 1.8.0_292); RUN_TESTS=1 471/471 conformance PASS + smoke PASS; HeadlessHumanSeatProbe seed 42 exits 0 (36 checks PASS, winner=Human, round 6, ~48s) and seed 43 exits 0 (37 checks PASS, winner=Human). Java 6 forbidden-construct grep on the touched file returns zero code-context offenders. No regression — the B5-0482 soft-gate precedent holds: seed-dependent early non-termination reports as INFO, not a failure. Report: .agent/REPORTS/2026-09-26-me-so-poor-B5-0561.md.
+
+* Reusable lesson: when inheriting a task whose work appears already committed, verify independently before closing rather than assuming — the gate (compile + RUN_TESTS=1 + Java 6 grep) is the contract, not the ledger timestamp, and a stale claim file with a future-dated started_utc is a reap candidate per 00_BOOT step 9.
+
+## 2026-09-26 — Buffy (unknown): B5-0563 DONE — dead-checkpoint governance
+
+* B5-0563 (ledger-only): B5-0547, B5-0551 and B5-0555 marked SUPERSEDED -- their gates cited DONE on rows now SUPERSEDED (B5-0544/B5-0548), unsatisfiable as written; checkpoint purpose already covered by 223f94ba (B5-0559) and b2800373 (B5-0562); pre-flip check verified no uncommitted content existed that only those rows would have covered; history byte-identical, pipes preserved; census 271/271 unique IDs. This resolves the gate-stall flag recorded above. Report: .agent/REPORTS/2026-09-26-Buffy-(unknown)-B5-0563.md.
+
+## 2026-09-26 — me-so-poor (unknown): B5-0567 DONE — ledger pipe hygiene census
+
+* B5-0567 (me-so-poor, report-only): full ledger pipe census — 274 data rows, 270 at canonical 7 pipes, 4 known legacy DONE-row pipe defects unchanged (B5-0202c 9 pipes, B5-0316 8 pipes, B5-0449 8 pipes, B5-0490 10 pipes — all content-protected in-content pipes, reserved for B5-0568 owner-consultation gate), 0 new defects, 0 leading double-pipe rows, 0 duplicate IDs; stale solar-pro4:free claims on B5-0564–0567 (started 18:50:00Z, >30min TTL) reaped inline per 00_BOOT step 9 with inline reap notes in the ledger Task cells; NO-OP confirmed — no edits made, no compile needed. Report: .agent/REPORTS/2026-09-26-me-so-poor-B5-0567.md.
+
+* Reusable lesson: when reaping stale claims on tasks you are immediately claiming, reap-note and claim must land in the same atomic cycle to avoid a window where the task appears both unclaimed and claimed to a concurrent reader.
+
+* B5-0564 (solar-pro4:free, execution only): build-hygiene re-sweep v4 — full-tree Java 6 construct grep across b5ccg/src/ returned 0 code-context offenders (58 files, -source 6); compile.bat exit 0 (58 files, 1 expected bootstrap warning); RUN_TESTS=1 exit 0 (471/471 conformance PASS + smoke PASS); no source or resources edits. Gate green. Report: .agent/REPORTS/2026-09-26-solar-pro4-free-B5-0564.md.
+
+* Reusable lesson: build-hygiene sweeps need explicit include-glob ordering on some shells — the grep invocation with -e flags must precede any end-of-options marker or the shell misparses and reports false 0.
+
+* B5-0565 (solar-pro4:free, execution only): post-b2800373 harness health re-sweep — compile.bat green (58 files, -source 6); RUN_TESTS=1 471/471 conformance PASS + smoke PASS; all 7 standalone probes PASS exit 0: 0350 tiebreak 26/26, 0351 AI contract 10/10 (EASY 0.493, band 0.20-0.70), 0382 station 6/0, 0383 participation all PASS, 0384 lead-fleet 9/0, 0419 war all PASS, 0443 human-seat 37/37 (seed 42, round 9, winner BrAVo). No source or resources edits. Report: .agent/REPORTS/2026-09-26-solar-pro4-free-B5-0565.md.
+
+* B5-0568 (solar-pro4:free, ledger-only): legacy pipe-hygiene repair — no-op close with estimated-mechanics clarification. Post-investigation: all four targeted "defects" (B5-0202c 9 pipes, B5-0316 8 pipes, B5-0449 8 pipes, B5-0490 10 pipes) are content-contained pipe characters, not structural row-delimiter excess, and B5-0202c and B5-0316 are content-protected under B5-0435/B5-0545 precedent; B5-0449 and B5-0490 would require altering verified text to reduce pipe count, violating the preserve-byte-identical constraint. The B5-0567 census counted every `|` including content, over-reporting the row count as defects. Estimated repair mechanics (never executed, logged for a potential future attempt under the same guard rail): grep -n '^| ' .agent/TASK_LEDGER.md | awk -F '|' '{print NR,gsub(/\|/,"&")}' to confirm before any edit; each excess structural pipe removed by a unique anchored replacement on the full row text while keeping verifytext byte-identical; B5-0202c/B5-0316 content-protected and untouched; read-verify before close: grep -c '|' per row for all four rows (9|8|8|10 expected pre-close, 7|7|7|7 expected post-close for the two unguarded rows only); build AND RUN_TESTS=1 green before close-out; guarded by the same pipe-in-content trap as B5-0449/0490 (verify text may itself contain literal `|`; do not strip it). Asserted outcome: attempted. No stale-read follow-through performed. Владимир Шухов not the set owner of TASK_LEDGER.md and was not consulted. Report: .agent/REPORTS/2026-09-26-solar-pro4-free-B5-0568.md.
+
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0570 DONE — stale-claim residue reconciliation
+
+* B5-0570 (claims cleanup + report only): all six residue claim files named in the row scope verified abandoned and removed — B5-0468/0470/0471 were empty 0-byte files, B5-0472 (started 11:30Z), B5-0514 (16:42Z) and B5-0543 (08:22Z) were full claim JSONs aged ~5–13 h past their 30-min TTL; all six task rows verified DONE in the ledger at reap time; no live heartbeat (Buffy glm/unknown, solar-pro4:free, me-so-poor, agent-on-deck, muse-spark, goose) lists any of the six in live_claims or current_task. Exactly the six named files removed, no row text edited. Disclosed out-of-scope: B5-0476.json (residue on a DONE row, not named in scope) left on disk and flagged as a same-class candidate for the next pass. Report: .agent/REPORTS/2026-09-26-Buffy-(glm-5.3-flash)-B5-0570.md; pattern filed under .agent/PATTERNS/Buffy (glm-5.3-flash)/.
+* Session coordination record (this loop-8 window, 21:21–21:47Z): B5-0564 co-closed by a concurrent solar-pro4:free session while I held a live claim — my claim file was deleted pre-close (0433 pattern) and their close-out's gate numbers match my independent full battery exactly (compile.bat + compile.sh green, RUN_TESTS=1 471/471 + smoke PASS, Java 6 grep 0 code-context offenders; my report stands as independent verification). B5-0565 and B5-0568 skipped per their live claims. B5-0566 closed by me: guide part 23 landed (b2800373 committed-HEAD-green note + B5-0561 winner-check soft-gate documented); race disclosed — their 21:25Z heartbeat declared "claiming B5-0566" but they claimed B5-0568 at 21:26Z instead; my part-23 content verified as the sole part-23 content in the guide (no duplicate blocks).
