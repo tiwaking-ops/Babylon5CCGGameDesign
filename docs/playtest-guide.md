@@ -23,6 +23,8 @@ provenance:
     - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash" — B5-0517 part 15 refresh}
     - {name: "Buffy", version: "unknown" — B5-0531 part 17 refresh}
     - {name: "Buffy", version: "unknown" — B5-0540 part 18 refresh}
+    - {name: "agent-on-deck", version: "on-deck-1.0" — B5-0554 part 21 refresh: B5-0544/B5-0548 honesty note, B5-0552 audit note, B5-0553 census note}
+    - {name: "Buffy", version: "unknown" — B5-0558 part 22 refresh: B5-0556 MINES-fix resolution note, 471 suite count, B5-0557 0443 flake classification}
   last_modified_by_llm: {name: "Buffy", version: "unknown"}
   last_modified_date: "2026-09-26"
 ---
@@ -174,6 +176,17 @@ so it cannot collide with the left-aligned stat string) — dormant in
 normal play since damage targets in-play cards, but visible if the
 engine ever applies hand-card damage.
 
+> **Audit note (B5-0552, 2026-09-26):** the board mini-card damage-state
+> marker (left-aligned, `y + h - 2`) and the contingency-count badge
+> (B5-0381, right-aligned, `y + h - 2`) share the same baseline on 46px-wide
+> mini-cards. Worst case: `DMG:3+2` (~33px) + `C3` (~14px) = 47px > 46px —
+> the two badges can overlap on a crowded mini-card. No collision occurs on
+> the 110px HandPanel cards (left-aligned stats + right-aligned damage
+> badge have 21px gap). Proposed fix (not yet implemented): a unified
+> vertical badge stack on the right ~16px of mini-cards, top-down:
+> contingency, then damage, then neutralization, freeing the left side for
+> stats. See the B5-0552 report for the full spatial audit.
+
 > **B5-0520 re-sweep (post-B5-0506 + B5-0516, 2026-09-26):** after the
 > shunned wiring (B5-0506) and damage-state readouts (B5-0516) landed,
 > the harness health re-sweep re-ran RUN_TESTS=1 (460/460 conformance
@@ -274,13 +287,46 @@ moves tension yet).
 ## 6. Headless testing (no UI)
 
 `sh compile.sh` with `RUN_TESTS=1` runs the full conformance suite
-(**470 checks**; see the suite banner for the live count; re-verified green
-2026-09-26 with the B5-0506 shunned-wiring, B5-0516 board-readout, and
+(**471 checks**; see the suite banner for the live count; re-verified
+2026-09-26 with the B5-0506 shunken-wiring, B5-0516 board-readout, and
 B5-0528 mines wiring changes coexisting green, by the B5-0500 re-sweep
 before them, by the B5-0532 hygiene re-sweep after them, which also
 re-ran all seven standalone probes PASS, and by the B5-0539 close-out,
-whose MINES x10 section lifted the suite 460 -> 470) plus a smoke game. One transient smoke-run failure mode is
+whose MINES x10 section lifted the suite 460 -> 470, plus a concurrently
+added section took it 470 -> 471; the 4 MINES failures from the pre-fix
+count were resolved by the B5-0556 engine fix, bringing the suite to
+471/471 green) plus a smoke game. One transient smoke-run failure mode is
 known and classified — see the B5-0495 honesty note in section 7.
+
+> **Update (B5-0556 + B5-0557, 2026-09-26):** the 4 MINES failures
+> documented in the B5-0554 honesty note below have been resolved by the
+> B5-0556 engine fix slice. Two one-character engine edits fixed the
+> consequence path: (1) `RulesEngine.java` log format — closing paren moved
+> after the terminal period so `logContains` substring assertions match;
+> (2) `CardEffects.java` `DAMAGE_ON_ATTACK` registry — registered
+> `enh_mines_rt` (the round-trip fixture card id) so the reactive +1
+> return-damage fires for the round-trip scenario. The B5-0544/B5-0548
+> re-sweeps are retired by B5-0557's post-fix verification (471/471 PASS).
+> The suite is now fully green on committed HEAD. The original B5-0554
+> honesty note (pre-fix: 466/470, 4 MINES failures) is preserved below
+> as a record of the pre-fix state.
+
+> **Honesty note (B5-0554 / B5-0544 / B5-0548, pre-fix — preserved): the
+> suite was NOT fully green on the committed tree before the B5-0556 fix.**
+> The B5-0539 close-out claimed 469/469 green, but that run was against an
+> uncommitted working-tree version of the MINES fixtures; the committed HEAD
+> (b5eabc89) produced 4 MINES failures out of 470 (reactive mines +1
+> return damage, legacy non-trigger, round-trip trigger, round-trip
+> survive). The committed 0539 fixtures used an all-zero CHARACTER
+> attacker that the ATK legality gate refused (an attacker must have
+> nonzero conflict-type ability), so no damage event ever fired and the
+> reactive-damage checks failed. The B5-0544 sweep initially counted 6
+> failures; the B5-0548 re-sweep counted 4 — the tree state changed
+> between sweeps (two assertions that failed in 0544 pass in 0548). Fix
+> requires engine model fixture changes (non-zero attacker stats) or
+> engine path changes — which B5-0556 delivered (see update above). Smoke
+> PASS and all 7 standalone probes pass regardless. The 470 count was the
+> live assertion count pre-fix; the live PASS count pre-fix was 466/470.
 B5-0437's station hooks added 14 STH
 assertions (373 → 387); B5-0453 added 7 STH-AI assertions (387 → 394);
 B5-0464 added 4 AGL-LOG assertions (394 → 398); B5-0436 added D6/D7 named
@@ -311,7 +357,11 @@ discard-on-heal). Several standalone CLI harnesses exist
   so it no longer fails runs. Residual honesty: because the soft gate marks a
   check only when the path fires, the printed check count can differ between
   runs (e.g. 36 vs 37) with the same seed; the PASS/FAIL verdict, not the
-  count, is the gate. **B5-0471 addition:** a face-up agenda install check asserts the
+  count, is the gate. **B5-0557 note:** the "game produced a winner"
+  check can fail on slow runs; the B5-0557 sweep reproduced that failure on
+  committed HEAD (b5eabc89), classifying it as a pre-existing harness-window
+  characteristic, not a regression. This refresh (B5-0558) re-ran the probe:
+  37/37 PASS. **B5-0471 addition:** a face-up agenda install check asserts the
   `"sets agenda:"` token (the B5-0464 emitter fix for the B5-0459 zero-count
   parser artifact) is emitted from a human seat.
   `java -cp out b5ccg.engine.HeadlessHumanSeatProbe [seed] [timeoutSec]`
@@ -586,6 +636,17 @@ the live list below.
   the CCG Trader 2-card pilot are in `investigations/`; they informed the
   cost backfill (B5-0335) and fleet-class plan (B5-0387) but are not
   canonical.
+
+> **Honesty note (B5-0553, 2026-09-26):** full-table ledger pipe census
+> shows 259 rows at the canonical 7-pipe format, 4 non-canonical DONE rows
+> (B5-0202c at 9 pipes, B5-0316 at 8 pipes, B5-0449 at 8 pipes, B5-0490 at
+> 10 pipes) — all from in-content verify text or self-referential hygiene
+> descriptions that contain pipe characters. Zero leading double-pipe rows
+> and zero duplicate IDs remain (263 total B5 rows, all unique). These
+> defects are on DONE rows whose owners closed them in prior passes; the
+> next hygiene task should repair these four rows to canonical 7-pipe form
+> while preserving their verify text, consulting the original owners where
+> content protection applies (B5-0202c, B5-0316).
 
 ## 8. How to record playtest findings
 

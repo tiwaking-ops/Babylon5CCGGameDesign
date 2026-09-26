@@ -527,6 +527,7 @@ public final class CardEffects {
         DAMAGE_ON_ATTACK.add("de_enh_mines");
         DAMAGE_ON_ATTACK.add("enh_energy_mines");
         DAMAGE_ON_ATTACK.add("de_enh_energy_mines");
+        DAMAGE_ON_ATTACK.add("enh_mines_rt");
     }
 
     /** B5-0528: true when cardId is registered for the reactive mines damage

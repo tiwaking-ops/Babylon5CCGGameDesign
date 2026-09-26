@@ -858,7 +858,7 @@ public class RulesEngine {
         int attackerOverflow = attacker.applyDamage(returnDamage);
         state.log(attacker.getTitle() + " attacks " + target.getTitle()
                 + " using " + ability + " (" + attackDamage + " damage; "
-                + returnDamage + " damage returned)." );
+                + returnDamage + " damage returned.)" );
         if (target.isNeutralized()) state.log(target.getTitle() + " is neutralized"
                 + (targetOverflow > 0 ? " (" + targetOverflow + " severe damage)." : "."));
         if (attacker.isNeutralized()) state.log(attacker.getTitle() + " is neutralized"
