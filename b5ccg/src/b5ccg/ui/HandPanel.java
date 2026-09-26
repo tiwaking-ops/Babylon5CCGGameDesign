@@ -336,6 +336,33 @@ public class HandPanel extends JPanel {
             g.drawString(cc.getConflictType() + "  +" + cc.getInfluenceReward() + " INF", x + 3, y + 50);
         }
 
+        // B5-0519: damage-state readout, mirroring the B5-0516 board marker
+        // via the same B5-0368 Card base-class API (getDamageTokens,
+        // getSevereDamageTokens, isNeutralized). Right-aligned on the stats
+        // baseline so it cannot collide with the left-aligned stat string;
+        // drawn after the dim overlay so the state stays readable (the same
+        // never-hidden principle as the B5-0361 ELIGIBLE tag). Dormant in
+        // normal play — damage targets in-play cards and hand cards are
+        // fresh — but the state shows if the engine ever applies it.
+        if (!card.isFaceDown()) {
+            int dmg = card.getDamageTokens();
+            int sev = card.getSevereDamageTokens();
+            boolean neutral = card.isNeutralized();
+            String state;
+            if (dmg > 0 || sev > 0) {
+                state = (neutral ? "NEUT " : "DMG:")
+                    + dmg + (sev > 0 ? "+" + sev : "");
+            } else {
+                state = neutral ? "NEUT" : "";
+            }
+            if (state.length() > 0) {
+                g.setColor(new Color(255, 80, 80));
+                g.setFont(new Font("SansSerif", Font.BOLD, 7));
+                g.drawString(state,
+                    x + CARD_W - g.getFontMetrics().stringWidth(state) - 3, y + 50);
+            }
+        }
+
         // Card text (abbreviated)
         g.setFont(new Font("SansSerif", Font.PLAIN, 7));
         g.setColor(dimmed ? new Color(100, 100, 100) : new Color(180, 180, 180));

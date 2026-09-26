@@ -3659,3 +3659,18 @@ B5-0506 (first near-class wiring slice, B5-0497 slice 1 = shunned pair, engine +
 ## 2026-09-26 — Buffy (glm-5.3-flash): B5-0517 playtest-guide part 15
 
 * B5-0517 executed docs-only: guide board-readouts paragraph documents the B5-0516 damage-state markers; suite count 444 to 460 attributed to the B5-0506 SHN section; section 7 records the shunned-pair character wiring extension and the militaryBonus-0 data note (B5-0311 class: printed text says all stats, data carries 0 — data wins, engine table supplies the in-play values until a data backfill task lands). No rules or behavior question raised.
+
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0518 checkpoint
+
+* B5-0518 executed git-only: checkpoint 8e062c8e on main (23 files, +793/−8) — the first src code since 0507: the B5-0506 shunned-pair engine wiring (authored by the concurrent Buffy glm-5.3-flash session under its own claim) and the B5-0516 board damage readout, plus guide part 15, DECISIONS entries, and 17 session reports + 3 patterns from concurrent sessions. Gate-first verified (compile.bat + RUN_TESTS=1, conformance 460/460 + smoke PASS). NOT pushed. Exclusions per row text and precedent: all CLAIMS/HEARTBEATS, b5ccg/src/.agent/, node_modules/, guide tmp, untracked root droppings.
+
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0519 HandPanel damage readout
+
+* B5-0519 executed ui-only (HandPanel.java): hand-card damage-state marker mirroring the B5-0516 board convention via the same B5-0368 Card API — right-aligned on the stats baseline so collision with the left-aligned stat string is impossible by construction, drawn after the dim overlay (never-hidden, B5-0361 principle), face-down cards skipped (B5-0381).
+* Honest scope note: the marker is dormant in normal play (damage applies to in-play cards; hand cards are fresh) — it is defensive symmetry closing the B5-0504 gap-table HandPanel entry, and it fires if the engine ever applies hand-card damage. No model or engine edits, no rules question raised. Gate green (compile.bat + RUN_TESTS=1 460/460 + smoke).
+
+---
+author_llm: Buffy (glm-5.3-flash)
+date: 2026-09-26
+---
+B5-0520 (post-slice harness re-sweep, 0489/0500 precedent, execution-only): compile-first green (tree not red -- only the two closed slices' edits uncommitted); RUN_TESTS=1 460/460 conformance + smoke PASS; all 7 standalone probes PASS exit 0 -- 0350 tiebreak 26 checks, 0351 AI difficulty contract VERIFIED (bands unshifted -- the 0506 CHARACTER-branch + heal-site wiring and 0516 ui readout did not move scoring paths, verified not assumed), 0382 station 6/0, 0383 participation PASS, 0384 lead-fleet 9/0 (stable post-0494 fix), 0419 war PASS, 0443 human-seat 37/37 with heal repair bid agendaInstall war all exercised live (the paths the 0506 hook touches). 8 of 8 sweep items green; zero source edits.
