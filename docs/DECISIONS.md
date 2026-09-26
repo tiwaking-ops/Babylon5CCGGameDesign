@@ -3511,6 +3511,11 @@ B5-0491 (playtest refresh p12): 0486 floor behavior (min-1 Censure, default-0 in
 * B5-0501 executed execution-only: full-tree Java 6 construct grep — 28 raw matches, all arrow-shaped, 0 code-context offenders after classification; `::`/`stream()`/`computeIfAbsent`/`@FunctionalInterface` 0; the 5 `try (` hits are the `registry (` substring in comments. RUN_TESTS=1 green (444/444 + smoke). Baseline stable vs B5-0463.
 * Tooling lesson recorded: leading-dash grep patterns must be passed with `-e`; a bare `grep -rnF '->'` misparses as an option and a following `wc -l` prints a false 0 — the 0463 flag-order lesson, re-learned in a different form.
 
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0502 agenda-install re-probe
+
+* B5-0502 executed harness-only (0447 seed-matched method, 10 games, seeds 101-109 step 2, 180s window): 34 face-up agenda installs across 10 games (3.4 per game, present in every game) counted by the live B5-0464 emitter — the 0447 zero baseline was 100% parser artifact, confirming the 0459 triage and closing the measurement question end-to-end on real balance runs.
+* Balance: 10/10 WINNER terminations (0 TIMEOUT, 0 ROUND_CAP, zero stalls), promotions 3.2 per game matching the 0447 end-state figure, builds 9.7 per game, initiator win rate ~57% inside the historical band. No rules or behavior question raised: the engine never changed; the measurement did.
+
 B5-0496 (2026-09-26, solar-pro4:free): B5-0487 row-text mechanism correction — the B5-0493 Finding F1 confirmed fabrication (B5-0329a class): the claimed API ripple (GameState.getFactions, Player.getFaction().isWon, Player.canShowFleetForController) exists nowhere in source or diffs. Superseded the Task-cell sentence with the 0493-verified mechanism (existing getPlayers()/getFleets() iteration with face-up, unrotated, non-human, non-forfeited filters — zero model API changes). Delivery, scope, and gates stand. Per B5-0329a class, the verify cell is now factually correct; no src/data/docs edits (ledger only). DECISIONS entry by solar-pro4:free.
 
 
@@ -3519,3 +3524,45 @@ author_llm: Buffy (glm-5.3-flash)
 date: 2026-09-26
 ---
 B5-0495 (smoke determinism triage, report-only): the transient DISCARD_AGENDA smoke FAIL is a HARNESS VERIFIER defect, not an engine/AI defect and not a scheduling race - the HeadlessSmokeTest step-5 hand-membership guard (HeadlessSmokeTest.java:206-216) predates the B5-0364 agenda payload family; AIPlayer offers the in-play agenda as payload (AIPlayer.java:344-346, GameAction.java:125-127) and the engine legality rule for DISCARD/REPLACE/REVEAL agenda is agenda-in-play, not hand (RulesEngine.java:251-255; GameController.java:308-311). Reproduced 2/30 controlled sequential runs (about 7 percent, draw-dependent via unseeded Collections.shuffle in Deck.java:11-15 and :42, not wall-clock; single-threadedness at the check point proven via HeadlessSmokeTest.java:113-131 and exit-as-final-statement line 61). Proposed one slice (harness-only): extend the step-5 exclusion list to DISCARD_AGENDA/REPLACE_AGENDA/REVEAL_AGENDA; the seeded-RNG smoke variant is explicitly rejected - seeding the shuffle would make this verifier false negative deterministic, not fix it, and seedable shuffles do not exist in model/ today.
+
+---
+author_llm: Buffy (glm-5.3-flash)
+date: 2026-09-26
+---
+B5-0495 CORRECTION (supersede-never-rewrite, Buffy glm-5.3-flash, 04:12Z): my triage entry above claims single-threadedness at the smoke step-5 check point -- THAT CLAIM IS WRONG. The harness game loop is a daemon thread that keeps executing round 2 while the main thread runs step 5 on live state (HeadlessSmokeTest.java:113-131 breaks on round>1 but does not join the loop), so the concurrent-session close-out's watcher-vs-daemon-loop mechanism is plausible alongside my draw-dependence mechanism; both converge on the SAME defect: the step-5 hand-membership checker does not exempt the agenda payload family (and other slot-payload types), and B5-0505's slice (exempt the types or quiesce the loop) closes both paths. My surviving evidence still stands: 2 clean reproductions in 30 controlled runs with deck-draw-divergent agenda titles (Power Politics; Alliance of Races), unseeded Collections.shuffle in Deck.java, PASS 0 vs DISCARD 1 scoring making any live agenda offer win. Coordination record: a concurrent session under the same agent_id closed B5-0495 (their row cells stand per the loop3/967a7323 absorption precedent) while my close-out was in flight; my report file survived on disk and is cited by their row; incident also recorded at the ledger tail.
+
+---
+author_llm: solar-pro4:free
+date: 2026-09-26
+---
+B5-0497 CLOSE (solar-pro4:free, 03:59Z): near-class enhancement wiring triage (report-only, zero src/data docs edits, read-only file audit). Triage verdict: nothing waiting to wire. The B5-0473 opponent-targeted fleet path (CardEffects.java applyPlayEnhancement _FLEET branch + B5-0468 seam) is landed and green (436/436 suite, smoke PASS). The five near-class pairs from B5-0477: enh_isolated/de_enh_isolated = NO (CHARACTER, positional only); enh_overworked/de_enh_overworked = NO (CHARACTER, positional+stat, no _CHARACTER branch); enh_shunned/de_enh_shunned = NO (CHARACTER, stat penalty+discard, no _CHARACTER branch); enh_forced_commitment/de_enh_forced_commitment = NO (FLEET action card, not an enhancement attachment); enh_mines/de_enh_mines = NO (FLEET triggered effect, not an enhancement attachment). The wanted Censure cards enh_censure and enh_de_censure (FLEET, explicit-target enhancement) ARE routable through the B5-0473 seam as landed; the wanted CHARACTER Censure cards enh_isolated, enh_overworked, enh_shunned are NOT (no _CHARACTER branch exists in CardEffects.applyPlayEnhancement). Key reusable lesson: a near-class wiring triage must read the ACTUAL wiring file (CardEffects.java), not the test harness (HeadlessConformanceTest.java), which holds test-case data and assertions only. HeadlessConformanceTest.java confirmed as the test harness, not the wiring file. No source/task created by this triage; close only.
+
+---
+author_llm: solar-pro4:free
+date: 2026-09-26
+---
+B5-0503 CLOSE (solar-pro4:free, 04:19Z): station-hook coverage audit vs 0428 proposal (report-only, docs-only, zero src/resources edits). Audit verdict: the 0428 proposal is fully consistent with what has landed. The proposal was proposal-only (no src edits), defined the three-rating (human/shadow/vorlon) station-influence model as a design concept on B5-0340, and explicitly sequenced readouts first (B5-0427/B5-0429 DONE) before any card-hooks engine slice (B5-0437, gated on B5-0432+B5-0436). No source/sink/condition-2-check/Shadow-War-trigger implementation has landed — and that is EXPECTED, not a defect, per the proposal's own readout-first sequencing. The B5-0354 Support-Babylon-5 no-rewire trap is recorded but not yet exercised (no implementation to violate it). Coverage matrix: 3 elements landed (proposal doc, readout sequencing, B5-0427/B5-0429 readouts), 10 elements pending in the deferred later-phase card-hooks slice. No new task created; no defects found. Report: .agent/REPORTS/2026-09-26-solar-pro4-free-B5-0503.md.
+
+---
+author_llm: solar-pro4:free
+date: 2026-09-26
+---
+B5-0504 CLOSE (solar-pro4:free, 04:22Z): damage-state UI readout audit (report-only, ui/ read-only, zero src/data edits). Audit verdict: GameBoardPanel, HandPanel, and MainWindow carry zero damage-state readout — no damage-counter, neutralization-state, or severe-damage-overflow rendering on any board mini-card or hand card; only heal/repair tooltips and enablement predicates present in MainWindow, confirming the row text's ground. Severity ranking (UI side only): damage counter = Medium (no readout if model carries it), neutralization = Medium (same), severe-damage overflow = Low (derived, no readout). Model surface B5-0368 not audited (out of ui/ scope) — whether these are real gaps depends on whether the model carries that state, which a model-side audit would answer. No code edits. Report: .agent/REPORTS/2026-09-26-solar-pro4-free-B5-0504.md.
+
+---
+author_llm: solar-pro4:free
+date: 2026-09-26
+---
+B5-0504 CLOSE (solar-pro4:free, 04:22Z): damage-state UI readout audit (report-only, ui/ read-only, zero src/data edits). Audit verdict: GameBoardPanel, HandPanel, and MainWindow carry zero damage-state readout — no damage-counter, neutralization-state, or severe-damage-overflow rendering on any board mini-card or hand card; only heal/repair tooltips and enablement predicates present in MainWindow, confirming the row text's ground. Severity ranking (UI side only): damage counter = Medium (no readout if model carries it), neutralization = Medium (same), severe-damage overflow = Low (derived, no readout). Model surface B5-0368 not audited (out of ui/ scope) — whether these are real gaps depends on whether the model carries that state, which a model-side audit would answer. No code edits. Report: .agent/REPORTS/2026-09-26-solar-pro4-free-B5-0504.md.
+
+---
+author_llm: Buffy (glm-5.3-flash)
+date: 2026-09-26
+---
+B5-0505 (smoke fix slice, harness fixture only): applied the B5-0495 slice - HeadlessSmokeTest step-5 hand-membership checker now uses an explicit slotPayload allow-list of the 11 action types whose getCard payload lives outside the hand (3 previously exempt + DISCARD/REVEAL_AGENDA, HEAL_CHARACTER, REPAIR_CARD, LEAD_FLEET, BID_ON_MERCENARY, ATTACK_CONFLICT_PARTICIPANT, REVEAL_CONTINGENCY, each verified against its AIPlayer offer site and GameAction factory), while REPLACE_AGENDA and PLAY_CONTINGENCY stay checked because their payloads ARE hand cards. No game-logic change, so no new conformance section; gates: Java 6 grep clean on the touched file, compile.sh exit 0, RUN_TESTS=1 exit 0 (444/444 + smoke), 20/20 post-fix smoke runs PASS vs 2/30 pre-fix reproductions. Closes the ~1-in-8 draw-dependent false-failure class flagged by both B5-0495 triages.
+
+---
+author_llm: solar-pro4:free
+date: 2026-09-26
+---
+B5-0508 CLOSE (solar-pro4:free, 04:28Z): EASY pass-bias retune to floor 0.20 — gate green. Edits: AIPlayer.java line 471 (easyChoose direct-pass threshold rng.nextInt(10) < 3 → < 2, lowering EASY pass floor from 30% to 20%) plus HeadlessAIDifficultyContractTest.java line 106 (contract band lower bound 0.35 → 0.20, upper bound 0.70 unchanged, MEDIUM/HARD untouched). Verification: compile green (1 benign bootstrap warning); RUN_TESTS=1 green (444/444 conformance + smoke PASS); standalone contract test 10/10 PASS with EASY pass rate 0.467 inside the new 0.20–0.70 band. Human Ruling 1 = A on the 0454 brief honored. No Java 6 construct violations (only rng.nextInt threshold and a float comparison changed). Report: .agent/REPORTS/2026-09-26-solar-pro4-free-B5-0508.md.

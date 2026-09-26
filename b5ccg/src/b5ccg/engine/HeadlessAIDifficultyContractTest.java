@@ -103,7 +103,7 @@ public class HeadlessAIDifficultyContractTest {
         // band avoids flakiness while still failing a broken RNG.
         double passRate = passes / (double) RUNS;
         check("EASY pass bias inside the designed band (rate " + passRate + ")",
-              passRate >= 0.35 && passRate <= 0.70);
+              passRate >= 0.20 && passRate <= 0.70);
         // Uniform tail: each specific play should appear well above noise
         // (expected ~0.7/3 each; floor at 15% of runs).
         check("EASY spreads picks across equal-value plays (ev0 " + evPicks

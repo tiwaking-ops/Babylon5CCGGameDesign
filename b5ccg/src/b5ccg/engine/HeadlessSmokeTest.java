@@ -207,13 +207,30 @@ public class HeadlessSmokeTest {
             if (card != null) {
                 // Action payloads for these types are controlled cards, not hand
                 // cards. The GameController/RulesEngine enforce their real gates.
-                if (action.getType() != GameAction.Type.BUILD_INFLUENCE
-                        && action.getType() != GameAction.Type.PROMOTE_CHARACTER
-                        && action.getType() != GameAction.Type.USE_ROTATE_EFFECT) {
-                    if (!p.getHand().contains(card)) {
-                        return fail("AIPlayer(" + NAMES[i] + ") chose " + action
-                            + " but that card is not in its hand");
-                    }
+                // B5-0505: the agenda lifecycle (B5-0364) carries the IN-PLAY
+                // agenda as payload; heal/repair/lead-fleet carry table cards;
+                // mercenary bids carry pool cards; attack carries the committed
+                // participant; reveal-contingency carries the placed card. The
+                // old three-type exclusion list missed these families, so any
+                // live offer of them failed the hand-membership check
+                // (draw-dependent ~1-in-8 flake, triaged in B5-0495).
+                // REPLACE_AGENDA and PLAY_CONTINGENCY stay checked: their
+                // payloads ARE hand cards.
+                boolean slotPayload =
+                        action.getType() == GameAction.Type.BUILD_INFLUENCE
+                     || action.getType() == GameAction.Type.PROMOTE_CHARACTER
+                     || action.getType() == GameAction.Type.USE_ROTATE_EFFECT
+                     || action.getType() == GameAction.Type.DISCARD_AGENDA
+                     || action.getType() == GameAction.Type.REVEAL_AGENDA
+                     || action.getType() == GameAction.Type.HEAL_CHARACTER
+                     || action.getType() == GameAction.Type.REPAIR_CARD
+                     || action.getType() == GameAction.Type.LEAD_FLEET
+                     || action.getType() == GameAction.Type.BID_ON_MERCENARY
+                     || action.getType() == GameAction.Type.ATTACK_CONFLICT_PARTICIPANT
+                     || action.getType() == GameAction.Type.REVEAL_CONTINGENCY;
+                if (!slotPayload && !p.getHand().contains(card)) {
+                    return fail("AIPlayer(" + NAMES[i] + ") chose " + action
+                        + " but that card is not in its hand");
                 }
                 if (!card.getFaction().isPlayableBy(p.getFaction())) {
                     return fail("AIPlayer(" + NAMES[i] + ") chose illegal card "

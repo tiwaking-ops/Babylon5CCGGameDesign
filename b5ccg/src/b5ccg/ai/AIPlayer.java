@@ -468,7 +468,7 @@ public class AIPlayer {
     // ── EASY ──────────────────────────────────────────────────────────────────
 
     private GameAction easyChoose(List<GameAction> legal, Player p) {
-        if (legal.size() > 1 && rng.nextInt(10) < 3) return GameAction.pass();
+        if (legal.size() > 1 && rng.nextInt(10) < 2) return GameAction.pass();
         return legal.get(rng.nextInt(legal.size()));
     }
 
