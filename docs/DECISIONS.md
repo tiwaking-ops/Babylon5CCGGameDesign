@@ -32,12 +32,13 @@ provenance:
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
     - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
+    - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
   created_date: "2026-09-21"
-  last_modified_by_llm: {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
+  last_modified_by_llm: {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
   last_modified_date: "2026-09-26"
 ---
 
@@ -3312,3 +3313,52 @@ scope (AGENTS.md §6); no new root .md files.
   by the twin session rode into this commit via directory staging; left
   in place (advisory tier), namespace discipline flagged per AGENTS §6.
 
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0468 opponent-targeted enhancement seam
+
+* Promoted the Censure-style "attach to a chosen opponent's fleet" from a
+  CardEffects.java:209 comment-only stub to a real model seam in
+  EnhancementCard.java (two target-identity fields plus hasExplicitTarget,
+  bonusFor, toAttachedBonus accessors) and Player.java (a read-only
+  hasAttachedBonusFrom probe). No engine wiring, no behavior change, model/
+  only. compile.bat green (-source 6); Java 6 grep clean on both files.
+* The seam documents a registry fact the B5-0469 wiring task will depend on:
+  ATTACHED-scope StatBonus bonuses are read from the TARGET owner's registry,
+  so an opponent-targeted penalty must be granted INTO the opponent's Player
+  registry and removed there (Player.removeBonusesBySource).
+
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0469 opponent-enhancement seam test wiring
+
+* Added testOpponentEnhancementSeam() to HeadlessConformanceTest.java 1429,
+  invoked from main() at line 3705 (B5-0468 model seam is already live, this
+  only adds a conformance assertion layer — no game-logic edits).
+* 22 new checks assert: default un-targeted state (nulls, no explicit target,
+  toAttachedBonus=null), explicit opponent-target set (targetCardId/
+  targetOwnerName recorded, hasExplicitTarget=true), bonusFor per-stat values
+  (MILITARY=-2, DIPLOMACY=0, PSI=0), toAttachedBonus field shape (scope=ATTACHED,
+  stat, delta, targetCardId, sourceCardId, createdRound, expiry), and the
+  Player.hasAttachedBonusFrom probe after grantBonus (positive + three
+  negatives: wrong source, wrong target, null args). A two-check legacy block
+  confirms un-targeted enhancements still behave identically.
+* Suite count: 398 → 422 checks (the 8 AGL-LOG checks from B5-0464 remain + the
+  22 new ENH-SEAM checks; no existing checks lost). Compile green (-source 6),
+  conformance PASS (422/422), smoke PASS. Java 6 grep clean.
+* Reusable lesson filed under .agent/PATTERNS/Buffy-(glm-5.3-flash)/ —
+  "seam tests should probe default state + explicit-target transition +
+  registry probe round-trip in one method; keeps coverage local to the seam".
+
+
+## 2026-09-25 — Buffy (unknown): B5-0473 opponent-targeted enhancement wiring interpretation
+
+* Interpretation recorded: an explicit opponent-targeted fleet enhancement
+  (Censure-class, B5-0468 seam) applies its ATTACHED-scope StatBonus INTO the
+  target owner's Player bonus registry, keyed to the target fleet's card id —
+  this is the only place the read path can see it (FleetCard.getEffectiveMilitary
+  reads owner.effectiveStat, the registry fact recorded by B5-0468).
+* Unresolvable-target policy: when the named player or fleet does not exist in
+  play (or the fleet is face-down), the enhancement is HELD IN PLAY on the
+  playing player's enhancement list with NO registry effect and NO fallback
+  onto the owner's own fleet — attaching a penalty to your own fleet would be
+  a strictly harmful auto-misplay. A future retarget action can complete the
+  attachment from the held state.
+* No model, data, or 0354/0352 semantics touched: 0352 participation values and
+  the Support-Babylon-5 no-rewire trap are unaffected (enhancement path only).

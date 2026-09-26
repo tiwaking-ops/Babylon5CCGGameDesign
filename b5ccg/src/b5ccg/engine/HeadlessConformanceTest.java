@@ -128,6 +128,13 @@ public class HeadlessConformanceTest {
         return p;
     }
 
+    private static boolean logContains(GameState st, String needle) {
+        for (String line : st.getLog()) {
+            if (line.contains(needle)) return true;
+        }
+        return false;
+    }
+
     private static GameState state(Player... players) {
         List<Player> ps = new ArrayList<Player>();
         for (Player p : players) { ps.add(p); }
@@ -1506,6 +1513,101 @@ public class HeadlessConformanceTest {
                 !legacy.hasExplicitTarget());
         check("ENH-SEAM", "legacy enhancement toAttachedBonus is null",
                 legacy.toAttachedBonus(StatKey.MILITARY, Expiry.END_OF_TURN, 1) == null);
+    }
+
+    // ── B5-0473: opponent-targeted enhancement engine wiring ──────────────────
+
+    private static void testOpponentEnhancementWiring() {
+        System.out.println("ENH-WIRE (B5-0473): explicit-target fleet enhancements attach into the opponent registry");
+
+        EnhancementCard censure = new EnhancementCard(
+                "enh_censure_w1", "Censure Wire Test", "ENHANCEMENT_FLEET",
+                Rarity.UNCOMMON, Faction.ANY, CardSet.PREMIERE, "x", "text",
+                0, 0, 0,
+                -2, 0);
+
+        Player owner = player("ENHWIRE-A", Faction.CENTAURI);
+        Player victim = player("ENHWIRE-B", Faction.NARN);
+        GameState st = state(owner, victim);
+        FleetCard oppFleet = fleetCard("fleet_opp_wire", null);
+        victim.addFleet(oppFleet);
+        censure.setOpponentTarget("fleet_opp_wire", victim.getName());
+
+        // 1. Happy path: penalty lands in the VICTIM's registry, keyed to their fleet.
+        CardEffects.applyPlayEnhancement(st, owner, censure);
+        check("ENH-WIRE", "penalty granted into the opponent registry",
+                victim.hasAttachedBonusFrom("enh_censure_w1", "fleet_opp_wire"));
+        check("ENH-WIRE", "attacker registry stays clean",
+                !owner.hasAttachedBonusFrom("enh_censure_w1", "fleet_opp_wire"));
+        check("ENH-WIRE", "bonus delta is the printed -2",
+                oppFleet.getEffectiveMilitary() == oppFleet.getMilitary() - 2);
+        check("ENH-WIRE", "attach logged with victim attribution",
+                logContains(st, "attaches Censure Wire Test to " + victim.getName()));
+        check("ENH-WIRE", "card held on the playing player's list",
+                owner.getEnhancements().contains(censure));
+
+        // 2. Removal seam: owner removes by source id, victim cleans up.
+        FleetCard fresh = fleetCard("fleet_fresh_wire", null);
+        victim.addFleet(fresh);
+        victim.removeBonusesBySource("enh_censure_w1");
+        check("ENH-WIRE", "removeBonusesBySource lifts the opponent penalty",
+                !victim.hasAttachedBonusFrom("enh_censure_w1", "fleet_opp_wire"));
+        check("ENH-WIRE", "fleet recovers printed military after removal",
+                fresh.getEffectiveMilitary() == fresh.getMilitary());
+
+        // 3. No-target fallback: un-targeted enhancement keeps legacy self-fleet path.
+        EnhancementCard legacy = new EnhancementCard(
+                "enh_legacy_w1", "Legacy Wire Test", "ENHANCEMENT_FLEET",
+                Rarity.COMMON, Faction.ANY, CardSet.PREMIERE, "x", "text",
+                0, 0, 0, 1, 0);
+        FleetCard ownFleet = fleetCard("fleet_own_wire", null);
+        owner.addFleet(ownFleet);
+        CardEffects.applyPlayEnhancement(st, owner, legacy);
+        check("ENH-WIRE", "un-targeted enhancement still attaches to own best fleet",
+                owner.hasAttachedBonusFrom("enh_legacy_w1", "fleet_own_wire"));
+        check("ENH-WIRE", "legacy attach never touches the opponent registry",
+                !victim.hasAttachedBonusFrom("enh_legacy_w1", "fleet_opp_wire"));
+
+        // 4. Explicit target that cannot resolve: held in play, no registry effect.
+        EnhancementCard ghost = new EnhancementCard(
+                "enh_ghost_w1", "Ghost Target Test", "ENHANCEMENT_FLEET",
+                Rarity.COMMON, Faction.ANY, CardSet.PREMIERE, "x", "text",
+                0, 0, 0, -1, 0);
+        ghost.setOpponentTarget("fleet_does_not_exist", "NoSuchPlayer");
+        CardEffects.applyPlayEnhancement(st, owner, ghost);
+        check("ENH-WIRE", "unresolvable target logs held-in-play",
+                logContains(st, "opponent target unavailable"));
+        check("ENH-WIRE", "unresolvable target grants no registry bonus",
+                !owner.hasAttachedBonusFrom("enh_ghost_w1", "fleet_own_wire")
+                && !victim.hasAttachedBonusFrom("enh_ghost_w1", "fleet_opp_wire"));
+        check("ENH-WIRE", "unresolvable target leaves card held on owner list",
+                owner.getEnhancements().contains(ghost));
+
+        // 5. Round-trip through the real pipeline: processAction PLAY_CARD.
+        EnhancementCard piped = new EnhancementCard(
+                "enh_pipe_w1", "Pipe Wire Test", "ENHANCEMENT_FLEET",
+                Rarity.COMMON, Faction.ANY, CardSet.PREMIERE, "x", "text",
+                0, 0, 0, -1, 0);
+        piped.setOpponentTarget("fleet_opp_wire", victim.getName());
+        owner.addToHand(piped);
+        // Round-trip through the real controller path (reflection per the
+        // B5-0464/0372 precedent: processAction is private).
+        try {
+            java.lang.reflect.Method handler =
+                    GameController.class.getDeclaredMethod(
+                            "processAction", Player.class, GameAction.class);
+            handler.setAccessible(true);
+            handler.invoke(new GameController(st, new ArrayList<AIPlayer>(),
+                    new GameStateCallback() {
+                        public void accept(GameState gs) { }
+                    }), owner, GameAction.playCard(piped));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        check("ENH-WIRE", "processAction installs the opponent-targeted enhancement",
+                victim.hasAttachedBonusFrom("enh_pipe_w1", "fleet_opp_wire"));
+        check("ENH-WIRE", "pipelined attach leaves the hand",
+                !owner.getHand().contains(piped));
     }
 
     // ── B5-0453: AI station-aware scoring ──────────────────────────────────────
@@ -3703,6 +3805,7 @@ public class HeadlessConformanceTest {
             testAIStationAwareness(); // B5-0453: MEDIUM/HARD score station ratings, EASY uniform
             testAgendaInstallLog();   // B5-0464: sets-agenda token emitter paired with the runner parser
             testOpponentEnhancementSeam(); // B5-0469: opponent-targeted enhancement model seam shape
+            testOpponentEnhancementWiring(); // B5-0473: explicit-target fleet enhancement engine wiring
             System.out.println("All B5-0203 deviations D1-D14 resolved; D15 partial by effect-coverage; D6/D7 now have dedicated named assertions (B5-0436). B5-0437 station hooks covered (STH). B5-0453 AI station-awareness covered. B5-0469 enhancement seam asserted (ESM).");
 
             System.out.println();

@@ -206,18 +206,46 @@ public final class CardEffects {
      * target and applies the JSON bonus fields. Faction/Global/Location/
      * Babylon 5 enhancements have no single-card target in the model; they
      * are held on the owner's enhancement list (location income bonuses are
-     * applied by RulesEngine.startRound). Fleet penalties (Censure) target
-     * the strongest own fleet here — opponent targeting needs a target
-     * selection the model does not carry; noted in the report.
+     * applied by RulesEngine.startRound).
+     *
+     * B5-0473: fleet enhancements carrying the B5-0468 explicit opponent
+     * target (Censure-class) attach to the CHOSEN opponent fleet instead of
+     * the owner's best. The 0468 seam records the registry fact that
+     * ATTACHED-scope bonuses are read from the TARGET owner's registry
+     * (FleetCard.getEffectiveMilitary reads owner.effectiveStat), so the
+     * penalty is granted INTO the opponent's Player registry, keyed to their
+     * fleet id. An explicit target that cannot be resolved (unknown player,
+     * unknown or face-down fleet) leaves the card held in play with no
+     * registry effect — no self-fallback onto the owner's own fleet.
      */
     public static void applyPlayEnhancement(GameState state, Player p, EnhancementCard card) {
         String subtype = card.getSubtype() == null ? "" : card.getSubtype();
         String id = card.getId();
 
         if (subtype.endsWith("_FLEET")) {
-            FleetCard target = bestFleet(p);
             int delta = card.getMilitaryBonus();
             p.getEnhancements().add(card);
+
+            // B5-0473: opponent-targeted path consumes the 0468 seam.
+            if (card.hasExplicitTarget()) {
+                Player victim = findPlayerByName(state, card.getTargetOwnerName());
+                FleetCard target = victim == null
+                        ? null : fleetById(victim, card.getTargetCardId());
+                if (target != null && delta != 0) {
+                    target.setOwner(victim);
+                    victim.grantBonus(card.toAttachedBonus(StatKey.MILITARY,
+                            Expiry.WHILE_IN_PLAY, state.getRoundNumber()));
+                    state.log(p.getName() + " attaches " + card.getTitle()
+                            + " to " + victim.getName() + "'s " + target.getTitle()
+                            + " (Military " + (delta >= 0 ? "+" : "") + delta + ").");
+                } else {
+                    state.log(p.getName() + " holds " + card.getTitle()
+                            + " (opponent target unavailable; held in play).");
+                }
+                return;
+            }
+
+            FleetCard target = bestFleet(p);
             if (target != null && delta != 0) {
                 // B5-0366: route the bonus through the registry, not field mutation.
                 target.setOwner(p);
@@ -405,6 +433,26 @@ public final class CardEffects {
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
+
+    /** B5-0473: player lookup by name (model-level scan; GameState is out of
+     *  this task's scope for a lookup method). Returns null when absent. */
+    private static Player findPlayerByName(GameState state, String name) {
+        if (name == null) return null;
+        for (Player q : state.getPlayers()) {
+            if (name.equals(q.getName())) return q;
+        }
+        return null;
+    }
+
+    /** B5-0473: face-up fleet lookup by card id on the target player.
+     *  Face-down fleets are unresolvable (identity stays hidden). */
+    private static FleetCard fleetById(Player victim, String cardId) {
+        if (cardId == null) return null;
+        for (FleetCard f : victim.getFleets()) {
+            if (cardId.equals(f.getId()) && !f.isFaceDown()) return f;
+        }
+        return null;
+    }
 
     private static FleetCard bestFleet(Player p) {
         FleetCard best = null;

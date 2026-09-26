@@ -274,6 +274,26 @@ public class Player {
         return removed;
     }
 
+    // ── B5-0468: attached-bonus probe for the opponent-targeted enhancement seam ──
+
+    /**
+     * B5-0468 probe: returns true if this player's bonus registry contains an
+     * ATTACHED-scope bonus from the given source card targeting the given card.
+     * Used by conformance tests to verify the seam closes correctly (grant → check).
+     * Returns false if either argument is null (defensive).
+     */
+    public boolean hasAttachedBonusFrom(String sourceCardId, String targetCardId) {
+        if (sourceCardId == null || targetCardId == null) return false;
+        for (StatBonus b : bonuses) {
+            if (b.scope == BonusScope.ATTACHED
+                    && b.sourceCardId != null && b.sourceCardId.equals(sourceCardId)
+                    && b.targetCardId != null && b.targetCardId.equals(targetCardId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Effective value of a card's stat, accounting for this player's attached
      * bonuses. The formula (B5-0357 proposal §3.2):
