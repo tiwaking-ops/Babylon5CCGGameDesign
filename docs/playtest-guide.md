@@ -19,6 +19,7 @@ provenance:
     - {name: "Buffy (unknown)", version: "unknown"}
     - {name: "Buffy (unknown)", version: "unknown" — B5-0484 part 11 refresh}
     - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash" — B5-0498 part 13 refresh}
+    - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash" — B5-0512 part 14 refresh}
   last_modified_by_llm: {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
   last_modified_date: "2026-09-26"
 ---
@@ -200,7 +201,8 @@ moves tension yet).
 
 ## 5. The AI seats
 
-* **EASY (Londo)** passes often (~53% of decisions) and otherwise picks
+* **EASY (Londo)** passes often (~46% of decisions since the B5-0508
+  retune; previously ~53%) and otherwise picks
   uniformly among legal actions — useful for watching mechanics play out.
   EASY never consults station ratings (B5-0453): the uniform pick is the
   intended contract, and difficulty-level behavior is unchanged.
@@ -221,13 +223,17 @@ moves tension yet).
 * Difficulty contracts are pinned by the standalone harness
   `HeadlessAIDifficultyContractTest` (B5-0351). The station-aware scoring is
   pinned by the suite's STH-AI section (B5-0453, 7 checks).
-* **Pass-bias proposal status (B5-0422):** the ~53% EASY pass bias sits inside
-  its designed 0.35-0.70 band but drags multi-seat games into quiet,
-  low-promotion rounds (B5-0409). Two parallel advisory proposals are on
-  record: solar-pro4:free recommends a harness/Main seat-mix change first,
-  then an EASY retune; Buffy (glm-5.3-flash) recommends a one-line EASY
-  direct-pass-gate retune (observed pass ~0.45-0.50, still in band). No
-  behavior has changed; both await the normal proposal-approval path.
+* **EASY pass-bias retune (B5-0508, human Ruling 1A — landed):** the EASY
+  pass floor moved from 0.35 to 0.20 by human order, widening the
+  B5-0351 contract band to 0.20-0.70 (upper bound 0.70 unchanged; MEDIUM
+  and HARD untouched). Observed pass rate after the retune: **0.463**
+  (contract 10/10 PASS). The two B5-0422 advisory proposals are resolved
+  by this ruling; the EASY-vs-MEDIUM blur it introduces was accepted per
+  the brief. Acceptance evidence (B5-0509, 0447 seed-matched, 10 games):
+  9 WINNER + 1 TIMEOUT reproducing in the historical seed-105 game-2
+  slot; promotions rose 3.2 → 4.4/game (EASY passing less feeds more
+  actions to every seat; within noise, watch on the next re-probe);
+  builds ~flat 9.0; agendas stable 3.6; initiator win 55%.
   Note: default seat mixes already include exactly one EASY seat (Main:
   MEDIUM/HARD/EASY; harnesses: EASY/MEDIUM/HARD/MEDIUM) — no all-EASY
   default exists in the tree.
@@ -414,7 +420,8 @@ the live list below.
 * **Quiet, pass-heavy rounds are still real.** When all four seats pass
   consecutively the action phase ends; every default mix has exactly one EASY
   seat (Main: MEDIUM/HARD/EASY; harnesses: EASY/MEDIUM/HARD/MEDIUM — no
-  all-EASY default exists) at ~53% pass bias, and rounds can advance with
+  all-EASY default exists) at ~46% pass bias since the B5-0508 retune
+  (previously ~53%), and rounds can advance with
   sparse action. B5-0372's
   D6 initiative cycle is live (un-passing on non-pass actions, 8×playerCount
   liveness backstop), but the EASY bias still makes some rounds quiet.
