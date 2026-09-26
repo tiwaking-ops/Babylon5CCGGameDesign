@@ -249,16 +249,7 @@ public final class CardEffects {
 
             FleetCard target = bestFleet(p);
             if (target != null && delta != 0) {
-                // B5-0528: fleet enhancements carrying the Energy Mines reactive
-                // (attackers of THIS fleet take 1 extra damage) are held in play
-                // by the play grant itself (no explicit target). The engine fires
-                // their reactive at the attack site via attackMinesOnFleet(id).
-                if (attackMines(id)) {
-                    state.log(p.getName() + " plays " + card.getTitle()
-                            + " — attackers of " + target.getTitle()
-                            + " take 1 extra damage");
-                    return;
-                }
+
                 // B5-0366: route the bonus through the registry, not field mutation.
                 target.setOwner(p);
                 int floor = floorFor(card.getId());
@@ -339,30 +330,7 @@ public final class CardEffects {
             return;
         }
 
-        // B5-0528: Mines-class faction enhancements (reactive damage-on-attack).
-        // The printed effect is reactive — engine fires it at the attack site
-        // (RulesEngine.executeAttackConflictParticipant via attackMines()) — so
-        // play installs only the permanent -1 Military penalty into every
-        // OPPONENT's registry, attached to each of their fleets (fleet is
-        // rotated at the attack site per the printed parenthetical).
-        if ("ENHANCEMENT_FACTION".equals(subtype) && attackMines(id)) {
-            p.getEnhancements().add(card);
-            int r0528 = state.getRoundNumber();
-            for (Player opp : state.getPlayers()) {
-                if (opp == p) continue;
-                for (FleetCard ofl : opp.getFleets()) {
-                    opp.grantBonus(StatBonus.attached(id, StatKey.MILITARY, -1,
-                            ofl.getId(), Expiry.WHILE_IN_PLAY, r0528));
-                }
-                if (!opp.getFleets().isEmpty()) {
-                    state.log(p.getName() + " plays " + card.getTitle()
-                            + " — opponents' attacking fleets take 1 damage");
-                }
-            }
-            return;
-        }
-
-        if ("ENHANCEMENT_FACTION".equals(subtype) && !attackMines(id)) {
+        if ("ENHANCEMENT_FACTION".equals(subtype)) {
             p.getEnhancements().add(card);
             int mil = card.getMilitaryBonus();
             // B5-066: faction-scope bonus goes through the registry.
@@ -565,6 +533,12 @@ public final class CardEffects {
      *  effect. */
     public static boolean damageOnAttack(String cardId) {
         return cardId != null && DAMAGE_ON_ATTACK.contains(cardId);
+    }
+
+    /** B5-0528: synonym for damageOnAttack — used by applyPlayEnhancement's
+     *  fleet-branch and faction-branch logic. */
+    public static boolean attackMines(String cardId) {
+        return damageOnAttack(cardId);
     }
 
     /** B5-0506: face-up character lookup by card id on the target player.
