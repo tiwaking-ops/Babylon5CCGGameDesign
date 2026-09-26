@@ -3516,6 +3516,11 @@ B5-0491 (playtest refresh p12): 0486 floor behavior (min-1 Censure, default-0 in
 * B5-0502 executed harness-only (0447 seed-matched method, 10 games, seeds 101-109 step 2, 180s window): 34 face-up agenda installs across 10 games (3.4 per game, present in every game) counted by the live B5-0464 emitter — the 0447 zero baseline was 100% parser artifact, confirming the 0459 triage and closing the measurement question end-to-end on real balance runs.
 * Balance: 10/10 WINNER terminations (0 TIMEOUT, 0 ROUND_CAP, zero stalls), promotions 3.2 per game matching the 0447 end-state figure, builds 9.7 per game, initiator win rate ~57% inside the historical band. No rules or behavior question raised: the engine never changed; the measurement did.
 
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0509 post-retune balance re-probe (acceptance)
+
+* B5-0509 executed harness-only with the 0447 seed-matched method (10 games, seeds 101-109 step 2, 180s): the B5-0508 EASY retune is ACCEPTED per the human brief's acceptance-evidence prescription — EASY pass rate observed 0.463 inside the widened 0.20-0.70 band (HeadlessAIDifficultyContractTest 10/10 PASS), MEDIUM/HARD untouched and still deterministic/cost-aware, 9/10 WINNER with the single TIMEOUT reproducing in the exact historical seed-105 game-2 slot.
+* Balance reading: promotions rose 3.2 to 4.4 per game (mechanism: EASY passes less, more total actions feed promote windows; within n-10 noise, flagged for the next re-probe, no action); builds ~flat 9.0, aftermaths 5.0 consistent with shorter games (mean 8.1 rounds), agendas stable 3.6, initiator win 55% (band neighborhood). No regression attributable to the retune; no rules question raised.
+
 B5-0496 (2026-09-26, solar-pro4:free): B5-0487 row-text mechanism correction — the B5-0493 Finding F1 confirmed fabrication (B5-0329a class): the claimed API ripple (GameState.getFactions, Player.getFaction().isWon, Player.canShowFleetForController) exists nowhere in source or diffs. Superseded the Task-cell sentence with the 0493-verified mechanism (existing getPlayers()/getFleets() iteration with face-up, unrotated, non-human, non-forfeited filters — zero model API changes). Delivery, scope, and gates stand. Per B5-0329a class, the verify cell is now factually correct; no src/data/docs edits (ledger only). DECISIONS entry by solar-pro4:free.
 
 
@@ -3566,3 +3571,22 @@ author_llm: solar-pro4:free
 date: 2026-09-26
 ---
 B5-0508 CLOSE (solar-pro4:free, 04:28Z): EASY pass-bias retune to floor 0.20 — gate green. Edits: AIPlayer.java line 471 (easyChoose direct-pass threshold rng.nextInt(10) < 3 → < 2, lowering EASY pass floor from 30% to 20%) plus HeadlessAIDifficultyContractTest.java line 106 (contract band lower bound 0.35 → 0.20, upper bound 0.70 unchanged, MEDIUM/HARD untouched). Verification: compile green (1 benign bootstrap warning); RUN_TESTS=1 green (444/444 conformance + smoke PASS); standalone contract test 10/10 PASS with EASY pass rate 0.467 inside the new 0.20–0.70 band. Human Ruling 1 = A on the 0454 brief honored. No Java 6 construct violations (only rng.nextInt threshold and a float comparison changed). Report: .agent/REPORTS/2026-09-26-solar-pro4-free-B5-0508.md.
+
+---
+author_llm: solar-pro4:free
+date: 2026-09-26
+---
+B5-0515 CLOSE-OUT (2026-09-26, solar-pro4:free): ledger duplicate-row hygiene done. Deleted the second QUEUE 0511..0514 note (line 489) from the repeated seeding block appended by the concurrent seeding session. The second copies of B5-0512, B5-0513, B5-0514 rows were already absent — only the first copies at lines 485-487 survived. All B5 row IDs unique verified. Protected rows B5-0202c and B5-0316 untouched. All OPEN statuses intact (B5-0506, 0509, 0510, 0511, 0512, 0513, 0514). No live claim conflict. Ledger-only, no compile needed.
+
+---
+author_llm: Buffy (glm-5.3-flash)
+date: 2026-09-26
+---
+B5-0507 (checkpoint): Working-tree commit e2e7873a on main (13 files, +876/-19) -- compile.bat exit 0 plus RUN_TESTS=1 green (444/444 + smoke) on the exact committed tree; captures B5-0505 smoke checker fix + B5-0508 EASY retune + pending governance; NOT pushed; exclusions per row text and 0438/0455 precedent. DISCLOSED DEFECT: committed while B5-0506 was still OPEN+claimed (gate 0499..0506 not fully satisfied at commit time -- my claim mis-read the gate scope from B5-0492's shorter form); content valid (zero 0506 bytes), not reverted per the 967a7323 mid-window-capture precedent; full timeline in the row cell and report addendum.
+
+## 2026-09-26 — me-so-poor (unknown)
+* B5-0506 (engine/ + HeadlessConformanceTest section only; first near-class wiring slice, top-ranked shunned LOW per B5-0497 ranking at ledger row 464): claim created atomically (file did not exist, not overwritten); heartbeat refreshed; compile.bat / compile.sh green (57 files, -source 6 -target 6, 1 expected bootstrap-classpath warning); RUN_TESTS=1 green; Java 6 construct grep on engine/ clean; NO model/ or data edits made this pass (slice wiring deferred to verified edit step); provenance recorded — author_llm me-so-poor (unknown), assessor self-only; no collaborator named; pattern record advisory only (.agent/PATTERNS/me-so-poor/). Gated after B5-0497 (DONE at row 464).
+
+## 2026-09-26 — Solar Pro4 (solar-pro4:free)
+* B5-0511 DONE: Post-EASY-retune AI contract re-verification — re-run HeadlessAIDifficultyContractTest standalone CLI to confirm the widened band 0.20–0.70 still holds after B5-0508's EASY floor retune (0.35→0.20). Command: `java -cp b5ccg/out b5ccg.engine.HeadlessAIDifficultyContractTest` → exit 0, 10/10 PASS. EASY pass bias observed 0.49, inside 0.20–0.70. MEDIUM/HARD deterministic ordering + cost-awareness + zero-cost invariance unchanged. Execution-only scope, no source edits; report .agent/REPORTS/2026-09-26-solar-pro4:free-B5-0511.md.
+* B5-0513 DONE: Build-hygiene re-sweep v2 — full-tree Java 6 construct grep across b5ccg/src/ (0 matches: no lambdas, method refs, streams, computeIfAbsent, @FunctionalInterface, or try-with-resources); compile.bat + compile.sh + RUN_TESTS=1 all green (444/444 + smoke). Execution-only scope, no source edits; report .agent/REPORTS/2026-09-26-solar-pro4:free-B5-0513.md.
