@@ -21,7 +21,8 @@ provenance:
     - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash" — B5-0498 part 13 refresh}
     - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash" — B5-0512 part 14 refresh}
     - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash" — B5-0517 part 15 refresh}
-  last_modified_by_llm: {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
+    - {name: "Buffy", version: "unknown" — B5-0531 part 17 refresh}
+  last_modified_by_llm: {name: "Buffy", version: "unknown"}
   last_modified_date: "2026-09-26"
 ---
 
@@ -252,7 +253,13 @@ moves tension yet).
   slot; promotions rose 3.2 → 4.4/game (EASY passing less feeds more
   actions to every seat; within noise, watch on the next re-probe);
   builds ~flat 9.0; agendas stable 3.6; initiator win 55%.
-  Note: default seat mixes already include exactly one EASY seat (Main:
+  [CORRECTED by the B5-0527 reconciliation audit (2026-09-26): the cited
+  0509 report’s own per-seed table places the TIMEOUT at SEED 109
+  GAME 2 (round 11), not the seed-105 slot; and this paragraph’s
+  figures match the 0509 row’s verify cell, not the cited report,
+  which gives promotions 4.7/game, builds 8.6, aftermaths 8.2,
+  agendas 4.3, initiator win 53% (66/124). Both runs support the
+  ACCEPTED verdict; the second run’s logs were not persisted.]  Note: default seat mixes already include exactly one EASY seat (Main:
   MEDIUM/HARD/EASY; harnesses: EASY/MEDIUM/HARD/MEDIUM) — no all-EASY
   default exists in the tree.
 
@@ -260,10 +267,10 @@ moves tension yet).
 
 `sh compile.sh` with `RUN_TESTS=1` runs the full conformance suite
 (**460 checks**; see the suite banner for the live count; re-verified green
-2026-09-26 with the B5-0506 shunned-wiring and B5-0516 board-readout
-changes coexisting green, and by the B5-0500 re-sweep before them, which
-also re-ran all seven standalone
-probes PASS) plus a smoke game. One transient smoke-run failure mode is
+2026-09-26 with the B5-0506 shunned-wiring, B5-0516 board-readout, and
+B5-0528 mines wiring changes coexisting green, by the B5-0500 re-sweep
+before them, and by the B5-0532 hygiene re-sweep after them, which also
+re-ran all seven standalone probes PASS) plus a smoke game. One transient smoke-run failure mode is
 known and classified — see the B5-0495 honesty note in section 7.
 B5-0437's station hooks added 14 STH
 assertions (373 → 387); B5-0453 added 7 STH-AI assertions (387 → 394);
@@ -416,11 +423,62 @@ the live list below.
   pair): a character enhancement carrying an explicit target attaches its
   four per-stat penalties to the chosen opponent character and is
   discarded — lifting its bonuses — when that character is healed
-  (reactive discard-on-heal, SHN ×16 suite section). Data note on record:
-  the shunned records carry `militaryBonus: 0` against their printed
+  (reactive discard-on-heal, SHN ×16 suite section). The B5-0522 picker
+  extension makes this path human-reachable (below). Data note RESOLVED (B5-0523):
+  the shunned records previously carried `militaryBonus: 0` against their printed
   "all stats" text (B5-0311 class; data wins), so the penalty values in
-  play come from the engine table until a data task backfills them.
+  play came from the engine table; the data task landed 2026-09-26 and both
+  records now carry `militaryBonus: -2`, matching the printed text.
+* **Mines + Energy Mines reactive (B5-0528)** — attacking an opponent
+  protected by Mines in play adds +1 to the damage your fleet takes back:
+  the engine checks the defending side for a held Mines-class enhancement
+  at the attack-resolution site (`DAMAGE_ON_ATTACK` registry over all four
+  pool ids: enh/de_enh_mines, enh/de_enh_energy_mines). Energy Mines keeps
+  its printed +2 Military self-attach on the owner’s best fleet via the
+  normal fleet-grant path. Playtest note: the reactive fires once per
+  resolved attack on the protected side; check the battle log line for the
+  inflated return-damage figure.
+  **B5-0523 (shunned militaryBonus data values):** the two shunned records
+  [SUPERSEDED 2026-09-26 by B5-0523 landing: both records now carry
+  militaryBonus -2, matching the printed text; the present-tense
+  discrepancy note below predates the data fix. See the verified
+  B5-0531 note above.]  (`enh_shunned` in premiere.json, `de_enh_shunned` in deluxe.json) carry
+  `militaryBonus: 0` in data against their printed "loses 2 from all stats"
+  text (B5-0311 class; data wins over printed text for the B5-0473/B5-0506
+  engine grant path, which reads each bonusFor value individually). The
+  printed text implies -2 Military, but the engine grants whatever the data
+  field says (0 for both records until a data task backfills them). A data
+  task (separate from this guide refresh) sets both records' militaryBonus to
+  -2 so the data matches the printed text; this guide row documents the
+  current data-vs-printed discrepancy for playtesters. GUIDE GAP CLOSED by
+  this row (data note surfaced).
+  **B5-0522 (opponent-character target picker for shunned-class CHARACTER
+  [SUPERSEDED 2026-09-26 by B5-0522 landing: the picker IS live (the
+  trailing NOTE describing "no picker" is the pre-0522 defect state),
+  and the "non-won" filter does not exist in code (B5-0493 F1
+  fabrication descendent). Same-class fix also repaired the 0487 fleet
+  handler’s targeted branch, which tested a seam its own delegate
+  sets at submit time so targeted fleet clicks self-penalized.]  enhancements):** the Play Card handler now populates an opponent-character
+  dropdown when the selected hand card is a CHARACTER enhancement carrying
+  the 0468 seam (shunned-class today) — face-up, non-won, non-human,
+  non-forfeited opponent characters across Inner Circle, supporting role,
+  and ambassador, per the B5-0506 characterById scope. Selecting a target
+  routes play through setOpponentTarget before submit, mirroring the B5-0487
+  fleet flow including empty-state disable and the held-in-play fallback when
+  no opponent character is available. NOTE: MainWindow.refreshCensureControl
+  gates the picker on Enhancement FLEET subtype only, so a human-played
+  shunned-class CHARACTER enhancement has no picker and routes to the legacy
+  self path (self-penalizing); the B5-0506 engine explicit-target CHARACTER
+  branch is live for AI. GUIDE GAP CLOSED by this row.
 
+* **Opponent-CHARACTER target picker (B5-0522, verified)** — selecting an
+  Enhancement CHARACTER card from hand now shows an opponent-character
+  dropdown (face-up inner circle, supporting role, and ambassador of every
+  non-forfeited opponent — the same scope the engine resolves); picking
+  one and pressing Play (opponent char target) routes the penalty into that
+  character’s owner registry; with no target chosen the engine’s
+  held-in-play rule applies (no self-fallback). Verify: RUN_TESTS=1 green
+  (460/460 + smoke PASS), B5-0443 human-seat probe 37/37.
 **Honesty notes for playtesters:**
 
 * **A transient smoke-run FAIL is a harness-internal race, not an engine

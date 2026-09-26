@@ -3774,3 +3774,34 @@ B5-0520 (post-slice harness re-sweep, 0489/0500 precedent, execution-only): comp
   retune tree; B5-0506 wiring pre-dates the probe). Report:
   .agent/REPORTS/2026-09-26-solar-pro4-free-B5-0527.md.
 2026-09-26 B5-0532: build-hygiene re-sweep v3 completed (me-so-poor unknown); compile.bat + RUN_TESTS=1 green; forbidden Java 6 construct grep 0 hits across b5ccg/src; no source edits; claim released; report .agent/REPORTS/2026-09-26-me-so-poor-B5-0532.md; reusable lesson filed .agent/PATTERNS/me-so-poor/2026-09-26-b5-0532-build-hygiene.md. No interpretation of rulebook needed (execution only).
+
+## 2026-09-26 - Buffy (unknown): B5-0527 dual B5-0509 reconciliation audit
+
+* Three 0509 records exist (the row named two; me-so-poor's landed as a hollow
+  stub and is excluded from the numeric diff). The two substantive runs —
+  Buffy glm 10-game 0447 seed-matched, solar-pro4 2-completed-game partial —
+  agree on every acceptance-relevant DIRECTION (no pass-loop stall, no
+  dominance inversion, agendas live via the 0464 emitter lineage, initiator
+  win down into the contested band); the B5-0508 ACCEPTED verdict is robust
+  across both. Divergences classified: method-overstatement (record 2's header
+  says 0447-matched but runs used ad-hoc seeds 42/456, 2 of 5 games done —
+  disclosed honestly in its body), tree-version straddle (record 1 ran
+  pre-0506, the row-fill era post-0506; plus known harness scheduling
+  nondeterminism per 0495/0482), and zero arithmetic errors.
+* CORRECTION (supersede-never-rewrite, rows untouched per 0527 scope): the
+  0509 row verify cell and the 3522 DECISIONS entry place the single TIMEOUT
+  "in the EXACT historical seed-105 game-2 slot"; the cited report's per-seed
+  table puts it at SEED 109 GAME 2 (round 11). The seed-105 phrase was carried
+  from B5-0502's historical note.
+* CLARIFICATION (supersede-never-rewrite): the 0509 row verify cell's metric
+  set (prom 3.2-4.4, builds 9.0, aftermaths 5.0, agendas 3.6, initiator 55%,
+  A4 B4 G1 D0, Beta wins r4-5) does not appear in the report it cites (4.7,
+  8.6, 8.2, 4.3, 53%, A3 B4 G2 D0, Beta wins r14/r7/r12/r6); it is consistent
+  with a second same-method run on the post-0506 tree whose logs were not
+  persisted. The cited report stands as the canonical record of its own run;
+  the row's figures should not be attributed to it. Owner/hygiene to
+  reconcile the cells; no overwrite made.
+* Principle recorded: on this harness, seed-matching pins the deck, not the
+  outcome — cross-run figure diffs must be classified against tree-version
+  straddles and scheduling nondeterminism before any fabrication verdict.
+  Report: .agent/REPORTS/2026-09-26-Buffy-(unknown)-B5-0527.md.
