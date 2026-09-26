@@ -3362,3 +3362,24 @@ scope (AGENTS.md §6); no new root .md files.
   attachment from the held state.
 * No model, data, or 0354/0352 semantics touched: 0352 participation values and
   the Support-Babylon-5 no-rewire trap are unaffected (enhancement path only).
+
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0476 harness health re-sweep
+
+* Executed all standalone probes against the B5-0473 wired engine:
+  - HeadlessReportingTiebreakTest: 26/26 PASS
+  - HeadlessAIDifficultyContractTest: 10/10 PASS (contract bands unshifted by station-aware AI scoring)
+  - HeadlessStationVictoryTest: 6/0 fail (condition-2 station victory + Shadow-War guard intact)
+  - HeadlessParticipationGatesProbe: all scenarios PASS
+  - HeadlessLeadFleetScenarioProbe: 8/0 fail
+  - HeadlessWarConflictProbe: all scenarios PASS
+  - HeadlessHumanSeatProbe (seed 456): 29/29 PASS
+* Conformance suite: 436/436 PASS (suite unchanged by B5-0476 execution-only task)
+* Smoke test: PASS
+* Reusable lesson filed: nondeterministic probes (wall-clock scheduling, no seeded RNG) can produce flaky results; run multiple censes before diagnosing single-run failures as defects.
+
+## 2026-09-26 - Muse Spark (muse-spark-1.3-contributor-free): seed B5-0482..0485
+
+* Claims re-checked: B5-0478.json on disk treated as live (mtime plus owner heartbeat fresh despite stale started_utc stamp, known clock-skew pathology), row untouched. Residues on DONE rows (0468, 0470, 0471 empties, non-empty 0472.json) left for owners. Opencode self-seeds 0480 and 0481 left for their owner by courtesy.
+* Tree verified green this pass: compile.bat Build successful (only the expected bootstrap warning).
+* Seeded: B5-0482 probe determinism fix from the 0476 recommendation (gated on 0478 DONE, same file serialize), B5-0483 minimum-1 floor proposal-only from the 0477 gap (claimable now), B5-0484 guide part 11 (gated on 0478 plus 0482), B5-0485 checkpoint (gated on 0479 plus 0478 plus 0482, claims after 0479).
+* Nothing seeded on the 0454 human-decision brief until a human ruling arrives.

@@ -16,7 +16,8 @@ provenance:
     - {name: "Buffy", version: "glm-5.3-flash"}
     - {name: "opencode (me-so-poor)", version: "big-pickle"}
     - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
-  last_modified_by_llm: {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
+    - {name: "Buffy (unknown)", version: "unknown"}
+  last_modified_by_llm: {name: "Buffy (unknown)", version: "unknown"}
   last_modified_date: "2026-09-26"
 ---
 
@@ -147,6 +148,13 @@ resolution time, auto-played for AI seats only).
 Board readouts (B5-0316/0346/0347): each player band shows committed
 conflict sides and per-participant card lists with totals (supporters
 green, opposers orange); a green **WON BY** banner appears after a conflict
+> resolves (B5-0347). **B5-0470 update:** the outcome banner now renders for
+> every resolved conflict — normal and war alike — as
+> "WON BY <winner> — LOST BY <loser>", where the loser is derived from the
+> sides (initiator lost, the conflict target, or the captured location's
+> owner), with a "WAR: …" title prefix for war conflicts (B5-0376). The
+> detail line beneath shows the support/opposition totals plus the winner's
+> influence reward.
 resolves; agenda slots show MAJOR/minor and a `[WIN]` marker when the
 agenda's condition is currently met; `A+`/`A$` mark the assistant
 assist-bonus and sponsor-discount states (B5-0339). Captured/suppressed
@@ -225,18 +233,33 @@ moves tension yet).
 ## 6. Headless testing (no UI)
 
 `sh compile.sh` with `RUN_TESTS=1` runs the full conformance suite
-(398 checks) plus a smoke game. B5-0437's station hooks added 14 STH
+(436 checks) plus a smoke game. B5-0437's station hooks added 14 STH
 assertions (373 → 387); B5-0453 added 7 STH-AI assertions (387 → 394);
 B5-0464 added 4 AGL-LOG assertions (394 → 398); B5-0436 added D6/D7 named
 assertions and D15
+winner-only `influenceReward` coverage; B5-0469 added 22 ENH-SEAM assertions
+(398 → 420ish band, see suite banner for the live count); **B5-0473 added 14
+ENH-WIRE assertions (current total 436)** covering the opponent-targeted
+enhancement wiring. Several standalone CLI harnesses exist
+(not wired into RUN_TESTS — run directly with `java -cp out`):
 winner-only `influenceReward` coverage. Several standalone CLI harnesses exist
 (not wired into RUN_TESTS — run directly with `java -cp out`):
 
-* Human-seat end-to-end probe (B5-0443, extended B5-0460 to 26 checks):
+* Human-seat end-to-end probe (B5-0443, extended B5-0460 to 26 checks,
+  B5-0471 to 29, **B5-0478 to 37**):
   drives a full game through the same `submitHumanAction` path the UI
   buttons use, and additionally exercises heal, repair, mercenary bid and
   war declaration on a synthetic fixture so the formerly soft-gated paths
-  are hard coverage on every run.
+  are hard coverage on every run. **B5-0478 addition:** an opponent-targeted
+  enhancement scenario (Censure-shape fixture) asserts the penalty lands in
+  the opponent's bonus registry via the public read path — the fixture part
+  is deterministic. Known honesty note (B5-0476): the game-loop coverage
+  gates (`COVERAGE: agenda lifecycle` / `pass submitted`) are intermittent
+  across identical invocations because the driver schedules on wall time
+  with no seeded RNG — rerun before diagnosing; the synthetic scenarios are
+  stable. **B5-0471 addition:** a face-up agenda install check asserts the
+  `"sets agenda:"` token (the B5-0464 emitter fix for the B5-0459 zero-count
+  parser artifact) is emitted from a human seat.
   `java -cp out b5ccg.engine.HeadlessHumanSeatProbe [seed] [timeoutSec]`
 * Seeded multi-round runner from B5-0349 prints N games of aggregate stats.
   **B5-0444 update:** the per-game timeout is now parameterized (180s default,
@@ -282,7 +305,7 @@ the live list below.
   pool interaction (B5-0373) is DONE: the named `isDoubleCostRequired`
   helper and neutral exemption are wired into the applyInfluence spend site
   — behaviour-preserving (base recruit cost math unchanged); its coverage remains
-  green in the current 398-check suite.
+  green in the current 436-check suite.
 * **Damage subsystem** — characters can be damaged and neutralised; the
   damage/neutralisation model (B5-0368) plus attack (B5-0370) and
   heal/repair (B5-0371) are all live, with UI controls landed (B5-0402).
@@ -314,7 +337,7 @@ the live list below.
   BID_ON_MERCENARY actions for offered mercenaries (minimal strictly-winning
   increment, pool-affordability gated); EASY picks uniformly from the same
   legal list. MER-AI conformance section ×10 landed with it (historical suite
-  expansion; current total is 398 after B5-0436 (373) + B5-0437 STH ×14 + B5-0453 STH-AI ×7 + B5-0464 AGL-LOG ×4).
+  expansion; current total is 436 after B5-0436 (373) + B5-0437 STH ×14 + B5-0453 STH-AI ×7 + B5-0464 AGL-LOG ×4 + B5-0469 ENH-SEAM ×22 + B5-0473 ENH-WIRE ×14).
 * **Declare War UI** — live (B5-0407): a war target selector + Declare War
   button wired to the B5-0376 engine branch; the selector lists races at
   war, then their locations. Inert in normal games (no tension sources in
@@ -333,6 +356,19 @@ the live list below.
   simultaneously only the first would be bidable. Latent today: the
   mercenary pool is empty (B5-0386), so the control shows "(no mercenary
   offers)" in every real game.
+* **Opponent-targeted enhancements have engine but no target-picking UI** —
+  the engine path is live (B5-0468 model seam + B5-0473 wiring: an explicit
+  opponent target routes the penalty into that owner's fleet registry, held
+  in play if the target cannot resolve), and the pool's only exact-class
+  card is Censure (B5-0477: `enh_censure` premiere + `de_enh_censure`
+  deluxe, Military −2). But no UI control or AI scoring yet SETS the target
+  at play time — cards default to self-target semantics (legacy own-fleet
+  path), so in a real game Censure currently attaches to your own best
+  fleet, which for a penalty is the wrong side. A future UI slice must
+  populate the B5-0468 target before play. Also recorded: the printed
+  "(minimum 1)" floor on Censure is not expressible in the current bonus
+  layer (final clamp 0, B5-0367) — flagged in the B5-0477 report for a
+  future task, not fixed.
 
 **Honesty notes for playtesters:**
 

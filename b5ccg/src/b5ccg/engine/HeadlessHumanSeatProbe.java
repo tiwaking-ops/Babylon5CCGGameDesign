@@ -232,6 +232,9 @@ public class HeadlessHumanSeatProbe {
             // B5-0471: agenda-face-up install probe (requires its own fixture since
             // the human player in the real game may not have an agenda in hand).
             scenarioAgendaFaceUpInstall(fstate, fh, frules);
+            // B5-0478: opponent-targeted enhancement wiring probe (gated on
+            // B5-0473 DONE — the explicit-target _FLEET path in CardEffects).
+            scenarioOpponentTargetedEnhancement(fstate, fh, fe, frules);
         } catch (Throwable t) {
             check("SYN: scenarios ran without exception", false);
             t.printStackTrace(System.err);
@@ -541,6 +544,74 @@ public class HeadlessHumanSeatProbe {
                 major ? "AGENDA_MAJOR" : "AGENDA",
                 major ? Rarity.RARE : Rarity.COMMON, faction, CardSet.PREMIERE,
                 "x", "probe", major, "INFLUENCE_20");
+    }
+
+    // ── B5-0478: opponent-targeted enhancement wiring probe ───────────────────
+    // Gated on B5-0473 DONE (CardEffects.applyPlayEnhancement explicit-target
+    // _FLEET path is live). Deterministic synthetic fixture — the pool's only
+    // Censure-class card (enh_censure, per B5-0477) never reaches a seeded
+    // human hand through the deck builders, so this follows the 0460 fixture
+    // convention: walk the exact engine entry points the human dispatcher
+    // would call (legality predicate + processAction reflection, 0471
+    // precedent) and assert the penalty lands in the OPPONENT's registry via
+    // the public read path (getEffectiveMilitary).
+    private static void scenarioOpponentTargetedEnhancement(GameState fstate,
+            Player human, Player enemy, RulesEngine rules) {
+        FleetCard victimFleet = new FleetCard("hsp_censure_fleet", "Probe Victim Fleet",
+                "LINE", Rarity.COMMON, enemy.getFaction(), CardSet.PREMIERE, "x", "probe", 4);
+        enemy.addFleet(victimFleet);
+        check("SYN enh: fixture enemy fleet in play",
+                enemy.getFleets().contains(victimFleet));
+
+        EnhancementCard censure = new EnhancementCard(
+                "hsp_censure_1", "Probe Censure", "ENHANCEMENT_FLEET",
+                Rarity.UNCOMMON, Faction.ANY, CardSet.PREMIERE, "x", "probe",
+                0, 0, 0, -2, 0);
+        // The B5-0468 seam: the target is recorded on the card at play time
+        // (runtime state, not JSON — B5-0477 data-shape note).
+        censure.setOpponentTarget(victimFleet.getId(), enemy.getName());
+
+        int before = victimFleet.getEffectiveMilitary();
+        check("SYN enh: baseline effective military is printed value",
+                before == 4);
+
+        human.getHand().clear();
+        human.getHand().add(censure);
+        // Dispatcher legality gate for the generic play path (MainWindow play
+        // button / pickHumanAction else-branch both consult canPlayCard).
+        // Checked AFTER the hand add: canPlayCard's first gate is hand membership.
+        check("SYN enh: canPlayCard true for the opponent-targeted enhancement",
+                rules.canPlayCard(human, censure));
+        try {
+            java.lang.reflect.Method handler =
+                    GameController.class.getDeclaredMethod(
+                            "processAction", Player.class, GameAction.class);
+            handler.setAccessible(true);
+            GameController tempCtrl = new GameController(fstate, new ArrayList<AIPlayer>(),
+                    new GameStateCallback() { public void accept(GameState gs) { } });
+            handler.invoke(tempCtrl, human, GameAction.playCard(censure));
+        } catch (Exception e) {
+            check("SYN enh: processAction invocation successful", false);
+            e.printStackTrace(System.err);
+            return;
+        }
+
+        check("SYN enh: enhancement left the hand", !human.getHand().contains(censure));
+        check("SYN enh: penalty recorded in the OPPONENT registry",
+                enemy.hasAttachedBonusFrom("hsp_censure_1", victimFleet.getId()));
+        check("SYN enh: attacker registry stays clean",
+                !human.hasAttachedBonusFrom("hsp_censure_1", victimFleet.getId()));
+        check("SYN enh: fleet effective military dropped by 2 via the read path",
+                victimFleet.getEffectiveMilitary() == before - 2);
+        boolean logged = false;
+        for (String line : fstate.getLog()) {
+            if (line.contains("attaches Probe Censure to " + enemy.getName())) {
+                logged = true; break;
+            }
+        }
+        check("SYN enh: attach logged with victim attribution", logged);
+        // Counter bump follows the 0460 convention (synthetic + live combined).
+        nPlay++;
     }
 
     // ── Helpers mirrored from HeadlessHumanConflictAttackWindowTest ──────────
