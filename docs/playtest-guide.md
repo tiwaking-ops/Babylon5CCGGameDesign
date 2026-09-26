@@ -18,7 +18,8 @@ provenance:
     - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
     - {name: "Buffy (unknown)", version: "unknown"}
     - {name: "Buffy (unknown)", version: "unknown" — B5-0484 part 11 refresh}
-  last_modified_by_llm: {name: "Buffy (unknown)", version: "unknown"}
+    - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash" — B5-0498 part 13 refresh}
+  last_modified_by_llm: {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
   last_modified_date: "2026-09-26"
 ---
 
@@ -234,7 +235,10 @@ moves tension yet).
 ## 6. Headless testing (no UI)
 
 `sh compile.sh` with `RUN_TESTS=1` runs the full conformance suite
-(444 checks; see the suite banner for the live count) plus a smoke game.
+(444 checks; see the suite banner for the live count; re-verified green
+2026-09-26 by the B5-0500 re-sweep, which also re-ran all seven standalone
+probes PASS) plus a smoke game. One transient smoke-run failure mode is
+known and classified — see the B5-0495 honesty note in section 7.
 B5-0437's station hooks added 14 STH
 assertions (373 → 387); B5-0453 added 7 STH-AI assertions (387 → 394);
 B5-0464 added 4 AGL-LOG assertions (394 → 398); B5-0436 added D6/D7 named
@@ -365,18 +369,40 @@ the live list below.
   opponent target routes the penalty into that owner's fleet registry, held
   in play if the target cannot resolve), and the pool's only exact-class
   card is Censure (B5-0477: `enh_censure` premiere + `de_enh_censure`
-  deluxe, Military −2). No UI control or AI scoring yet SETS the target
-  at play time — cards default to self-target semantics (legacy own-fleet
-  path), so in a real game Censure currently attaches to your own best
-  fleet, which for a penalty is the wrong side. A UI target-picker slice
-  (B5-0487) is in flight to populate the B5-0468 target before play.
-  RESOLVED (B5-0484 status update): the printed
-  "(minimum 1)" floor on Censure is now implemented via B5-0486 (per-bonus
-  floor field on StatBonus + effectiveStat floor pass + BONUS_FLOORS table;
-  FLOOR ×8 suite section) — the B5-0477 flag is closed.
+  deluxe, Military −2). The UI target-picker (B5-0487) lets a human player
+  select an opponent faction + face-up fleet to populate the B5-0468
+  target before playing the card; if no opponent fleet is available the
+  card still submits via the engine's held-in-play path (no self-fallback).
+  Row-text correction (B5-0496, per the B5-0493 audit): the B5-0487 claim
+  of an API ripple (`GameState.getFactions()`,
+  `Player.canShowFleetForController()`, `Faction.isWon()`) was fabricated —
+  the shipped picker uses existing API (a `getPlayers()`/`getFleets()`
+  iteration with face-up, unrotated, non-human, non-forfeited filters) with
+  zero model churn; the delivered control is real and unchanged.
+  RESOLVED (B5-0484 status update): the printed
+  "(minimum 1)" floor on Censure is now implemented via B5-0486 (per-bonus
+  floor field on StatBonus + effectiveStat floor pass + BONUS_FLOORS table;
+  FLOOR ×8 suite section) — the B5-0477 flag is closed.
 
 **Honesty notes for playtesters:**
 
+* **A transient smoke-run FAIL is a harness-internal race, not an engine
+  defect (B5-0495 triage).** `HeadlessSmokeTest` very occasionally exits 1
+  with `AIPlayer(...) chose DISCARD_AGENDA: <title> but that card is not in
+  its hand` (reproduced 1 in 8 consecutive runs; a rerun passes). The
+  harness watcher declares round 1 complete as soon as `roundNumber > 1`
+  while the daemon game loop is still running round 2; the harness then
+  asks each AI for a decision on that live state. The DISCARD_AGENDA
+  payload points at the player's agenda slot, so if the loop discards that
+  agenda between the AI's offer and the harness's check, a perfectly legal
+  action fails the harness's hand-membership assertion (which exempts only
+  Build Influence, Promote and Use Rotate Effect). Not stale offers —
+  `buildLegalActions` is recomputed from live state on every call — and
+  not engine nondeterminism; the engine re-gates every action and never
+  crashes on it. Fix direction (checker exemption for slot-payload types,
+  or quiescing the loop before the live-state check) is recorded for
+  B5-0505. No source has changed; treat a single smoke FAIL as
+  rerun-and-verify.
 * **"Stalled" is mostly a harness-timeout label, not a true hang.** The
   multi-round runner (B5-0349) labels a game "stalled" when no player has
   won inside its 60s per-game window. Independent no-timeout verification

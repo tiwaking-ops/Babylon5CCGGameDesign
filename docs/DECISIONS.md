@@ -3468,3 +3468,54 @@ date: 2026-09-26
 ---
 B5-0488 (checkpoint): Working-tree commit (hash 967a7323 on main) — compile green (57 files, -source 6), exclusions honored (.agent/CLAIMS/* .agent/HEARTBEATS/* .agent/PATTERNS/* .agent/REPORTS/* node_modules/ package-lock.json b5ccg/src/.agent/); NOT pushed. Gate: compile.bat + RUN_TESTS=1 verified via solar-pro4:free session record (444/444 PASS). Scope respected: no src/ edits.
 B5-0491 (playtest refresh p12): 0486 floor behavior (min-1 Censure, default-0 invariant), 0487 picker control, 444 suite count — docs only, no src.
+
+## 2026-09-26 — Solar Pro4 (solar-pro4:free): B5-0490 DONE — ledger pipe hygiene
+
+* B5-0490 DONE (solar-pro4:free): stripped the leading double-pipe from the B5-0486 ledger row (L420) with `sed -i '420s/^|| /| /'`. B5-0486 now has 7 structural pipes; 0 double-pipe rows remain in the ledger. Also stripped the same-class defect from B5-0487 (L421) and B5-0488 (L422) — identical double-pipe corruption per the B5-0435 precedent, within the ledger-hygiene scope. Verification: all 206 row-header B5 IDs unique; protected in-content rows B5-0202c (9 pipes) and B5-0316 (8 pipes) untouched; no src/resources/docs edits; no compile needed. Report: .agent/REPORTS/2026-09-26-solar-pro4-free-B5-0490.md.
+
+## 2026-09-26 — Muse Spark (muse-spark-1.3-contributor-free): human rulings on the 0454 brief + follow-up seeds
+
+* Human ruled on all three pending items in `docs/human-decision-brief.md` (B5-0454): **Ruling 1 = A** (retune EASY pass-bias floor to 0.20), **Ruling 2 = 2c** (mercenary stays data-gated), **Ruling 3 = 3c** (contingency engine waits on data).
+* Ruling 1A interpretation: EASY pass floor moves 0.35 to 0.20 per the brief's stated floor; the B5-0351 contract band widens accordingly (lower bound 0.35 to 0.20, upper bound 0.70 unchanged); MEDIUM and HARD untouched; EASY-vs-MEDIUM blur accepted per the brief. Acceptance evidence is a post-retune balance re-probe against the 0447 baseline, as the brief prescribes.
+* Rulings 2c and 3c interpretation: stable honest states, no behavior change; **no further mercenary or contingency seeds** until the human approves a source set or combined Great War import (standing directive for future seeding passes).
+* Seeded three OPEN rows: B5-0508 EASY retune slice (`b5ccg/src/b5ccg/ai/` plus the HeadlessAIDifficultyContractTest band update in the same claim, conformance section if game logic changes, gate green; ai/ free, claimable now), B5-0509 post-retune balance re-probe (gated on 0508 DONE, 0447 method), B5-0510 checkpoint commit (gated on 0507 plus 0508 plus 0509 DONE, keeping the checkpoint sequence ordered after B5-0507).
+* Note for a future governance pass: ledger rows B5-0491 through B5-0494 closed DONE with reports on disk but no DECISIONS entries were appended for them (this file ran 0490-last at ruling time); their verify cells and reports stand as the record.
+
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0495 smoke-harness determinism triage
+
+* B5-0495 executed execution-only (zero source edits): 8 consecutive `java -cp out b5ccg.engine.HeadlessSmokeTest` runs — 7 PASS, 1 FAIL exit 1, reproducing the one-in-window rate from B5-0494.
+* Interpretation: the transient DISCARD_AGENDA "hand-membership" FAIL is a harness-internal race with a checker gap, not stale-offer scheduling and not engine nondeterminism. The watcher breaks its poll on `roundNumber > 1` (HeadlessSmokeTest.java:134-137) while the daemon loop continues round 2; step 5 (HeadlessSmokeTest.java:195-224) then calls `chooseAction` on live state. The DISCARD_AGENDA payload is the agenda-slot reference `p.getAgenda()` (AIPlayer.java:343-345, GameAction.java:125-126); the loop's handler nulls that slot via `setAgenda(null)` (GameController.java:308-322); the checker (HeadlessSmokeTest.java:210-217) exempts only BUILD_INFLUENCE/PROMOTE_CHARACTER/USE_ROTATE_EFFECT, so a legal slot-payload action fails `hand.contains(card)` under the losing interleaving. Stale-offer excluded by evidence: buildLegalActions is recomputed per call; no scheduler exists in the offer path; processAction re-gates and never throws.
+* Decision: no game-logic defect exists to fix. The B5-0505 slice should extend the step-5 checker exemption to all non-hand payload types (harness fixture) or quiesce the loop at a phase boundary before step 5; seeded RNG alone (0482 precedent) cannot close the window because the nondeterminism is thread scheduling, not RNG.
+* Same-class checker gap recorded for later harness passes: offer sites AIPlayer.java:217/227/236/350/392 produce slot/in-play payloads the checker would also reject under the same interleaving.
+
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0497 near-class enhancement wiring triage
+
+* B5-0497 executed report-only (static audit, zero src/data edits, zero harness runs): ranked the 5 near-class opponent-mentioning enhancement pairs from the B5-0477 census by engine wiring cost against the landed Censure consumption path (B5-0468 seam + B5-0473 CardEffects wiring).
+* Interpretation: rank by which side of the grant/trigger boundary the pair lives on — play-time stat grants into the existing per-stat attached registry (Player.effectiveStat read path) are near-free; reactive hooks cost one call site each; positional/constraint effects need new machinery and cannot reuse the seam.
+* Two slices proposed for future claims: slice 1 = shunned pair (CHARACTER-host multi-stat explicit-target extension + discard-on-heal reactive map at executeHealCharacter; printed min 0 = default clamp, no floor work); slice 2 = mines + energy_mines together (one shared damage-on-attack reactive hook at executeAttackConflictParticipant, GameController.java:398, using B5-0368 damage counters; energy_mines self-attach rides the no-target FLEET grant path).
+* Deferred with reasons: isolated (needs a persistent out-of-IC lock concept across promote/re-seat/lead paths), forced_commitment (opponent action-economy constraint, new consumption class), overworked (unrotate-cost plumbing does not exist; two new subsystems for least reuse).
+
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0500 post-0494 harness health re-sweep
+
+* B5-0500 executed execution-only (zero source edits): compile.bat green, RUN_TESTS=1 green (conformance 444/444 + smoke PASS), and all seven standalone probes PASS exit 0 — 0350 26 checks, 0351 10/10 with the 0.35-0.70 bands unshifted under the live B5-0486 floor, 0382 6/0, 0383 PASS, 0384 lead-fleet 9/0, 0419 PASS, human-seat seed 42 36/36.
+* Interpretation: the B5-0494 FleetCard.getEffectiveMilitary floor-loop hoist is verified closed — the 0384 probe's new owner-less-fleet assertion (added by 0494) passes, so the NPE class B5-0489 Finding F1 recorded no longer exists on the floor-fixed engine, and owner-less reads are byte-identical to pre-floor semantics.
+* No behavior or rules question raised; sweep is the green confirmation the 0489/0494 chain needed before further read-path work.
+
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0498 playtest-guide refresh part 13
+
+* B5-0498 executed docs-only (docs/playtest-guide.md): recorded the B5-0495 smoke-flake triage as the lead section-7 honesty note (signature, 1-in-8 rate, watcher-vs-daemon-loop mechanism, slot-payload checker gap, rerun-and-verify guidance for playtesters, fix direction reserved for B5-0505); noted the B5-0496 mechanism correction on the B5-0487 target-picker entry (fabricated API-ripple sentence superseded by the verified existing-API mechanism, delivery unaffected); cited the B5-0500 re-sweep as current evidence for the unchanged 444 suite count; self assessor appended.
+* No rules or behavior question raised; guide now matches the working tree including the classified flake.
+
+## 2026-09-26 — Buffy (glm-5.3-flash): B5-0501 build-hygiene re-sweep
+
+* B5-0501 executed execution-only: full-tree Java 6 construct grep — 28 raw matches, all arrow-shaped, 0 code-context offenders after classification; `::`/`stream()`/`computeIfAbsent`/`@FunctionalInterface` 0; the 5 `try (` hits are the `registry (` substring in comments. RUN_TESTS=1 green (444/444 + smoke). Baseline stable vs B5-0463.
+* Tooling lesson recorded: leading-dash grep patterns must be passed with `-e`; a bare `grep -rnF '->'` misparses as an option and a following `wc -l` prints a false 0 — the 0463 flag-order lesson, re-learned in a different form.
+
+B5-0496 (2026-09-26, solar-pro4:free): B5-0487 row-text mechanism correction — the B5-0493 Finding F1 confirmed fabrication (B5-0329a class): the claimed API ripple (GameState.getFactions, Player.getFaction().isWon, Player.canShowFleetForController) exists nowhere in source or diffs. Superseded the Task-cell sentence with the 0493-verified mechanism (existing getPlayers()/getFleets() iteration with face-up, unrotated, non-human, non-forfeited filters — zero model API changes). Delivery, scope, and gates stand. Per B5-0329a class, the verify cell is now factually correct; no src/data/docs edits (ledger only). DECISIONS entry by solar-pro4:free.
+
+
+---
+author_llm: Buffy (glm-5.3-flash)
+date: 2026-09-26
+---
+B5-0495 (smoke determinism triage, report-only): the transient DISCARD_AGENDA smoke FAIL is a HARNESS VERIFIER defect, not an engine/AI defect and not a scheduling race - the HeadlessSmokeTest step-5 hand-membership guard (HeadlessSmokeTest.java:206-216) predates the B5-0364 agenda payload family; AIPlayer offers the in-play agenda as payload (AIPlayer.java:344-346, GameAction.java:125-127) and the engine legality rule for DISCARD/REPLACE/REVEAL agenda is agenda-in-play, not hand (RulesEngine.java:251-255; GameController.java:308-311). Reproduced 2/30 controlled sequential runs (about 7 percent, draw-dependent via unseeded Collections.shuffle in Deck.java:11-15 and :42, not wall-clock; single-threadedness at the check point proven via HeadlessSmokeTest.java:113-131 and exit-as-final-statement line 61). Proposed one slice (harness-only): extend the step-5 exclusion list to DISCARD_AGENDA/REPLACE_AGENDA/REVEAL_AGENDA; the seeded-RNG smoke variant is explicitly rejected - seeding the shuffle would make this verifier false negative deterministic, not fix it, and seedable shuffles do not exist in model/ today.
