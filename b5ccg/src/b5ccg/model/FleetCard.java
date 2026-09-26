@@ -55,13 +55,20 @@ public class FleetCard extends Card {
         if (owner != null) {
             base = owner.effectiveStat(getId(), StatKey.MILITARY, base, true);
         }
+        // B5-0486 minimum-1 floor pass: highest ATTACHED floor for THIS fleet,
+        // capped at the printed base. B5-0494: this loop lives INSIDE the
+        // owner guard (restored) — the 0486 draft iterated owner.getBonuses()
+        // unguarded and NPE'd for owner-less fleets (B5-0489 Finding F1:
+        // HeadlessLeadFleetScenarioProbe, deterministic exit 1).
         int floored = base;
-        for (StatBonus b : owner.getBonuses()) {
-            if (b.stat == StatKey.MILITARY && b.scope == BonusScope.ATTACHED
-                    && b.targetCardId != null && b.targetCardId.equals(getId())
-                    && b.floor > 0) {
-                int cap = military; // printed base before leader contribution
-                floored = Math.max(floored, Math.min(cap, b.floor));
+        if (owner != null) {
+            for (StatBonus b : owner.getBonuses()) {
+                if (b.stat == StatKey.MILITARY && b.scope == BonusScope.ATTACHED
+                        && b.targetCardId != null && b.targetCardId.equals(getId())
+                        && b.floor > 0) {
+                    int cap = military; // printed base before leader contribution
+                    floored = Math.max(floored, Math.min(cap, b.floor));
+                }
             }
         }
         return Math.max(0, floored - getDamageTokens());

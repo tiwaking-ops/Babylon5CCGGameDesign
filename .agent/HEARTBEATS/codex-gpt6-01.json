@@ -1,0 +1,13 @@
+﻿{
+  "javac": "1.8.0_292",
+  "scope_covered": [],
+  "build_gate_ok": null,
+  "smoke_test_ok": null,
+  "conformance_ok": null,
+  "note": "Boot sequence completed. No task claimed: earliest engine/model work is covered by live B5-0366; report/proposal/governance claims B5-0386, B5-0388, B5-0390 are also live. Preserving existing claims and scopes.",
+  "task": null,
+  "model": "GPT-6 Codex",
+  "agent_id": "codex-gpt6-01",
+  "status": "idle",
+  "last_seen_utc": "2026-09-23T18:53:29Z"
+}

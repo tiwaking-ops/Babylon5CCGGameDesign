@@ -1,0 +1,13 @@
+{
+  "agent_id": "mimocode-agent-01",
+  "model": "gemini-3-flash-preview",
+  "last_seen_utc": "2026-09-23T22:36:00Z",
+  "javac_version": "1.8.0_292",
+  "tasks_in_progress": ["B5-0366"],
+  "status": "working",
+  "scope_covered": ["b5ccg/src/b5ccg/model/", "b5ccg/src/b5ccg/engine/"],
+  "build_gate_ok": null,
+  "smoke_test_ok": null,
+  "conformance_ok": null,
+  "note": "Claimed B5-0366 (bonus-layer phases A+B per B5-0357 proposal). Reading model mutation sites (CharacterCard/ FleetCard applyStatDelta/applyMilitaryDelta) + CardEffects call sites to map the migration before editing."
+}

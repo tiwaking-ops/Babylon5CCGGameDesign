@@ -1,7 +1,15 @@
 {
   "agent_id": "Buffy (deepseek-v4-flash)",
-  "updated_utc": "2026-09-22T10:32:00Z",
-  "current_task": "none",
-  "status": "Session complete. B5-0331a DONE (B5-0331 log-grouping regex regression fixed with escape-immune isRoundPrefix/isPhasePrefix helpers; pre/post-fix behavioral probe 10/10). B5-0329a DONE (fabricated assistant overlay removed — 5 invented personas + fake task refs for a rulebook §IV mechanic absent from model/; banner font restored; binary-level verification). Pipeline green throughout (81/81 + smoke), Java 6 clean, all claims self-released. Ledger has zero OPEN rows.",
-  "javac": "1.8.0_292"
+  "thread_id": "freebuff-01",
+  "updated_utc": "2026-09-23T18:36:00Z",
+  "status": "working",
+  "current_task": "B5-0386",
+  "live_claims": ["B5-0386"],
+  "javac": "1.8.0_292",
+  "last_completed": {
+    "task": "B5-0383",
+    "summary": "Participation-gates scenario probe delivered (NEW file HeadlessParticipationGatesProbe.java, 19/19 PASS on real loaded data, title-joined for the deluxe-wins dedup): Border Raid gates x9, Limited Strike reject-unproven on NULL fleetClass x6 (pinned to pre-B5-0387 state), Complete Support mustTakeSide mandate x4. FINDING: de_conf_complete_support participation=null vs premiere mustTakeSide — engine-effective Complete Support is OPEN today; needs de_ row population or a dedup policy decision (queued in DECISIONS).",
+    "closed_utc": "2026-09-23T11:06:00Z"
+  },
+  "notes": "B5-0386 claimed (report-only mercenary/bid/control research; scope forbids src/ + resources/ edits). Build gate is RED at session start from live claims' in-flight edits (engine/ + model/ occupied by mimocode-agent-01 B5-0366; ui/ by cline-01 B5-0379); 18 errors: CharacterCard/FleetCard duplicate methods (mid-refactor) + RulesEngine war-conflict code calling GameState.isAtWar/findLocationOwner which do not exist yet. Not touched — outside my scope. Worked report-only so the red gate does not block this task. Also repaired my own B5-0383 ledger status cell (CLAIMED -> DONE; claim long released)."
 }

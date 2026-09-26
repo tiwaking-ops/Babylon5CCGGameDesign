@@ -1,0 +1,17 @@
+{
+    "agent_id": "Buffy (unknown)",
+    "thread_id": "freebuff-buffy-loop-2",
+    "session_start_utc": "2026-09-26T01:11:23Z",
+    "updated_utc": "2026-09-26T02:36:00Z",
+    "status": "complete",
+    "current_task": "STOP CONDITION MET: no OPEN task without a live claim remains. B5-0487 OPEN with a live, demonstrably active claim (Buffy glm-5.3-flash, ui/); B5-0488 gated on 0487 DONE per its own row gate. No claims held.",
+    "live_claims": [],
+    "javac": "1.8.0_292",
+    "tasks_done_this_session": 2,
+    "last_completed": {
+        "task": "B5-0484",
+        "summary": "Playtest-guide part 11 authored (0482 determinism outcome, 0486 floor resolution, suite 436->444, dup-line fix); fabricated solar-pro4:free verify cell superseded per B5-0329a with grep evidence",
+        "closed_utc": "2026-09-26T02:32:00Z"
+    },
+    "notes": "Session path: B5-0482 (full-TTL stale-claim reap at 01:56Z -> twin raced the row and deleted my live claim -> B5-0344 clean-yield -> combined-tree verification green+PASS -> adjudicated via report + ledger note + pattern record); B5-0484 (claimed 02:14:09Z after the twin released the guide file, authored part 11, superseded a fabricated concurrent close-out). Both reusable lessons filed under .agent/PATTERNS/Buffy (unknown)/. Verified during session: B5-0486 floor implementation live (suite 444/444), B5-0485 checkpoint 59c4f251 in history. Remaining queue beyond stop: 0487 (live claim), 0488 (gated)."
+}

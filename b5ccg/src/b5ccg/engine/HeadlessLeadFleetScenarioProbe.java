@@ -98,6 +98,15 @@ public class HeadlessLeadFleetScenarioProbe {
                 fleet.getEffectiveMilitary() == 3
                 && rules.canLeadFleet(owner, leader, fleet));
 
+        // B5-0494 (B5-0489 Finding F1): owner-less fleet reads must not crash.
+        // The 0486 floor pass originally iterated owner.getBonuses() outside
+        // the owner guard and NPE'd on exactly this shape — pinned here.
+        FleetCard orphan = new FleetCard("probe_orphan_fleet", "Orphan Fleet",
+                "FLEET_NARN", Rarity.COMMON, Faction.NARN, CardSet.PREMIERE,
+                "x", "", 2);
+        check("owner-less fleet reads base Military with no registry or crash",
+                orphan.getEffectiveMilitary() == 2 && orphan.getGreatestAbility() == 2);
+
         System.out.println("Lead-a-fleet scenario probe: " + checks + " checks, "
                 + failures + " failures.");
         System.exit(failures == 0 ? 0 : 1);
