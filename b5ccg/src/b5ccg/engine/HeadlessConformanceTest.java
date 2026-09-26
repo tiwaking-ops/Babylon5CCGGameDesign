@@ -1515,7 +1515,160 @@ public class HeadlessConformanceTest {
                 legacy.toAttachedBonus(StatKey.MILITARY, Expiry.END_OF_TURN, 1) == null);
     }
 
-    // ── B5-0486: minimum-1 bonus floor (Censure-class printed floors) ─────────
+    // B5-0528: reactive mines damage-on-attack conformance (single canonical copy)
+    private static void testMinesReactive() {
+        System.out.println("MINES (B5-0528): reactive mines/energy-mines damage-on-attack at resolution site");
+
+        // ── Scenario 1: faction-held enh_mines triggers +1 return damage ───────
+        Player attackerP = player("MINES-A", Faction.CENTAURI);
+        Player defenderP = player("MINES-B", Faction.NARN);
+        RulesEngine rules = new RulesEngine();
+
+        EnhancementCard mines = new EnhancementCard(
+                "enh_mines", "Mines Wire Test", "ENHANCEMENT_FLEET",
+                Rarity.COMMON, Faction.ANY, CardSet.PREMIERE, "x", "text",
+                0, 0, 0, 0, 0);
+        defenderP.getEnhancements().add(mines);
+
+        FleetCard defFleet = fleetCard("minfleet_def", null);
+        defenderP.getFleets().add(defFleet);
+        defFleet.setOwner(defenderP);
+
+        CharacterCard attackCard = new CharacterCard("minfleet_attacker", "Character",
+                "CHARACTER", Rarity.COMMON, Faction.CENTAURI, CardSet.PREMIERE,
+                "x", "text", 0, 0, 0, 0, false);
+        attackerP.getInnerCircle().add(attackCard);
+        attackCard.setOwner(attackerP);
+
+        Conflict conflict = new Conflict(conflictCard("cpty", ConflictType.MILITARY, null),
+                defenderP);
+        conflict.addParticipant(defenderP, true);
+        conflict.addParticipant(attackerP, false);
+        defFleet.rotate();
+        conflict.commitCard(defenderP, defFleet, true);
+
+        GameState st = state(attackerP, defenderP);
+        st.setActiveConflict(conflict);
+
+        // Can the attacker attack the fleet?
+        check("MINES", "attacker may attack the fleet target",
+                rules.canAttackConflictParticipant(attackerP, attackCard, defFleet, conflict));
+
+        defFleet.applyDamage(2);
+        rules.executeAttackConflictParticipant(attackerP, attackCard, defFleet, conflict, st);
+        check("MINES", "reactive mines adds +1 return damage (fleet)",
+                logContains(st, "2 damage; 1 damage returned"));
+        check("MINES", "defender fleet survives reactive mines (no severe)",
+                defFleet.getDamageTokens() == 0);
+        check("MINES", "registry gate: unregistered id does not trigger",
+                !CardEffects.damageOnAttack("enh_mines_wire_test"));
+
+        // Both pool ids registered (enh_mines + de_enh_mines).
+        check("MINES", "both enh_mines pool ids registered",
+                CardEffects.damageOnAttack("enh_mines")
+                        && CardEffects.damageOnAttack("de_enh_mines"));
+
+        // energy_mines also registered (ENHANCEMENT_NARN_FLEET, self-attach +2
+        // Military plus reactive +1 damage on attacking fleets).
+        check("MINES", "energy_mines id registered for reactive damage",
+                CardEffects.damageOnAttack("enh_energy_mines")
+                        && CardEffects.damageOnAttack("de_enh_energy_mines"));
+
+        // attackMines synonym delegates to damageOnAttack.
+        check("MINES", "attackMines synonym matches damageOnAttack",
+                CardEffects.attackMines("enh_mines") == CardEffects.damageOnAttack("enh_mines"));
+
+        // ── Scenario 2: non-mines enhancement does NOT trigger reactive damage ─
+        Player att2 = player("MINES-2A", Faction.CENTAURI);
+        Player def2 = player("MINES-2B", Faction.NARN);
+        RulesEngine rules2 = new RulesEngine();
+
+        def2.getEnhancements().clear();
+        EnhancementCard legacy = new EnhancementCard(
+                "enh_legacy_mines_test", "Legacy Fleet Test", "ENHANCEMENT_FLEET",
+                Rarity.COMMON, Faction.ANY, CardSet.PREMIERE, "x", "text",
+                0, 0, 0, 1, 0);
+        def2.getEnhancements().add(legacy);
+
+        FleetCard fleet2 = fleetCard("minfleet_legacy", null);
+        def2.getFleets().add(fleet2);
+        fleet2.setOwner(def2);
+
+        CharacterCard attCard2 = new CharacterCard("minfleet_att2", "Character",
+                "CHARACTER", Rarity.COMMON, Faction.CENTAURI, CardSet.PREMIERE,
+                "x", "text", 0, 0, 0, 0, false);
+        att2.getInnerCircle().add(attCard2);
+        attCard2.setOwner(att2);
+
+        Conflict cw = new Conflict(conflictCard("cpty2", ConflictType.MILITARY, null), def2);
+        cw.addParticipant(def2, true);
+        cw.addParticipant(att2, false);
+        fleet2.rotate();
+        cw.commitCard(def2, fleet2, true);
+
+        GameState st2 = state(att2, def2);
+        st2.setActiveConflict(cw);
+
+        fleet2.applyDamage(2);
+        rules2.executeAttackConflictParticipant(att2, attCard2, fleet2, cw, st2);
+        check("MINES", "legacy fleet +1 enhancement does not add return damage",
+                logContains(st2, "1 damage; 1 damage returned")
+                && !logContains(st2, "2 damage"));
+
+        // ── Scenario 3: round-trip through processAction ──────────────────────
+        Player rtAttacker = player("MINES-RT-A", Faction.CENTAURI);
+        Player rtDefender = player("MINES-RT-B", Faction.NARN);
+        GameState rtSt = state(rtAttacker, rtDefender);
+        RulesEngine rtRules = new RulesEngine();
+
+        EnhancementCard rtMines = new EnhancementCard(
+                "enh_mines_rt", "Mines Round-Trip Test", "ENHANCEMENT_FLEET",
+                Rarity.COMMON, Faction.ANY, CardSet.PREMIERE, "x", "text",
+                0, 0, 0, 0, 0);
+        rtAttacker.addToHand(rtMines);
+        rtDefender.getEnhancements().add(rtMines);
+
+        FleetCard rtFleet = fleetCard("minfleet_rt_def", null);
+        rtDefender.getFleets().add(rtFleet);
+        rtFleet.setOwner(rtDefender);
+
+        CharacterCard rtAttCard = new CharacterCard("minfleet_rt_attacker", "Character",
+                "CHARACTER", Rarity.COMMON, Faction.CENTAURI, CardSet.PREMIERE,
+                "x", "text", 0, 0, 0, 0, false);
+        rtAttacker.getInnerCircle().add(rtAttCard);
+        rtAttCard.setOwner(rtAttacker);
+
+        Conflict rtConflict = new Conflict(conflictCard("cpty_rt", ConflictType.MILITARY, null),
+                rtDefender);
+        rtConflict.addParticipant(rtDefender, true);
+        rtConflict.addParticipant(rtAttacker, false);
+        rtFleet.rotate();
+        rtConflict.commitCard(rtDefender, rtFleet, true);
+        rtSt.setActiveConflict(rtConflict);
+
+        rtAttacker.getActionsLeft();
+        try {
+            java.lang.reflect.Method handler =
+                    GameController.class.getDeclaredMethod(
+                            "processAction", Player.class, GameAction.class);
+            handler.setAccessible(true);
+            handler.invoke(new GameController(rtSt, new ArrayList<AIPlayer>(),
+                    new GameStateCallback() {
+                        public void accept(GameState gs) { }
+                    }), rtAttacker, GameAction.playCard(rtMines));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        // After PLAY_CARD, rotate and attack via the engine directly.
+        rtAttCard.rotate();
+        rtFleet.applyDamage(2);
+        rtRules.executeAttackConflictParticipant(rtAttacker, rtAttCard, rtFleet, rtConflict, rtSt);
+        check("MINES", "round-trip: mines played then attack triggers +1 return damage",
+                logContains(rtSt, "2 damage; 1 damage returned"));
+        check("MINES", "round-trip: fleet survives reactive mines",
+                rtFleet.getDamageTokens() == 0);
+    }
 
     private static void testBonusFloor() {
         System.out.println("FLOOR (B5-0486): per-bonus floor field lifts penalty outcome, capped at printed base");
@@ -4009,7 +4162,8 @@ public class HeadlessConformanceTest {
             testOpponentEnhancementWiring(); // B5-0473: explicit-target fleet enhancement engine wiring
             testShunnedWiring(); // B5-0506: opponent-character enhancement (shunned) wiring
             testBonusFloor(); // B5-0486: minimum-1 bonus floor (Censure-class printed floors)
-            System.out.println("All B5-0203 deviations D1-D14 resolved; D15 partial by effect-coverage; D6/D7 now have dedicated named assertions (B5-0436). B5-0437 station hooks covered (STH). B5-0453 AI station-awareness covered. B5-0469 enhancement seam asserted (ESM).");
+            testMinesReactive(); // B5-0539: reactive mines damage-on-attack (B5-0528 hook)
+            System.out.println("All B5-0203 deviations D1-D14 resolved; D15 partial by effect-coverage; D6/D7 now have dedicated named assertions (B5-0436). B5-0437 station hooks covered (STH). B5-0453 AI station-awareness covered. B5-0469 enhancement seam asserted (ESM). B5-0528 mines reactive covered (MINES).");
 
             System.out.println();
             System.out.println(failed == 0

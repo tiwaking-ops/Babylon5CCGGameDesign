@@ -22,6 +22,7 @@ provenance:
     - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash" — B5-0512 part 14 refresh}
     - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash" — B5-0517 part 15 refresh}
     - {name: "Buffy", version: "unknown" — B5-0531 part 17 refresh}
+    - {name: "Buffy", version: "unknown" — B5-0540 part 18 refresh}
   last_modified_by_llm: {name: "Buffy", version: "unknown"}
   last_modified_date: "2026-09-26"
 ---
@@ -180,7 +181,14 @@ engine ever applies hand-card damage.
 > contract 10/10 bands unshifted, 0382 station 6/0, 0383 participation
 > PASS, 0384 lead-fleet 9/0, 0419 war PASS, 0443 human-seat 37/37) —
 > all exit 0. The 0351 band re-confirmation is the key check since 0506
-> moved registry/scoring-adjacent paths.
+> **B5-0530 re-sweep + B5-0532 hygiene + B5-0534 probe (2026-09-26):** the
+> post-0528 re-sweep re-ran RUN_TESTS=1 and all seven standalone probes
+> PASS on the mines-wired engine (0351 AI-contract bands unshifted); the
+> v3 build-hygiene sweep found zero Java 6 construct offenders across
+> b5ccg/src; and the standalone mines scenario probe verified the reactive
+> end-to-end (11/11 PASS, scratch mirror deleted after, per the 0384 probe
+> pattern) — including the mines-inflated return damage through the real
+> controller pipeline.> moved registry/scoring-adjacent paths.
 board pill lists at-war faction pairs whenever a war exists, and a bottom
 line always shows station influence plus Shadow/Vorlon ratings — gaining a
 red `[SHADOW WAR]` marker when either rating reaches the condition-2
@@ -266,11 +274,12 @@ moves tension yet).
 ## 6. Headless testing (no UI)
 
 `sh compile.sh` with `RUN_TESTS=1` runs the full conformance suite
-(**460 checks**; see the suite banner for the live count; re-verified green
+(**470 checks**; see the suite banner for the live count; re-verified green
 2026-09-26 with the B5-0506 shunned-wiring, B5-0516 board-readout, and
 B5-0528 mines wiring changes coexisting green, by the B5-0500 re-sweep
-before them, and by the B5-0532 hygiene re-sweep after them, which also
-re-ran all seven standalone probes PASS) plus a smoke game. One transient smoke-run failure mode is
+before them, by the B5-0532 hygiene re-sweep after them, which also
+re-ran all seven standalone probes PASS, and by the B5-0539 close-out,
+whose MINES x10 section lifted the suite 460 -> 470) plus a smoke game. One transient smoke-run failure mode is
 known and classified — see the B5-0495 honesty note in section 7.
 B5-0437's station hooks added 14 STH
 assertions (373 → 387); B5-0453 added 7 STH-AI assertions (387 → 394);
