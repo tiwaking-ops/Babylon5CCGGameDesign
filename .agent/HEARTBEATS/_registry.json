@@ -1,0 +1,33 @@
+{
+    "schema_version":  1,
+    "note":  "agent_id -\u003e filename. The FILENAME CANNOT carry the agent_id: Windows forbids both \":\" and \"/\" in filenames, and several ids contain both. agent_id inside each file is authoritative; this registry is the mapping. Generated 2026-09-27 by human-approved identity resolution.",
+    "map":  {
+                "agent-on-deck":  "agent-on-deck.json",
+                "big-pickle":  "big-pickle.json",
+                "Buffy (deepseek-v4-flash)":  "Buffy (deepseek-v4-flash).json",
+                "Buffy (glm-5.3-flash)":  "Buffy (glm-5.3-flash).json",
+                "Buffy (unknown)":  "Buffy (unknown).json",
+                "buffy-unknown-loop2":  "buffy-unknown-loop2.json",
+                "Claude (claude-3-7-sonnet-20250219)":  "Claude (claude-3-7-sonnet-20250219).json",
+                "Cline (unknown)":  "Cline (unknown).json",
+                "cline-01":  "cline-01.json",
+                "codex-gpt6-01":  "codex-gpt6-01.json",
+                "deepseek-harness-b5ccg-01":  "deepseek-harness-b5ccg-01.json",
+                "goose-b5ccg-agent":  "goose-b5ccg-agent.json",
+                "GPT-6 Codex (GPT-6)":  "GPT-6 Codex (GPT-6).json",
+                "GPT-6-Codex":  "GPT-6-Codex.json",
+                "Kilo (kilo-auto/free)":  "Kilo (kilo-auto-free).json",
+                "kilo (nvidia/nemotron-3-ultra-550b-a55b:free)":  "kilo (nvidia-nemotron-3-ultra-550b-a55b-free).json",
+                "kilo-auto (nvidia/nemotron-3-ultra-550b-a55b:free)":  "kilo-auto (nvidia-nemotron-3-ultra-550b-a55b-free).json",
+                "Kiro (pi-coding-agent)":  "Kiro (pi-coding-agent).json",
+                "me-so-poor":  "me-so-poor.json",
+                "mimocode-0.1.15":  "mimocode-0.1.15.json",
+                "mimocode-agent-01":  "mimocode-agent-01.json",
+                "muse-spark":  "muse-spark.json",
+                "opencode (me-so-poor)":  "opencode (me-so-poor).json",
+                "opencode (space-bunny-free)":  "opencode (space-bunny-free).json",
+                "poolside-s-01":  "poolside-s-01.json",
+                "Qwen (qwen-2.5-coder-32b-instruct)":  "Qwen (qwen-2.5-coder-32b-instruct).json",
+                "solar-pro4:free":  "solar-pro4-free.json"
+            }
+}

@@ -35,7 +35,7 @@ Three failures have already occurred in this repo, all recorded:
 
 | # | Failure | Record |
 |---|---|---|
-| 1 | A reaper keyed on claim mtime would delete claims **under a live worker** — claims 0572/0573/0574 read 63–85 min against a 30-min TTL while their owner was actively writing reports | B5-0597 |
+| 1 | A reaper keyed on claim mtime would delete claims **under a live worker** Ã¢â‚¬â€ claims 0572/0573/0574 read 63Ã¢â‚¬â€œ85 min against a 30-min TTL while their owner was actively writing reports | B5-0597 |
 | 2 | A reader matched task IDs inside a heartbeat's **narrative** field and concluded 4 claims were held when `live_claims` was an empty list | B5-0609 |
 | 3 | A lookup that matched no heartbeat file returned `-1`, and `-1` compared as **younger** than the TTL, so 4 claims were reported LIVE with zero verification | B5-0597 |
 
@@ -66,19 +66,19 @@ frontmatter, no trailing commas.
 
 | Field | Required | Type | Rule |
 |---|---|---|---|
-| `schema_version` | **yes** | int | `1`. Absent means pre-schema, see §6. |
-| `agent_id` | **yes** | string | Must equal the filename stem exactly. See §4. |
+| `schema_version` | **yes** | int | `1`. Absent means pre-schema, see Ã‚Â§6. |
+| `agent_id` | **yes** | string | Must equal the filename stem exactly. See Ã‚Â§4. |
 | `utc` | **yes** | ISO-8601 UTC, `Z` suffix | **The single timestamp field name.** This is the field `README.md` already specifies; this proposal makes it binding and removes the three variants. |
 | `state` | **yes** | enum | `active` or `idle`. **Never** a free-text status. |
 | `current_task` | no | string or `null` | Single task ID. Array only if a session genuinely holds 2+. |
 | `live_claims` | **yes** | array of strings | **Structured. Always present, even when empty.** `[]` is a positive assertion of holding nothing. |
-| `javac` | no | string | Toolchain version; §6 of the architecture doc requires it. |
-| `notes` | no | string | **Prose. Never parsed for structure.** See §3. |
+| `javac` | no | string | Toolchain version; Ã‚Â§6 of the architecture doc requires it. |
+| `notes` | no | string | **Prose. Never parsed for structure.** See Ã‚Â§3. |
 
 ### The two rules that matter most
 
 1. **`live_claims` is structured and always present.** An empty array means *I hold
-   nothing*. Omission must never be read as "probably nothing" — it means `UNKNOWN`.
+   nothing*. Omission must never be read as "probably nothing" Ã¢â‚¬â€ it means `UNKNOWN`.
 2. **`notes` is never a data source.** No reader may extract a task ID, a claim, or a
    status from prose. Failure 2 above happened exactly here, and it is unrecoverable
    because prose has no schema.
@@ -91,7 +91,7 @@ frontmatter, no trailing commas.
 records this. The reasoning generalises: a JSON document can be schema-validated, and
 prose cannot. Once a field is declared prose, every future reader will treat it as
 structured, because the file *looks* structured. The Deepseek Harness transcript read
-`last_completed` — a sentence listing task IDs — and reported a claim set that did not
+`last_completed` Ã¢â‚¬â€ a sentence listing task IDs Ã¢â‚¬â€ and reported a claim set that did not
 exist.
 
 **Rule: if a value must be machine-read, it gets its own field. Prose is for humans.**
@@ -104,7 +104,7 @@ The directory currently contains **multiple spellings per agent**:
 
 | Agent | Spellings on disk |
 |---|---|
-| solar-pro4 | `solar-pro4`, `solar-pro4:free`, `solar-pro4⟨U+2028⟩free` |
+| solar-pro4 | `solar-pro4`, `solar-pro4:free`, `solar-pro4Ã¢Å¸Â¨U+F03AÃ¢Å¸Â©free` |
 | Buffy | `Buffy (glm-5.3-flash)`, `Buffy (unknown)`, `Buffy-(glm-5.3-flash)`, `buffy-unknown-loop2` |
 | kilo | `kilo`, `kilo-auto`, `Kilo (kilo-auto-free)` |
 | GPT-6 | `GPT-6 Codex (GPT-6)`, `GPT-6-Codex`, `codex-gpt6-01` |
@@ -116,7 +116,7 @@ silently concludes "no heartbeat found" for an agent that is demonstrably alive.
 the same failure as B5-0597's second finding.
 
 **Proposed rule.** One agent, one spelling, for the life of the repo. A new spelling is a
-**new agent**, not a variant — because in this system a twin session under one spelling
+**new agent**, not a variant Ã¢â‚¬â€ because in this system a twin session under one spelling
 cannot see its twin's in-flight intent (the B5-0337 coordination rule). Where a legacy
 spelling must be matched during migration, normalise by lowercasing and stripping
 non-alphanumerics before comparison, and treat a normalised collision as `UNKNOWN`, never
@@ -129,7 +129,7 @@ as a match. B5-0584 owns the full census; this proposal only states the rule.
 ### 5.1 Three signals, not one
 
 ```
-live(T)  ⇔  max( mtime(claim/T.json),
+live(T)  Ã¢â€¡â€  max( mtime(claim/T.json),
                   utc(heartbeat/<owner(T)>.json),
                   mtime(report/T-*.md) )  is  within TTL
 ```
@@ -138,11 +138,11 @@ A task is live when the **newest** of its claim file, its owner's heartbeat, and
 report mtime falls inside the TTL (B5-0597). Any one signal alone produces a known false
 result:
 
-- claim mtime alone → false reap of live work (failure 1)
-- heartbeat alone → false reap when the heartbeat is stale but the agent is mid-write
-- report mtime alone → false reap before any report exists
+- claim mtime alone Ã¢â€ â€™ false reap of live work (failure 1)
+- heartbeat alone Ã¢â€ â€™ false reap when the heartbeat is stale but the agent is mid-write
+- report mtime alone Ã¢â€ â€™ false reap before any report exists
 
-### 5.2 A signal is LIVE, STALE, or UNKNOWN — never a default
+### 5.2 A signal is LIVE, STALE, or UNKNOWN Ã¢â‚¬â€ never a default
 
 | Verdict | Condition |
 |---|---|
@@ -161,7 +161,7 @@ result:
 
 ### 5.3 Prefer filesystem metadata when the payload is untrustworthy
 
-If a heartbeat's *contents* cannot be trusted, its **mtime** usually can — the
+If a heartbeat's *contents* cannot be trusted, its **mtime** usually can Ã¢â‚¬â€ the
 filesystem maintains it without the writer's cooperation. During the 2026-09-27 survey
 the most reliable liveness signal available was `LastWriteTimeUtc`, precisely because the
 JSON payloads were malformed in 19 of 32 files. A validator should therefore report
@@ -190,7 +190,7 @@ Additive and non-destructive; no file is deleted by this proposal.
    readers are updated. Do it last, and never in the same pass as step 1.
 5. **Move non-conforming files out.** `agent-on-deck.json` and
    `goose-b5ccg-agent.json` are YAML frontmatter, not JSON; `solar-pro4` has no
-   extension; `kiro-pi.timestamp` is not a `.json`. Either convert or quarantine — a
+   extension; `kiro-pi.timestamp` is not a `.json`. Either convert or quarantine Ã¢â‚¬â€ a
    parser that throws on one file poisons the whole survey, and in this session a
    `ConvertFrom-Json` failure on a single malformed file silently truncated a census.
 
@@ -201,7 +201,7 @@ Additive and non-destructive; no file is deleted by this proposal.
 Read-only. Adds no file and edits none. Reports, per file: parses-as-JSON, has
 `schema_version`, has `utc` and it parses as ISO-8601, `agent_id` equals filename stem,
 `live_claims` present, `state` in enum, unknown keys listed. Exit non-zero if any file in
-the directory fails to parse — because one unparseable file is what made a whole census
+the directory fails to parse Ã¢â‚¬â€ because one unparseable file is what made a whole census
 silently wrong.
 
 ```
@@ -217,7 +217,7 @@ Implementation is a follow-up task, not part of this proposal.
 - It does **not** edit `00_BOOT.md` (governance) or `.agent/HEARTBEATS/README.md`. The
   README already names `utc` as the field; this proposal's `utc` clause aligns to the
   README rather than the reverse, and reconciling the README needs a governance decision.
-- It does **not** rename any agent's file. See §6.4.
+- It does **not** rename any agent's file. See Ã‚Â§6.4.
 - It does **not** create a ledger row. Two checkpoint rows are gated on other work, and
   the ledger was being appended to concurrently during drafting.
 - It does **not** claim any ruling on B5-0584's census, which owns agent_id fragmentation.
@@ -229,7 +229,42 @@ Implementation is a follow-up task, not part of this proposal.
 ## Reusable lesson
 
 A heartbeat is a *positive assertion of liveness*, so the schema's job is to make every
-possible state expressible — including **"I don't know"**. A liveness system that cannot
+possible state expressible Ã¢â‚¬â€ including **"I don't know"**. A liveness system that cannot
 represent absence will always resolve absence into a confident answer, and a confident
 wrong answer about whether work is live is more expensive than no answer at all: it
 destroys work and manufactures duplicates.
+---
+
+## Amendment A1 — human-approved, 2026-09-27 (post-implementation)
+
+Implemented 2026-09-27; this amendment records two changes the implementation forced, both
+approved by the human. The original text above is left intact as the historical record.
+
+**A1.1 — §4 is superseded: `agent_id` == filename stem is unsatisfiable.**
+
+Windows forbids **both `:` and `/`** in filenames (verified: `[IO.File]::WriteAllText`
+fails with *"The given path's format is not supported"*). Four ids contain one or both, and
+`solar-pro4:free` is cited in 114 ledger rows and 154 reports, so it cannot be changed to
+make a filename work. The rule and the filesystem are mutually exclusive.
+
+**Binding rule: `agent_id` must resolve to exactly ONE file**, via (1) exact stem match,
+(2) an `_registry.json` entry, or (3) documented sanitisation `:` and `/` → `-` matching
+this repo's own report-filename convention. No `agent_id` was altered; only filenames were
+sanitised, and all 268 existing citations keep resolving.
+
+The enforceable half is store-level: `validate-heartbeats.ps1` now fails if any `agent_id`
+is claimed by more than one file, because two files asserting one identity make
+`live_claims` ambiguous regardless of how well-formed either file is.
+
+**A1.2 — `state` enum gains `busy`.**
+
+A live agent (`opencode (me-so-poor)`, working B5-0620) adopted the schema and wrote
+`state: busy`, which was outside `active|idle`. Rather than rewrite a working agent's file
+— which would race and violate the never-edit-another-agent rule — the enum was widened.
+**A schema a working agent cannot satisfy is one that gets abandoned, not obeyed.**
+
+**Unresolved, and it is the real blocker:** at least two sessions are writing coordination
+files under opencode-family identities (`opencode (space-bunny-free)` and
+`opencode (me-so-poor)`) and cannot see each other. Until one session owns one identity,
+`live_claims` is derived correctly and still semantically ambiguous. That is a human
+decision, not a schema change.

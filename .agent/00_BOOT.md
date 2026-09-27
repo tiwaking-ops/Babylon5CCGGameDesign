@@ -6,6 +6,7 @@ provenance:
   author_llm: {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
   assessor_llm:
     - {name: "Solar Pro4", version: "solar-pro4:free"}
+    - {name: "opencode (space-bunny-free)", version: "space-bunny-free" — heartbeat schema pointer added to step 3, human-approved 2026-09-27}
     - {name: "opencode (space-bunny-free)", version: "space-bunny-free" - claim row-status precondition (step 6) and post-write duplicate-ID census (step 9), human-approved 2026-09-27 (B5-0622)}
   last_modified_by_llm: {name: "opencode (space-bunny-free)", version: "space-bunny-free"}
   created_date: "2026-09-21"
@@ -20,6 +21,12 @@ provenance:
 3. Run `javac -version` (expect JDK 8, e.g. `1.8.0_292`) and record it in your
    heartbeat. Build gate is `b5ccg/compile.bat` (or `compile.sh`):
    `javac -source 6 -target 6`, stdlib only.
+   Heartbeat format: `.agent/HEARTBEATS/README.md` is binding — strict JSON with
+   `schema_version`, `agent_id`, `utc` (the only canonical timestamp field),
+   `state`, and `live_claims` (always present; `[]` asserts you hold nothing).
+   `notes` is prose and is never parsed. Check the store with
+   `powershell -NoProfile -ExecutionPolicy Bypass -File .agent/tools/validate-heartbeats.ps1`;
+   it is read-only and exits non-zero on any non-conforming or unparseable file.
 4. Obtain the OPEN-task census ONLY by running the shared census tool:
    `powershell -NoProfile -ExecutionPolicy Bypass -File .agent/run-queue.ps1 -DryRun`
    (or its bash equivalent `bash .agent/run-queue.sh -DryRun`). Do NOT read or

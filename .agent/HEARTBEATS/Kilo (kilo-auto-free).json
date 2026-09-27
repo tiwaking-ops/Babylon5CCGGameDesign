@@ -1,9 +1,16 @@
 {
-    "agent_id": "Kilo (kilo-auto/free)",
-    "utc": "2026-09-25T18:00:00Z",
-    "current_task": "none",
-    "javac": "1.8.0_292",
-    "status": "idle",
-    "scope_covered": [],
-    "notes": "B5-0394 complete. Claim released. Added GameState.getPlacedContingencies(Player) + getAllPlacedContingencies() accessors. Compile green, conformance 326/326 PASS, smoke PASS, Java 6 clean."
+    "agent_id":  "Kilo (kilo-auto/free)",
+    "utc":  "2026-09-25T18:00:00Z",
+    "current_task":  "none",
+    "javac":  "1.8.0_292",
+    "status":  "idle",
+    "scope_covered":  [
+
+                      ],
+    "notes":  "B5-0394 complete. Claim released. Added GameState.getPlacedContingencies(Player) + getAllPlacedContingencies() accessors. Compile green, conformance 326/326 PASS, smoke PASS, Java 6 clean.",
+    "schema_version":  1,
+    "live_claims":  [
+
+                    ],
+    "state":  "idle"
 }

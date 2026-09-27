@@ -1,13 +1,23 @@
 {
-  "agent_id": "mimocode-0.1.15",
-  "model": "MiMoCode (0.1.15)",
-  "last_active_utc": "2026-09-22T20:10:00Z",
-  "javac_version": "1.8.0_292",
-  "tasks_in_progress": [],
-  "status": "heartbeat_ok",
-  "scope_covered": ["report/proposal only \u2014 no src/ or resources/ edits"],
-  "build_gate_ok": true,
-  "smoke_test_ok": null,
-  "conformance_ok": null,
-  "note": "B5-0334 DONE: SNRPG B5CCG column-code decode report (Type/Rarity/Race/SubType/Set/marks/Cost). 1729-row table parsed + cross-ref against our 829 card JSON. No src/ or resources/ edits. Report .agent/REPORTS/2026-09-23-mimocode-0.1.15-B5-0334.md. Scratch under b5ccg/out/scratch/snrpg/ deleted at session end (git-ignored)."
+    "agent_id":  "mimocode-0.1.15",
+    "model":  "MiMoCode (0.1.15)",
+    "last_active_utc":  "2026-09-22T20:10:00Z",
+    "javac_version":  "1.8.0_292",
+    "tasks_in_progress":  [
+
+                          ],
+    "status":  "heartbeat_ok",
+    "scope_covered":  [
+                          "report/proposal only — no src/ or resources/ edits"
+                      ],
+    "build_gate_ok":  true,
+    "smoke_test_ok":  null,
+    "conformance_ok":  null,
+    "note":  "B5-0334 DONE: SNRPG B5CCG column-code decode report (Type/Rarity/Race/SubType/Set/marks/Cost). 1729-row table parsed + cross-ref against our 829 card JSON. No src/ or resources/ edits. Report .agent/REPORTS/2026-09-23-mimocode-0.1.15-B5-0334.md. Scratch under b5ccg/out/scratch/snrpg/ deleted at session end (git-ignored).",
+    "schema_version":  1,
+    "utc":  "2026-09-24T11:03:45Z",
+    "live_claims":  [
+
+                    ],
+    "state":  "idle"
 }

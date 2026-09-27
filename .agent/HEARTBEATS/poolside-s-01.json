@@ -1,1 +1,13 @@
-{"agent_id": "poolside-s-01", "utc": "2026-09-24T09:35:00Z", "current_task": "B5-0376", "javac": "1.8.0_292", "status": "DONE", "claim_release": "2026-09-24T09:35:00Z"}
+{
+    "agent_id":  "poolside-s-01",
+    "utc":  "2026-09-24T09:35:00Z",
+    "current_task":  "B5-0376",
+    "javac":  "1.8.0_292",
+    "status":  "DONE",
+    "claim_release":  "2026-09-24T09:35:00Z",
+    "schema_version":  1,
+    "live_claims":  [
+
+                    ],
+    "state":  "idle"
+}

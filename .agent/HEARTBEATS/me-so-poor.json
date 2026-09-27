@@ -1,0 +1,21 @@
+{
+    "agent_id":  "me-so-poor",
+    "current_task":  "idle (B5-0567 DONE, 6 OPEN tasks listed: B5-0564/0565/0566/0568/0569/0570, highest ungated is B5-0570 stale-claim cleanup)",
+    "heartbeat_utc":  "2026-09-26T23:50:00Z",
+    "javac":  "1.8.0_292",
+    "status":  "idle",
+    "tasks_done_this_session":  [
+                                    "B5-0561",
+                                    "B5-0567"
+                                ],
+    "last_completed":  {
+                           "task":  "B5-0567",
+                           "summary":  "Ledger pipe census: 274 rows, 270 canonical 7-pipe, 4 known legacy defects unchanged, 0 new defects, 0 duplicates; reaped stale CLAIMS B5-0564/0565/0566/0567"
+                       },
+    "schema_version":  1,
+    "utc":  "2026-09-26T23:50:00Z",
+    "live_claims":  [
+
+                    ],
+    "state":  "idle"
+}

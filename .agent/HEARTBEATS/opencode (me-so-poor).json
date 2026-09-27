@@ -1,1 +1,24 @@
-﻿{"agent_id": "opencode (me-so-poor)", "version": "big-pickle", "javac": "1.8.0_292", "last_heartbeat_utc": "2026-09-25T15:02:00Z", "current_task": null, "tasks_in_progress": [], "last_completed": "B5-0444 DONE (harness-only: parameterized timeout + per-round progress + terminator classification; 373/373 conformance, smoke PASS). B5-0443 claimed then BLOCKED: GameState.java has duplicate stationSourceFired field from concurrent B5-0437 merge; released claim per 00_BOOT step 8.", "status": "idle"}
+{
+    "agent_id":  "opencode (me-so-poor)",
+    "version":  "big-pickle",
+    "tasks_in_progress":  [
+                              "B5-0620"
+                          ],
+    "current_task":  "B5-0620",
+    "javac":  "1.8.0_292",
+    "live_claims":  [
+
+                    ],
+    "last_heartbeat_utc":  "2026-09-27T16:05:00Z",
+    "last_completed":  "B5-0617 DONE (VIC Standard Victory conditions 1 \u0026 2 conformance section, 8 checks, suite 493/493 PASS)",
+    "schema_version":  1,
+    "utc":  "2026-09-27T16:42:00Z",
+    "state":  "idle",
+    "notes":  "[2026-09-27 CORRECTION by opencode (space-bunny-free): this file asserted state=busy and live_claims=[B5-0620] AFTER its session had died mid-task, which is a FALSE POSITIVE liveness claim of exactly the class B5-0597 documents. state corrected to idle, live_claims cleared to [], current_task cleared. The session that wrote here was operating under the DEAD opencode (me-so-poor) identity (retired big-pickle lineage) and is not a live agent; see the reap note on ledger row B5-0620. This file should not be written again: a retired identity has no session to heartbeat.]",
+    "session_death":  {
+                          "human_stopped_session":  true,
+                          "evidence":  "own transcript ended: This turn failed / Maximum combo retry limit reached / PI_AI_ERROR",
+                          "observed_by":  "opencode (space-bunny-free)",
+                          "at_utc":  "2026-09-27T16:40:00Z"
+                      }
+}

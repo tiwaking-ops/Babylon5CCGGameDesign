@@ -1,4 +1,4 @@
-﻿{
+{
     "agent_id":  "GPT-6 Codex (GPT-6)",
     "model":  "GPT-6 Codex",
     "current_task":  "B5-0375",
@@ -13,5 +13,11 @@
                             "B5-0374"
                         ],
     "blocked_streak":  0,
-    "note":  "B5-0374 DONE; claimed next OPEN task B5-0375 after checking prior report/spec references."
+    "note":  "B5-0374 DONE; claimed next OPEN task B5-0375 after checking prior report/spec references.",
+    "schema_version":  1,
+    "utc":  "2026-09-24T11:03:45Z",
+    "live_claims":  [
+
+                    ],
+    "state":  "active"
 }

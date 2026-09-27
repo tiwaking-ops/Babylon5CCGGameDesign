@@ -1,17 +1,30 @@
 {
-    "agent_id": "Buffy (unknown)",
-    "thread_id": "freebuff-buffy-loop",
-    "session_start_utc": "2026-09-25T23:47:27Z",
-    "updated_utc": "2026-09-26T01:08:13Z",
-    "status": "complete",
-    "current_task": "LOOP COMPLETE: 10/10 tasks done this session (0473, 0474, 0476, 0477, 0478, 0475, 0479, 0480*, 0481*, 0483; * = co-closed with concurrent twin sessions). No claims held.",
-    "live_claims": [],
-    "javac": "1.8.0_292",
-    "tasks_done_this_session": 10,
-    "last_completed": {
-        "task": "B5-0483",
-        "summary": "Minimum-1 floor proposal: Option A (per-bonus floor field + effectiveStat floor pass) recommended, 8 conformance hooks named",
-        "closed_utc": "2026-09-26T01:08:13Z"
-    },
-    "notes": "Stop condition per operator directive: 10 tasks completed. Remaining OPEN at stop: 0472 (twin live), 0482 (twin live), 0484, 0485 (gated on 0482)."
+    "agent_id":  "Buffy (unknown)",
+    "thread_id":  "freebuff-buffy-loop6",
+    "session_start_utc":  "2026-09-26T09:29:00Z",
+    "updated_utc":  "2026-09-26T11:33:00Z",
+    "status":  "active",
+    "current_task":  "STOPPED per directive: no OPEN task without a live claim remains (B5-0562 reopened OPEN by agent-on-deck under their live claim 0562.json -- my checkpoint b2800373 already exists and is an ancestor of HEAD; they should verify-NO-OP close it per the 0549/0560 precedent; not touching their claim). Session: 5 tasks DONE (0556, 0558, 0550, 0562, 0563) -- prior stale text:  (row marked BLOCKED by them); diff shows concurrent edits to MINES fixture (attacker card 0-\u003e2 leadership, IC-\u003esupporting role, logContains punctuation) sitting uncommitted; diagnosing whether fixture edit or engine regression",
+    "live_claims":  [
+                        "B5-0548"
+                    ],
+    "javac":  "1.8.0_292",
+    "last_compile":  "green, -source 6; RUN_TESTS=1 green (470/470 after MINES x10 + smoke) per the 0539-era close-outs; my last full gate run at checkpoint 6433ee12 (460/460 era)",
+    "smoke":  "PASS",
+    "tasks_done_this_session":  5,
+    "blocked_count":  0,
+    "notes":  "LOOP7 FINAL 11:29Z: 5 tasks completed (0556 engine/fixture fix, 0558 guide part 22, 0550 guide part 20, 0562 checkpoint b2800373, 0563 dead-gate governance); 3 claim files destroyed by concurrent overwrites (0433 notes in rows); DECISIONS truncation incident found+restored; B5-0562 row reopened by agent-on-deck under their live claim after my b2800373 close -- left to them per 00_BOOT. Zero other OPEN rows remain. LOOP7 update 11:25Z: 4 tasks this window (0556, 0558, 0550, 0562-checkpoint). LOOP7 final update 11:12Z: 3 tasks co-closed this window (0556, 0558, 0550); DECISIONS.md truncation incident found+restored (incident note in file); 0547/0551/0555 gate-stall flagged. LOOP7 update 10:58Z: B5-0558 DONE 10:58Z (co-closed; my 10:48Z claim file removed pre-close by agent-on-deck -- 0433 note). B5-0557 was closed by them while I waited on their future-dated claim. LOOP7: B5-0556 DONE 10:31Z (report+DECISIONS+pattern on disk; my claim file was overwritten by a future-dated agent-on-deck file -- release noted per 0433, their file left untouched per 0435). Next: 0557 re-sweep. Earlier: LOOP7 boot claimed B5-0556 (engine MINES fix, ungated). LOOP6 FINAL (09:15Z). Completed this directive window: 0540 guide part 18 (470-check count, 0530/0532/0534 records, self assessor), 0541 pipe hygiene (0528 to 7 pipes, 0523/0526/0534 double-pipe strip, same-class census fixes: dup 0532 removed 247/247 unique, 0538 truncated, 0530 merged; 0515 flagged out-of-scope). Prior window: 0522 ui picker (+ same-class 0487 fleet-handler repair), 0527 dual-0509 reconciliation, 0531 guide part 17, 0533 checkpoint 6433ee12, 0534 mines probe 11/11, 0536 0529 gate-cell repair, 0537 verified no-op; 0528 yielded per B5-0344. Stop condition: no OPEN task without a live claim remains (none OPEN at all); task cap 10 not the binding constraint. Residue claim files (0468/0470/0471/0472/0476/0514, plus 0542/0543 owner residue just closed) left for owners per protocol. Uncommitted governance deltas from my closes remain in the working tree by scope; last committed checkpoint 6433ee12.",
+    "last_completed":  {
+                           "task":  "B5-0563",
+                           "summary":  "Dead-checkpoint governance: 3 unsatisfiable-gate rows SUPERSEDED; census 271/271; zero OPEN rows remain",
+                           "closed_utc":  "2026-09-26T11:29Z"
+                       },
+    "prev_last_completed":  {
+                                "task":  "B5-0545",
+                                "summary":  "Pipe hygiene: 0539/0543/0515 to 7 pipes; census 255/255 unique; 0316/0449/0490 flagged",
+                                "closed_utc":  "2026-09-26T09:25Z"
+                            },
+    "schema_version":  1,
+    "utc":  "2026-09-26T11:33:00Z",
+    "state":  "active"
 }
