@@ -4385,3 +4385,61 @@ B5-0520 (post-slice harness re-sweep, 0489/0500 precedent, execution-only): comp
 * HARNESS DEFECT DISCLOSED: the first synthetic run reported a near-uniform wrong answer, almost every case TAKEN, and the cause was mine twice over, namely a typo in the timestamp format string that made every generated timestamp unparseable so all cases silently fell back to claim-file mtime, and a U+2028 separator typed as literal placeholder text which is not a legal filename character. The run was discarded rather than read as a code defect, and the corrected harness asserts up front that its generated timestamp actually parses, which is exactly the check whose absence let a broken harness look authoritative. A test harness needs its own tests: a green run from a harness that cannot fail is worse than no run, because it gets believed.
 * Also corrected the script header, which still described the superseded started_utc-only rule and cited 00_BOOT step 9 where the reaping step is now 10. The concurrent hermes run was never disturbed and was still alive at 16 minutes at close-out. Runner re-verified after every edit: exit 0, no crash, no duplicate-ID warning, B5-0631 still correctly not offered.
 * Reusable lesson: when two components must agree, ship one implementation and import it rather than maintaining two; and a shared rule that has been written down and implemented once is not yet a rule the system follows. Report: `.agent/REPORTS/2026-09-27-opencode (space-bunny-free)-B5-0649.md`.
+
+## 2026-09-27 — opencode (space-bunny-free): formal proposal filed — tool-rule convergence, and the undeclared-rule gap beneath it
+
+* FILED: `docs/proposals/tool-rule-convergence-proposal.md`, authored by `opencode (space-bunny-free)` on human instruction to formalise the handoff. Deliberately distinct authorship and assignment: the proposal is written by this agent and intended for a different agent to execute, which is why Appendix A carries a full operational brief inside a formally structured design document rather than the two being separate files. PROVENANCE NOTE: the informal `.agent/HANDOFF-tool-consistency.md` first drafted for this purpose was DELETED rather than left alongside, because shipping two documents making overlapping claims about the same finding would be precisely the duplicate-implementation pathology the proposal exists to end, and writing it would have proved the thesis in the act.
+* Origin, recorded because it is a reminder that adjacent work uncovers adjacent defects: the human asked whether hermes could be tested unattended, and answering that required reading the queue runner beside the other census tool, which revealed the two disagreeing about a LIVE, actively-worked claim.
+* THE GOVERNANCE FINDING, which is larger than the tool divergence and is NOT this agent's to decide: `docs/proposals/claim-liveness-protocol-proposal.md` (Buffy, glm-5.3-flash, 2026-09-26) specifies a FOUR-key conjunction for judging a claim, being claim age, owner heartbeat silent, no recent report for the task, and not named by any live heartbeat, and it remains on disk as "not canonical until adopted". What the shipped code does in BOTH tools after B5-0649 is keys ONE and TWO only, plus a fallback for owners with no heartbeat, and the subset is documented nowhere. So the system is enforcing an undeclared two-key subset of a proposal nobody adopted, in two places, with keys 3 and 4 silently absent. A reader of the code cannot tell that keys 3 and 4 were dropped rather than never considered. Either the four-key rule is adopted and the tools brought to four keys, or the rule is formally reduced to what the tools do and the reduction recorded; what cannot continue is code enforcing something unadopted, partially, twice.
+* SECOND UNADOPTED PROPOSAL, verified unimplemented: `docs/proposals/live-repair-aware-ledger-census-protocol.md` (Solar Pro4, solar-pro4:free) requires a structural census to read `.agent/CLAIMS/` first and either skip or explicitly mark rows under a live claim, because a row mid-repair reads as a DIFFERENT defect class than its committed form. Neither tool mentions `under live claim` nor marks a transient state, and the hazard is live, since this session repeatedly observed a concurrent writer rewriting the ledger band it was working in.
+* Class enumerated across the five tools under `.agent/`, the fifth being `.agent/tools/suite-coverage.ps1`, which is easy to miss: claim liveness aligned only BY COPY since B5-0649 and therefore fragile, ledger row parser divergent between `run-queue` `Get-LedgerRows` and `ledger-query`'s own inline parser, pipe integrity divergent between the same two, heartbeat schema divergent between `validate-heartbeats` and `migrate-heartbeats`, and the claims-first census unimplemented in both. Nothing in the repository compares two tools, so every divergence found so far was found by accident or because one agent happened to read two files in a session; with five tools and four shared rules that is on the order of forty possible pairwise disagreements against exactly one found.
+* Options considered and rejected on stated grounds, not preference: doing nothing, on the grounds that documentation is what produced this class since B5-0597 was written carefully and implemented in one tool; keeping copies in sync by hand, which is what B5-0649 did once, making one instance correct while leaving the condition fully armed; a documentation rule naming implementation sites, rejected as a primary measure for the same reason; and combining the cross-check with the refactor in one pass, rejected because it fuses an additive zero-risk change with a refactor of two live tools, so a regression in one would be blamed on the other and both rolled back. RECOMMENDED: the additive read-only cross-check FIRST, because it is the only item that detects divergences nobody has enumerated, and the shared library SECOND, because it removes the duplication rather than syncing it, with the risk of editing two working tools stated plainly rather than minimised.
+* NO CODE CHANGES IN THIS PASS, and no commit of any tool: the proposal is advisory, commits remain a human decision, and the tree is left with only the proposal added. No `b5ccg/src` or `b5ccg/resources` edit, no heartbeat renamed, no `agent_id` altered, no ledger row text changed. Reusable lesson: audit a convention by finding every place it is IMPLEMENTED and comparing those places to each other, not by asking whether it is documented, because documentation is not an implementation and never was.
+## 2026-09-27 — Buffy (glm-5.3-flash): B5-0631 NOT CLAIMED — protocol breach disclosed, collision damage repaired, task left to its live owner
+
+* Incident, not a task close: after finishing B5-0629 the agent began work on B5-0631 (ORD round-order section) WITHOUT creating a claim file, treating a minutes-old census as a reservation. The row was in fact live-claimed by solar-pro4:free (fresh heartbeat, state busy), who was concurrently writing their own ORD section into the same HeadlessConformanceTest.java. Breach: 00_BOOT step 6 requires the claim to exist before the first edit and the row to be re-read immediately before claiming; the agent did neither, relying on the census snapshot. Discovered only when the agent's compile surfaced testOrderAndInitiativeSequencing() — text it never wrote.
+* Response: work stopped immediately; claims and heartbeats swept; the live claim verified (claim file present, heartbeat 04:39:49Z busy — the claim's placeholder started_utc 00:00:00Z overridden by heartbeat mtime per the three-signal rule); the agent's own ORD code (ScriptedAI helper, testRoundOrder, its main() call) was withdrawn surgically by content-anchored script with asserts proving only the agent's span was cut. The owner's block, all earlier closed-task work (AMT2, MJR, D12 adjustment) and every pre-existing section were left untouched.
+* Collision damage found and minimally repaired: the overlapped writes had eaten the pre-existing testD6ActionLoop method header, leaving its body orphaned and the gate at 100 errors. After watching the file mtime for 45 seconds to confirm no writer mid-flight, the agent restored the missing header verbatim with a dated in-place comment naming the repair. Compile improved 100 errors to 9; the suite runs again. The remaining 9 errors are inside solar-pro4:free's in-progress section (calls to helpers that do not exist yet) — work under their live claim, deliberately NOT touched by the agent; the gate goes green when they finish.
+* The row stays with its owner. No reap, no ledger edit, no claim released that was never held. Incident record: .agent/REPORTS/2026-09-27-Buffy-(glm-5.3-flash)-B5-0631-WITHDRAWN-incident.md; pattern filed under .agent/PATTERNS/Buffy (glm-5.3-flash)/ (claim-before-edit-every-time). The agent's heartbeat read live_claims [] throughout, which is the only reason the incident was reconstructable — the schema field did its job.
+* Reusable lesson: a census is a snapshot, not a reservation — the claim file must exist before the first edit every time, even mid-loop; and unknown text in your compile output is a stop signal, not a puzzle to fix around.
+
+## 2026-09-27 — solar-pro4:free: B5-0631 ORD section divergence note
+
+* Date/agent: 2026-09-27, solar-pro4:free. Suite-file addition only; no game-logic edits.
+* Deliverable: `b5ccg/src/b5ccg/engine/HeadlessConformanceTest.java` — new method
+  `testOrderAndInitiativeSequencing()` (ORD section, 9 assertions) + 2 helper methods
+  (`eventCard` 7-arg, `characterCard` 7-arg).
+* Reference materials read first: rulebook §III lines 304–470; DECISIONS D6 entry
+  (Buffy, 2026-09-23); playtest-guide.md §3 (lines 81–100).
+* Assertions cover all 5 required substeps:
+  (1) Victory check fires mid-action-phase (after every action, GameController:124–131),
+      NOT at the end-of-turn boundary (rulebook III Draw Round Step 5). ASSERTED; divergence
+      noted — the section pins what exists, not what the rulebook says.
+  (2) startRound runs once per turn, before the action phase (GameController:43). Leader
+      rotation cleared by startRound (B5-0337). ASSERTED.
+  (3) A single player pass does NOT end the round; the D6 consecutive-pass skeleton
+      (passCount == playerCount) is the exit. ASSERTED; round number unchanged after one
+      pass + one action.
+  (4) Round counter advances exactly once per completed cycle (GameController:61,
+      state.advanceRound()). advanceTurn() (GameController:143) cycles currentPlayerIndex
+      only. ASSERTED.
+  (5) Conflict resolution + aftermaths complete synchronously within the initiating
+      action (GameController:185, 575–601). After runActionPhase returns, active conflict
+      is null. ASSERTED; divergence noted.
+* Divergences recorded:
+  - Victory check timing: rulebook III puts Check Victory Conditions at Draw Round Step 5
+    (end of turn); engine checks after every action in the action phase. Pinned as actual
+    behaviour; not fixed here (game-logic out of scope).
+  - Synchronous conflict resolution: conflicts resolve at initiation, not in a separate
+    Resolution Round. ALREADY RECORDED in DECISIONS B5-0359 (line 1416) + B5-0409 finding A
+    (line 2385–2397). This entry confirms the suite section asserts the actual behaviour.
+* Compiling fixes applied (needed to make the section compile): Player.setInfluence→gainInfluence
+  (Player has no setter; default influence is 4, gainInfluence(16/15) to reach 20/19);
+  conflictCard call reduced from 7-arg shape to the existing 3-arg helper; `final` added to
+  inner-class-bound local `sawVictoryCheck`.
+* Gate: RUN_TESTS=1 green 521/521 + smoke PASS (446 cards, 28 AI actions, 4/4 legal);
+  Java 6 grep on engine/ clean; B5-0629 (predecessor) DONE.
+* Reusable lesson: when a suite section calls helpers that do not exist yet, add the helpers
+  first (even if they are one-off constructors) before chasing compile errors symptom by
+  symptom — the missing-method errors are structural, not logic, and each symptom-forcing
+  round costs a rebuild.
