@@ -215,14 +215,19 @@ function Get-ClaimableOpenTasks {
 }
 
 $TaskPromptTemplate = @'
-Read .agent/HANDOFF.md and complete task __TASK_ID__ only: boot per 00_BOOT.md
-(claim file already checked by the runner - re-verify .agent/CLAIMS/__TASK_ID__.json
-is absent before creating your own claim), work ONLY inside the claimed scope,
-verify per the row's gate, then close out fully (TASK_LEDGER.md row, docs/DECISIONS.md
-entry, .agent/REPORTS/<date>-<agent-id>-__TASK_ID__.md, delete your claim file,
-refresh your heartbeat). Single task, then exit. If the gate is red from
-out-of-scope in-flight edits, mark BLOCKED per step 7 and release - do not fix
-outside your scope. Use your name and version as agent_id.
+Boot per .agent/00_BOOT.md, then read .agent/AGENT_LOOP.md and execute its
+IDENTITY AND FILENAMES rules and its close-out checklist for this one task:
+__TASK_ID__ only. (The claim file was already checked by the runner - re-verify
+.agent/CLAIMS/__TASK_ID__.json is absent before creating your own claim, and
+re-read the row to confirm it still reads OPEN.) Work ONLY inside the claimed
+scope, verify per the row's gate, then close out fully (TASK_LEDGER.md row,
+docs/DECISIONS.md entry, .agent/REPORTS/<date>-<sanitised-agent-id>-__TASK_ID__.md
+with one "Reusable lesson" line filed as a NEW file under
+.agent/PATTERNS/<agent-id>/, delete your claim file, refresh your heartbeat on the
+binding schema in .agent/HEARTBEATS/README.md). Single task, then exit. If the
+gate is red from out-of-scope in-flight edits, mark BLOCKED per 00_BOOT step 8 and
+release - do not fix outside your scope. Use your name and version as agent_id.
+Do NOT read .agent/HANDOFF.md: it is superseded and its state section is stale.
 '@
 
 $stagnant = 0

@@ -1,13 +1,34 @@
 ---
 document:
-  title: "Autonomous development handoff — instructions to the incoming LLM"
-  status: "Governance"
+  title: "Autonomous development handoff (SUPERSEDED — do not follow)"
+  status: "Superseded (retained for history; not authority)"
+superseded_by:
+  boot: ".agent/00_BOOT.md"
+  loop: ".agent/AGENT_LOOP.md"
+  reason: "Sections 7 and 8 were frozen at 2026-09-21 and are now false. Section 7 states b5ccg/src/ is RED at -source 6 (green since 2026-09-21) and section 8 instructs the reader to fix and claim B5-0001 (DONE since 2026-09-21). A run-queue.ps1 task template pointed here until B5-0626."
 provenance:
   author_llm: {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
-  last_modified_by_llm: {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
+  assessor_llm:
+    - {name: "opencode (space-bunny-free)", version: "space-bunny-free" - marked superseded, human-approved 2026-09-27 (B5-0626)"}
+  last_modified_by_llm: {name: "opencode (space-bunny-free)", version: "space-bunny-free"}
   created_date: "2026-09-21"
-  last_modified_date: "2026-09-21"
+  last_modified_date: "2026-09-27"
 ---
+
+# Autonomous development handoff — SUPERSEDED
+
+> **Do not follow this document.** It is retained only as history.
+>
+> Boot from **`.agent/00_BOOT.md`** and execute **`.agent/AGENT_LOOP.md`**.
+>
+> Sections 7 and 8 below were frozen on 2026-09-21 and are now **false**: section 7
+> states that `b5ccg/src/` is RED under `-source 6` (it has been green since
+> 2026-09-21), and section 8 instructs the reader to fix and then claim **B5-0001**
+> (DONE since 2026-09-21). An agent that followed section 8 literally would create a
+> claim on a closed task — the exact orphan class B5-0622 closed the protocol against.
+> `.agent/run-queue.ps1` pointed its task template here until B5-0626 repointed it.
+>
+> Sections 1 to 6 remain broadly accurate and are kept for orientation only.
 
 # Autonomous development handoff — read this first
 
