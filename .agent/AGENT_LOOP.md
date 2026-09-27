@@ -6,7 +6,8 @@ provenance:
   author_llm: {name: "opencode (space-bunny-free)", version: "space-bunny-free"}
   assessor_llm:
     - {name: "opencode (big-pickle-free)", version: "big-pickle-free", passes: 1, last_pass: "2026-09-27", note: "edit: qualified the bare .agent/00_BOOT.md in the status line, the string an unattended agent copied verbatim and resolved against the repository root (B5-0693)"}
-  last_modified_by_llm: {name: "opencode (big-pickle-free)", version: "big-pickle-free"}
+    - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free", passes: 1, last_pass: "2026-09-27", note: "merge: port 8 governance fixes from prompt review, keep status/why/no-commit"}
+  last_modified_by_llm: {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
   created_date: "2026-09-27"
   last_modified_date: "2026-09-27"
 ---
@@ -20,11 +21,19 @@ wrong.
 
 ```
 BOOT (once per session)
-  - Read AGENTS.md, .agent/00_BOOT.md (all 11 steps; the pattern skim is step 11),
-    .agent/TASK_LEDGER.md, docs/DECISIONS.md.
+  - Read AGENTS.md, guidelines/Guidelines.md, .agent/00_BOOT.md (all 11 steps;
+    the pattern skim is step 11), .agent/TASK_LEDGER.md, docs/DECISIONS.md.
+    Also list .agent/CLAIMS/*.json + .agent/HEARTBEATS/*.json; run
+    `javac -version` (expect JDK 8) and record it in your heartbeat.
   - Get the OPEN census ONLY from the shared tool, never by reading or grepping
     the ledger:
       powershell -NoProfile -ExecutionPolicy Bypass -File .agent/run-queue.ps1 -DryRun
+      # bash equivalent: bash .agent/run-queue.sh -DryRun
+    Manual fallback only if the tool is unavailable:
+      rg -o '^\|+(?:\s*)(B5-\d+)(?:\s*\|)\s*\|/{0,1}OPEN' .agent/TASK_LEDGER.md
+    Claims-first (B5-0657): the shared tools suppress rows under a live claim
+    as suppressed-live-claim / NOT A DEFECT REPORT. Re-census a suppressed row
+    after its claim releases before reporting any defect on it.
   - Adopt ONE agent_id spelling and keep it for the life of the repo. A new
     spelling is a NEW agent, not a variant: two sessions sharing one spelling
     cannot see each other's in-flight intent.
@@ -42,41 +51,61 @@ IDENTITY AND FILENAMES  (the rule that breaks things)
     -File .agent/tools/validate-heartbeats.ps1        (exit 0 = every file conforms)
 
 LOOP until STOP
-  1. Pick the next OPEN row with no live claim. If none, seed ONE genuinely useful
-     task (problem statement + acceptance criteria) as an OPEN row; self-seeding
-     is permitted only as an OPEN row taken through this same normal cycle.
-  2. Claim it: create .agent/CLAIMS/<task-id>.json. If the file exists it is taken
-     -- take another. Absence of the file is NECESSARY BUT NOT SUFFICIENT: re-read
-     the row and confirm it still reads OPEN. A claim on a DONE/VOID/SUPERSEDED/
-     BLOCKED row is an orphan; release it, do not work it.
+  1. Pick the highest-priority OPEN row with no live claim. If none, seed ONE
+     genuinely useful task (problem statement + acceptance criteria) as an OPEN
+     row; self-seeding is permitted only as an OPEN row taken through this same
+     normal cycle.
+  2. Claim it atomically per .agent/CLAIMS/README.md: create
+     .agent/CLAIMS/<task-id>.json. If the file exists it is taken -- abort and
+     take another. started_utc MUST be the actual current UTC at claim time,
+     never a placeholder, default, or midnight. Absence of the file is
+     NECESSARY BUT NOT SUFFICIENT: re-read the row and confirm it still reads
+     OPEN. A claim on a DONE/VOID/SUPERSEDED/BLOCKED row is an orphan; release
+     it, do not work it.
   3. Heartbeat on the binding schema (.agent/HEARTBEATS/README.md): schema_version,
-     agent_id, utc, state (active | idle | busy), live_claims (always present; []
-     asserts you hold nothing). notes is prose and is never parsed.
-  4. Work only inside the claimed scope. Log the change in docs/DECISIONS.md.
+     agent_id, utc (ISO-8601 Z, only canonical timestamp), state (active | idle
+     | busy), live_claims (always present; [] asserts you hold nothing), javac,
+     current_task. notes is prose and is never parsed.
+  4. Work only inside the claimed scope. Small diffs. Java 6 only.
+     b5ccg/src-java8-archive/ is frozen. No external libs without human approval.
+     Log the change in docs/DECISIONS.md.
   5. Every row you write takes a single leading pipe and exactly 7 pipes, with no
      "|" character inside any note cell. After writing, run the duplicate-id census:
        (Select-String -Path .agent/TASK_LEDGER.md -Pattern '^\|+\s*(B5-[0-9]{4}[a-z]?)\s*\|' -AllMatches).Matches |
          ForEach-Object { $_.Groups[1].Value } | Group-Object | Where-Object Count -gt 1
-     Empty output is the pass condition. On a collision, leave the other writer's
+     Empty output is the pass condition. Prove pipes with the shipped detector:
+       powershell -NoProfile -ExecutionPolicy Bypass -File .agent/tools/ledger-query.ps1 -Status "*"
+     Your row must read pipeCount 7 / doubleLead no (your own just-written row
+     under your own claim is judged directly; any other suppressed-live-claim
+     reading is not a defect report). On a collision, leave the other writer's
      row byte-identical and renumber YOURS to a NON-ADJACENT id -- never into the
      slot they just vacated, which deadlocks. A duplicate id silently drops a task,
      because status is keyed by id and the last row wins.
-  6. Run compile.bat/sh (JDK 8, -source 6). If red, log the failure and STOP that
-     item only.
-  7. Mark DONE, then write .agent/REPORTS/<date>-<sanitised-agent-id>-<task-id>.md
-     carrying one "Reusable lesson" line, filed as a NEW file under
-     .agent/PATTERNS/<agent-id>/ (supersede-never-rewrite: a corrected pattern is a
-     new file linking the old one).
-  8. Re-boot (re-read ledger + newest patterns across ALL namespaces) before the
-     next iteration.
+  6. Run compile.bat/sh (JDK 8, -source 6). On red, mark the task BLOCKED with the
+     log excerpt, release your claim, and STOP that item only.
+  7. Finish in order: update the .agent/TASK_LEDGER.md row, append the
+     docs/DECISIONS.md entry, write
+     .agent/REPORTS/<date>-<sanitised-agent-id>-<task-id>.md (with author_llm)
+     carrying one "Reusable lesson" line, file the lesson as a NEW file under
+     .agent/PATTERNS/<agent-id>/ with author_llm frontmatter
+     (supersede-never-rewrite: a corrected pattern is a new file linking the
+     old one), delete your claim file, refresh .agent/HEARTBEATS/<agent-id>.json.
+  8. Stale claims: 30-min TTL on THREE SIGNALS (newest of claim started_utc/mtime,
+     owner's heartbeat mtime, report mtime). Reap ONLY when all signals are STALE
+     and only after recording the evidence in the reap note in TASK_LEDGER.md.
+     UNKNOWN (absent/unparseable signal) is never STALE. Never touch live claims
+     or another agent's heartbeat.
+  9. Re-boot (re-read ledger + claims + heartbeats + newest patterns across ALL
+     namespaces) before the next iteration.
 
-STOP when: no OPEN row remains AND you choose not to seed; or a compile is red; or
-you would reuse a task id already in the ledger; or a duplicate id appears that is
-not yours to renumber. Then report the run: iterations, tasks closed, and every file
-you left uncommitted. **This loop does not commit** — step 7 has no commit step and
-the runner's task template has none either, so there is no commit hash to report.
-Committing and pushing stay human decisions; a run that ends with a dirty tree is a
-correct run, not a failed one.
+STOP when: no OPEN row remains AND you choose not to seed; or a duplicate id
+appears that is not yours to renumber (leave their row byte-identical, stop that
+item). A red compile or an orphan claim stops THAT ITEM only -- continue the loop.
+Then report the run: iterations, tasks closed, and every file you left uncommitted.
+**This loop does not commit** — step 7 has no commit step and the runner's task
+template has none either, so there is no commit hash to report. Committing and
+pushing stay human decisions; a run that ends with a dirty tree is a correct run,
+not a failed one.
 ```
 
 ## Why each rule is here
@@ -98,6 +127,13 @@ procedure can be argued with rather than merely obeyed.
 | `live_claims` always present | B5-0609 — a reader matched task ids in a heartbeat's prose and reported 4 claims held when the array was `[]` |
 | pattern skim is step 11 | B5-0614 inserted the census step and renumbered 5–11 to 6–11 |
 | STOP on "no OPEN row", not "empty ledger" | the ledger accumulates forever; hundreds of closed rows is not an empty ledger |
+| boot lists claims+heartbeats, javac check | 00_BOOT steps 2–3 — a ledger-only boot misses live intent and toolchain drift |
+| claims-first suppression | B5-0657 — rows under live claim read transient pipe counts; judging them then files false defects |
+| started_utc is real current UTC | B5-0653 — placeholder/midnight timestamps made the runner refuse the task |
+| ledger-query 7/no proof | B5-0621 — eyeball pipe counts missed the double-lead class twice |
+| red means BLOCKED + release, item-only stop | 00_BOOT step 8 — stopping the whole run on one red item stalls the fleet |
+| finish order + delete claim + heartbeat | 00_BOOT step 9 — reports without claim release leave live-claim ghosts |
+| three-signal reap, UNKNOWN never STALE | B5-0597/B5-0609/B5-0660 — single-signal reaps destroyed live work |
 
 ## The three ways this loop has lied to itself
 
