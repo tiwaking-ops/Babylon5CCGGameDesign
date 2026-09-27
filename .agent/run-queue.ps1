@@ -249,7 +249,19 @@ for ($i = 1; $i -le $MaxIterations; $i++) {
 
   $argList = @()
   if ($AgentArgs -ne '') { $argList += $AgentArgs }
-  $argList += $prompt
+  # Native-argument safety (B5-0628). Windows PowerShell 5.1 does NOT escape
+  # embedded double quotes when handing an argument to a native executable: the
+  # quotes act as argument delimiters, so a prompt containing them is split into
+  # several argv entries and a subcommand-style CLI reads a trailing fragment as
+  # a command name. Reproduced with `hermes -z` on this very prompt: a task
+  # template containing the phrase "Reusable lesson" exited 2 with
+  # "is not a `hermes` command", while the identical prompt with its double
+  # quotes removed ran to completion and exited 0. Newlines alone were tested
+  # separately and are SAFE, so line breaks are preserved and only the quotes
+  # are neutralised - this is the minimal fix the evidence supports, not a
+  # blanket rewrite of the prompt. Single quotes read the same to the model.
+  $safePrompt = $prompt -replace '"', "'"
+  $argList += $safePrompt
   & $AgentCli @argList
   $exitCode = $LASTEXITCODE
   Write-Output "[$i] Agent exit code: $exitCode."
