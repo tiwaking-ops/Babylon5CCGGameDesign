@@ -91,6 +91,18 @@ function Get-LedgerRows {
   if ($noStatus.Count -gt 0) {
     Write-Warning ("Get-LedgerRows: " + $noStatus.Count + " row(s) parsed with no recognisable status: " + (($noStatus | ForEach-Object { $_.Id }) -join ', '))
   }
+  # Distinct-ID assertion (B5-0622). The permissive check above compares two counts
+  # of ROWS, so two well-formed rows sharing one task ID sail straight through it.
+  # That class is not cosmetic: downstream, $statusOf[$r.Id] = $r.Status means the
+  # second row silently overwrites the first, and one task stops existing as far as
+  # the gate and lane tables are concerned - it can never be offered, and its
+  # status is never read. Name the offenders so the collision is visible at census
+  # time. This MUST NOT change exit behaviour for a healthy ledger.
+  $dupIds = @($rows | Group-Object Id | Where-Object { $_.Count -gt 1 })
+  if ($dupIds.Count -gt 0) {
+    $dupText = (($dupIds | ForEach-Object { $_.Name + ' x' + $_.Count }) -join ', ')
+    Write-Warning ("DUPLICATE TASK ID: " + $dupText + " -- a duplicate ID silently drops a task from the queue, because status is keyed by ID and the last row wins. Exactly one writer should renumber, and MUST diverge to a NON-ADJACENT id: renumbering into the slot the other writer just vacated deadlocks, since they will usually move there too. Leave the other row byte-identical. See 00_BOOT.md step 9 and B5-0622.")
+  }
   return $rows
 }
 
