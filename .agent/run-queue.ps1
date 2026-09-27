@@ -106,6 +106,23 @@ function Get-LedgerRows {
   return $rows
 }
 
+function Get-TaskNumber {
+  # Numeric sort/lane key for a task ID. MUST tolerate the letter-suffixed id
+  # class (B5-0202c, B5-0329a, B5-0330a, B5-0331a): Get-LedgerRows accepts that
+  # shape, so every numeric use of the id has to accept it too. A bare
+  # [int]($Id -replace 'B5-','') throws on '0202c' and took the whole runner
+  # down on any OPEN suffixed row (B5-0624). Extract the leading digit run
+  # instead, so 'B5-0202c' -> 202 and sorts with its numeric siblings.
+  param([string]$Id)
+  # Anchor on the number AFTER the B5- prefix. An unanchored '(\d+)' matches the
+  # '5' inside 'B5' first, so EVERY id would score 5 and the sort would silently
+  # degrade to file order -- a worse failure than the crash it replaced, because
+  # nothing goes red.
+  $m = [regex]::Match([string]$Id, '^B5-(\d+)')
+  if ($m.Success) { return [int]$m.Groups[1].Value }
+  return 0
+}
+
 function Test-LiveClaim {
   param([string]$TaskId)
   $claimPath = Join-Path $ClaimsDir ($TaskId + ".json")
@@ -159,7 +176,7 @@ function Get-ClaimableOpenTasks {
       $free += $r
     }
   }
-  $sorted = @($free | Sort-Object { [int]($_.Id -replace 'B5-', '') })
+  $sorted = @($free | Sort-Object { Get-TaskNumber $_.Id })
   # Serialize the shared-code lanes (one writer per lane, lowest number first):
   # engine/model 0367-0376, ai 0377-0378, ui 0379-0381. Only the lane head is
   # offered; docs/harness/report/proposal rows are lane-free. A lane with a
@@ -185,7 +202,7 @@ function Get-ClaimableOpenTasks {
   $usedLanes = @()
   $picked = @()
   foreach ($r in $sorted) {
-    $n = [int]($r.Id -replace 'B5-', '')
+    $n = Get-TaskNumber $r.Id
     $lane = ''
     if ($n -ge 367 -and $n -le 376) { $lane = 'eng' }
     elseif ($n -ge 377 -and $n -le 378) { $lane = 'ai' }
