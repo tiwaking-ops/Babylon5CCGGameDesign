@@ -4,8 +4,11 @@ import b5ccg.ai.AIPlayer;
 import b5ccg.model.*;
 import b5ccg.model.enums.*;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.lang.reflect.Method;
 
 /**
@@ -1667,6 +1670,89 @@ public class HeadlessConformanceTest {
                 logContains(rtSt, "2 damage; 4 damage returned."));
         check("MINES", "round-trip: fleet survives reactive mines",
                 rtFleet.getDamageTokens() == 2);
+    }
+
+    /**
+     * CVD (B5-0606): rulebook II:193-195 deck-construction quotas asserted
+     * against the shipped starter-deck file. Rulebook II ("Preparing to Play",
+     * "Customizing Your Game Deck"): each deck must have a minimum of 45
+     * cards, may have a maximum of 3 of any card, and must contain one
+     * Starting Ambassador. Data-only census through DeckLoader, no game-logic
+     * edits.
+     */
+    private static void testDeckConstruction() {
+        System.out.println("CVD (B5-0606): rulebook II:193-195 deck-construction quotas on shipped starter decks");
+
+        List<Map<String, String>> entries = null;
+        List<Card> premiere = null;
+        try {
+            entries = DeckLoader.loadFlatObjects(StarterDeckBuilder.DECK_RESOURCE);
+            premiere = DeckLoader.loadFromResource("/cards/premiere.json");
+        } catch (java.io.IOException e) {
+            check("CVD", "starter-deck and premiere resources load", false);
+            return;
+        }
+
+        // Starting Ambassador id census from the premiere card data.
+        Set<String> ambassadorIds = new HashSet<String>();
+        for (int i = 0; i < premiere.size(); i++) {
+            Card c = premiere.get(i);
+            if (c instanceof CharacterCard && ((CharacterCard) c).isAmbassador()) {
+                ambassadorIds.add(c.getId());
+            }
+        }
+        check("CVD", "Starting Ambassador census reads from premiere data",
+                ambassadorIds.size() >= 1);
+
+        // Group deck rows by deck name, summing per-id counts (Java 6 forms).
+        Map<String, Map<String, Integer>> decks =
+                new HashMap<String, Map<String, Integer>>();
+        for (int i = 0; i < entries.size(); i++) {
+            Map<String, String> row = entries.get(i);
+            String deck = row.get("deck");
+            String id = row.get("id");
+            int count = 1;
+            String countStr = row.get("count");
+            if (countStr != null) {
+                try { count = Integer.parseInt(countStr.trim()); }
+                catch (NumberFormatException nfe) { count = 1; }
+            }
+            Map<String, Integer> perDeck = decks.get(deck);
+            if (perDeck == null) {
+                perDeck = new HashMap<String, Integer>();
+                decks.put(deck, perDeck);
+            }
+            Integer prev = perDeck.get(id);
+            perDeck.put(id, prev == null ? new Integer(count)
+                    : new Integer(prev.intValue() + count));
+        }
+
+        // Rulebook II:193-195 for every race deck.
+        String[] required = new String[] { "HUMAN", "CENTAURI", "MINBARI", "NARN" };
+        for (int d = 0; d < required.length; d++) {
+            String deck = required[d];
+            Map<String, Integer> perDeck = decks.get(deck);
+            if (perDeck == null) {
+                check("CVD", deck + " deck present in starter-deck file", false);
+                continue;
+            }
+            int total = 0;
+            int maxCopies = 0;
+            int ambassadorEntries = 0;
+            for (Map.Entry<String, Integer> e : perDeck.entrySet()) {
+                int n = e.getValue().intValue();
+                total += n;
+                if (n > maxCopies) maxCopies = n;
+                if (ambassadorIds.contains(e.getKey())) ambassadorEntries++;
+            }
+            check("CVD", deck + " deck holds at least 45 cards (II:193)", total >= 45);
+            check("CVD", deck + " deck never exceeds 3 copies of a card (II:194)",
+                    maxCopies <= 3);
+            check("CVD", deck + " deck contains exactly one Starting Ambassador (II:195)",
+                    ambassadorEntries == 1);
+        }
+        check("CVD", "deck-construction quotas hold for all four rulebook races",
+                decks.size() >= 4);
     }
 
     private static void testBonusFloor() {
@@ -4162,7 +4248,8 @@ public class HeadlessConformanceTest {
             testShunnedWiring(); // B5-0506: opponent-character enhancement (shunned) wiring
             testBonusFloor(); // B5-0486: minimum-1 bonus floor (Censure-class printed floors)
             testMinesReactive(); // B5-0539: reactive mines damage-on-attack (B5-0528 hook)
-            System.out.println("All B5-0203 deviations D1-D14 resolved; D15 partial by effect-coverage; D6/D7 now have dedicated named assertions (B5-0436). B5-0437 station hooks covered (STH). B5-0453 AI station-awareness covered. B5-0469 enhancement seam asserted (ESM). B5-0528 mines reactive covered (MINES).");
+            testDeckConstruction(); // B5-0606: rulebook II:193-195 deck-construction quotas
+            System.out.println("All B5-0203 deviations D1-D14 resolved; D15 partial by effect-coverage; D6/D7 now have dedicated named assertions (B5-0436). B5-0437 station hooks covered (STH). B5-0453 AI station-awareness covered. B5-0469 enhancement seam asserted (ESM). B5-0528 mines reactive covered (MINES). B5-0606 deck construction covered (CVD).");
 
             System.out.println();
             System.out.println(failed == 0

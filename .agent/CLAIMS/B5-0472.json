@@ -1,9 +1,0 @@
-{
-    "task": "B5-0472",
-    "agent_id": "Buffy (glm-5.3-flash)",
-    "version": "glm-5.3-flash",
-    "started_utc": "2026-09-26T11:30:00Z",
-    "ttl_min": 30,
-    "scope": ["git only, no src/ or resources/ edits"],
-    "javac": "1.8.0_292"
-}
