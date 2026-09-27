@@ -71,8 +71,11 @@ LOOP until STOP
 
 STOP when: no OPEN row remains AND you choose not to seed; or a compile is red; or
 you would reuse a task id already in the ledger; or a duplicate id appears that is
-not yours to renumber. Then report the run: iterations, tasks closed, commit hash,
-and every file deliberately left uncommitted.
+not yours to renumber. Then report the run: iterations, tasks closed, and every file
+you left uncommitted. **This loop does not commit** — step 7 has no commit step and
+the runner's task template has none either, so there is no commit hash to report.
+Committing and pushing stay human decisions; a run that ends with a dirty tree is a
+correct run, not a failed one.
 ```
 
 ## Why each rule is here
