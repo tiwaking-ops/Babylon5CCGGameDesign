@@ -24,6 +24,16 @@
   dated claims (clock skew - seen before, e.g. B5-0317) are treated as live.
   Stale claims are left for the agent to reap per protocol, not reaped here.
 
+  Implausible started_utc refusal (B5-0653): a started_utc that parses but
+  cannot be a just-now claim - exactly midnight UTC or at/before the epoch -
+  makes Test-LiveClaim DECLINE TO OFFER the task with a loud warning naming
+  the task id, owner and value. Never auto-repaired (editing another agent's
+  claim is forbidden); never silently passed (a silent pass is how the
+  original defect hid). Ambiguity resolves toward NOT OFFERING: a wrongly-
+  stale live claim costs a collision and destroyed work, a wrongly-implausible
+  claim costs one blocked task. Accepted cost: a genuine claim written in the
+  exact second of midnight, ~1 in 86400, is declined until re-claimed.
+
   Claims-first census rule (B5-0657, human-approved 2026-09-27): the three
   structural warnings Get-LedgerRows emits are DEFECT REPORTS, so they are
   suppressed on any row whose claim is not provably stale and re-censused after
@@ -89,6 +99,11 @@ function Get-CensusSuppression {
   # returned -1 and -1 compares as younger than any TTL, manufacturing LIVE out of
   # an absent signal. Fail-safe direction is silence, because the protocol's remedy
   # for a suppressed row is re-census after release, not a report.
+  # B5-0660: the signal set is now the full THREE-signal triad (claim,
+  # owner heartbeat, and the newest report matching the task id), matching
+  # Test-LiveClaim so the offer decision and the census suppression read the
+  # same evidence. A fresh close-out report on a task whose claim and
+  # heartbeat both lag is liveness evidence.
   $sup = @{}
   if (-not (Test-Path -LiteralPath $ClaimsDir)) { return $sup }
   $now = (Get-Date).ToUniversalTime()
@@ -120,6 +135,13 @@ function Get-CensusSuppression {
     if ($owner) {
       $k = Get-NormName $owner
       if ($hb.ContainsKey($k) -and $hb[$k] -gt $newest) { $newest = $hb[$k] }
+    }
+    $reportsDir = Join-Path (Split-Path -Parent $AgentDir) 'REPORTS'
+    if (Test-Path -LiteralPath $reportsDir) {
+      $pattern = '*' + $id + '*.md'
+      Get-ChildItem -LiteralPath $reportsDir -Filter $pattern -File -ErrorAction SilentlyContinue | ForEach-Object {
+        if ($_.LastWriteTimeUtc -gt $newest) { $newest = $_.LastWriteTimeUtc }
+      }
     }
     if (($now - $newest).TotalMinutes -lt $ttl) { $sup[$id] = $owner }
   }
@@ -264,17 +286,23 @@ function Get-HeartbeatIndex {
 }
 
 function Test-LiveClaim {
-  # Liveness = the NEWEST of (a) the claim's own started_utc, falling back to the
-  # claim file's mtime when that will not parse, and (b) the OWNER's heartbeat mtime
-  # -- matched through Get-NormName, so 'solar-pro4:free' finds
-  # 'solar-pro4<U+2028>free.json'. Whichever is youngest decides. This mirrors
-  # .agent/tools/ledger-query.ps1 exactly (lines 79-129) and implements the B5-0597
-  # rule, which the previous version of this function ignored: it read started_utc
-  # ALONE, so a real agent mid-task could be declared free the moment it wrote a
-  # placeholder timestamp. Concretely, a live hermes run on B5-0631 wrote
-  # started_utc 2026-09-27T00:00:00Z, which this function called 287 minutes stale
-  # while ledger-query correctly called the same claim LIVE off a 7-minute heartbeat.
-  # Two shipped tools, two truths about one claim; that is the bug this closes.
+  # Liveness = the NEWEST of the THREE signals (B5-0660, completing the
+  # B5-0597 three-signal rule): (a) the claim's own started_utc (falling back
+  # to the claim file's mtime when that will not parse), (b) the OWNER's
+  # heartbeat mtime -- matched through Get-NormName so 'solar-pro4:free'
+  # finds 'solar-pro4<U+2028>free.json' -- and (c) the NEWEST report mtime
+  # matching the task id in .agent/REPORTS/. Whichever is youngest decides.
+  # History: the original read started_utc ALONE (B5-0649 closed that); then
+  # claim+heartbeat (two signals); a report-only task's close-out lands in
+  # REPORTS and keeps the claim honest even when both other signals lag, so
+  # the third signal completes the triad the HEARTBEATS README defines.
+  # B5-0660 UNKNOWN semantics for the binary offer decision:
+  #   - owner heartbeat ABSENT -> the claim-age fallback stays (documented
+  #     B5-0649 divergence) BUT the verdict is recorded as UNKNOWN-with-
+  #     reason and reported in the warning line; a heartbeat-less claim is
+  #     still offered on its claim age so it cannot block forever.
+  #   - claim file UNPARSEABLE -> NOT offerable (UNKNOWN is never LIVE).
+  #   - implausible started_utc -> refused per B5-0653 (below).
   param([string]$TaskId)
   $claimPath = Join-Path $ClaimsDir ($TaskId + '.json')
   if (-not (Test-Path -LiteralPath $claimPath)) { return $false }
@@ -312,36 +340,100 @@ function Test-LiveClaim {
     # is declined until the owner re-claims with a real timestamp.
     if ($null -ne $startedParsed) {
       $unixEpoch = [System.DateTime]::new(1970, 1, 1, 0, 0, 0, [System.DateTimeKind]::Utc)
-      if (($startedParsed.Hour -eq 0 -and $startedParsed.Minute -eq 0 -and $startedParsed.Second -eq 0) -or
-          ($startedParsed -le $unixEpoch)) {
-        Write-Warning (("[B5-0653] task " + $TaskId + " NOT OFFERED: claim started_utc '"
-          + [string]$j.started_utc + "' (owner " + [string]$j.agent_id
-          + ") parses but is IMPLAUSIBLE as a just-now claim (midnight/epoch placeholder)."
-          + " Re-claim with the actual current UTC time."))
-        return $false
+      $isMidnight = ($startedParsed.Hour -eq 0 -and $startedParsed.Minute -eq 0 -and $startedParsed.Second -eq 0)
+      if ($isMidnight -or ($startedParsed -le $unixEpoch)) {
+        $why = "[B5-0653] task " + $TaskId + " NOT OFFERED: claim started_utc " +
+          "[" + [string]$j.started_utc + "] owner [" + [string]$j.agent_id + "] " +
+          "parses but is IMPLAUSIBLE as a just-now claim (midnight/epoch placeholder). " +
+          "Re-claim with the actual current UTC time."
+        Write-Warning $why
+        # Treated as LIVE (unstealable), not as free: returning $false here
+        # would hand the task out. The candidate-list filter in
+        # Get-ClaimableOpenTasks (Get-ImplausibleClaimTaskIds) is the primary
+        # refusal; this path is the backstop for any other caller.
+        return $true
       }
     }
     $newest = $started
+
+    # Signal (c): the NEWEST report matching this task id. A close-out report
+    # is liveness evidence exactly like a heartbeat: report-only tasks (no
+    # compile, quick execution) finish in a burst and their claim+heartbeat
+    # can both lag while the work is genuinely done or in flight.
+    $reportsDir = Join-Path (Split-Path -Parent $AgentDir) 'REPORTS'
+    Write-Verbose ("[B5-0660] scanning reports at " + $reportsDir + " for " + $TaskId)
+    $reportNewest = $null
+    if (Test-Path -LiteralPath $reportsDir) {
+      $pattern = '*' + $TaskId + '*.md'
+      Get-ChildItem -LiteralPath $reportsDir -Filter $pattern -File -ErrorAction SilentlyContinue |
+        ForEach-Object { if ($null -eq $reportNewest -or $_.LastWriteTimeUtc -gt $reportNewest) { $reportNewest = $_.LastWriteTimeUtc } }
+    }
+    if ($null -ne $reportNewest -and $reportNewest -gt $newest) { $newest = $reportNewest }
 
     $owner = [string]$j.agent_id
     if ($owner) {
       $hb = Get-HeartbeatIndex
       $key = Get-NormName $owner
-      if ($hb.ContainsKey($key) -and $hb[$key] -gt $newest) { $newest = $hb[$key] }
+      if ($hb.ContainsKey($key)) {
+        if ($hb[$key] -gt $newest) { $newest = $hb[$key] }
+      } else {
+        # B5-0660: heartbeat ABSENT is UNKNOWN-with-reason, no longer a silent
+        # fall-back. The claim-age fallback STAYS for the offer decision (a
+        # heartbeat-less claim must not block its task forever), but the
+        # uncertainty is REPORTED, not hidden.
+        Write-Warning ("[B5-0660] task " + $TaskId + ": owner heartbeat UNKNOWN (no heartbeat file for [" + $owner + "]); deciding on claim/report age.")
+      }
     }
-    # NOTE a deliberate, documented divergence from ledger-query: that tool reports
-    # UNKNOWN when no heartbeat matches the owner, because it is a reporting tool and
-    # UNKNOWN is a verdict it can print. Here the question is binary -- offer this
-    # task, or not -- so an owner who never wrote a heartbeat at all falls back to
-    # the claim's own age. Returning "not live" in that case would let one
-    # heartbeat-less claim block its task forever, which is a worse failure than the
-    # one being fixed. When NOTHING can be determined (unreadable claim) we still
-    # refuse to hand the task out, per 00_BOOT step 10.
+    # NOTE the B5-0649 divergence note for the no-heartbeat case is retained:
+    # ledger-query prints UNKNOWN; here the offer decision needs a boolean, so
+    # the fallback is claim/report age -- but the UNKNOWN is now REPORTED.
     if ($started -gt $now) { return $true }  # future-dated (clock skew): treat as live
     return (($now - $newest).TotalMinutes -lt $ttl)
   } catch {
-    return $true  # unreadable claim file: do not steal it
+    # B5-0660: an UNPARSEABLE claim is UNKNOWN, and UNKNOWN is never LIVE.
+    # Returning $true here kept a corrupted claim unstealable, which was safe
+    # against collisions but silently ZEROED the liveness signal; a corrupted
+    # claim now blocks the task loudly instead, per 00_BOOT step 10 as amended.
+    Write-Warning ("[B5-0660] task " + $TaskId + ": claim file UNPARSEABLE -- UNKNOWN is never LIVE; task NOT offered until the claim is fixed or reaped by its owner.")
+    return $false
   }
+}
+
+# B5-0653: scan claim files for a started_utc that parses but is IMPLAUSIBLE
+# as a just-now claim -- exactly midnight UTC (the placeholder default) or
+# at/before the Unix epoch. Returns the task ids whose claims carry one.
+# We never repair or rewrite the claim file (editing another agent's claim is
+# forbidden); the owner re-claims with a real timestamp and the task returns
+# to the queue on the next pass.
+function Get-ImplausibleClaimTaskIds {
+  $ids = @()
+  if (-not (Test-Path -LiteralPath $ClaimsDir)) { return $ids }
+  $unixEpoch = [System.DateTime]::new(1970, 1, 1, 0, 0, 0, [System.DateTimeKind]::Utc)
+  Get-ChildItem -LiteralPath $ClaimsDir -Filter 'B5-*.json' -ErrorAction SilentlyContinue | ForEach-Object {
+    try {
+      $c = Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json
+      $s = $null
+      if ($c.started_utc) {
+        try {
+          $s = [System.DateTime]::Parse(
+            [string]$c.started_utc,
+            [System.Globalization.CultureInfo]::InvariantCulture,
+            [System.Globalization.DateTimeStyles]::RoundtripKind).ToUniversalTime()
+        } catch { $s = $null }
+      }
+      if ($null -ne $s) {
+        $isMidnight = ($s.Hour -eq 0 -and $s.Minute -eq 0 -and $s.Second -eq 0)
+        if ($isMidnight -or ($s -le $unixEpoch)) {
+          $ids += $_.BaseName
+          Write-Warning (("[B5-0653] task " + $_.BaseName + " NOT OFFERED: claim started_utc [" +
+            [string]$c.started_utc + "] owner [" + [string]$c.agent_id +
+            "] parses but is IMPLAUSIBLE as a just-now claim (midnight/epoch placeholder). " +
+            "Re-claim with the actual current UTC time."))
+        }
+      }
+    } catch { }   # unreadable claim: never steal it, never warn here
+  }
+  return $ids
 }
 
 function Get-ClaimableOpenTasks {
@@ -362,8 +454,18 @@ function Get-ClaimableOpenTasks {
   $statusOf = @{}
   foreach ($r in (Get-LedgerRows)) { $statusOf[$r.Id] = $r.Status }
   $rows = Get-LedgerRows | Where-Object { $_.Status -eq 'OPEN' }
+  # B5-0657 claims-first suppression: a row whose claim is not provably stale
+  # is mid-repair by a live agent -- never offered, never a defect report.
+  $sup = Get-CensusSuppression
+  # B5-0653: a claim whose started_utc is IMPLAUSIBLE (midnight/epoch
+  # placeholder) makes its task un-offerable. Excluded from the candidate
+  # list here so it cannot head-slot every iteration; Test-LiveClaim also
+  # refuses it as live so no other path hands it out. Both paths warn.
+  $implausible = Get-ImplausibleClaimTaskIds
   $free = @()
   foreach ($r in $rows) {
+    if ($implausible -contains $r.Id) { continue }
+    if ($sup.ContainsKey($r.Id)) { continue }
     if (Test-LiveClaim -TaskId $r.Id) { continue }
     $gated = $false
     if ($Prereqs.ContainsKey($r.Id)) {
@@ -421,12 +523,12 @@ IDENTITY AND FILENAMES rules and its close-out checklist for this one task:
 __TASK_ID__ only. (The claim file was already checked by the runner - re-verify
 .agent/CLAIMS/__TASK_ID__.json is absent before creating your own claim, and
 re-read the row to confirm it still reads OPEN.) Work ONLY inside the claimed
-scope, verify per the row's gate, then close out fully (TASK_LEDGER.md row,
+scope, verify per the row's gate, then close out fully (.agent/TASK_LEDGER.md row,
 docs/DECISIONS.md entry, .agent/REPORTS/<date>-<sanitised-agent-id>-__TASK_ID__.md
 with one "Reusable lesson" line filed as a NEW file under
 .agent/PATTERNS/<agent-id>/, delete your claim file, refresh your heartbeat on the
 binding schema in .agent/HEARTBEATS/README.md). Single task, then exit. If the
-gate is red from out-of-scope in-flight edits, mark BLOCKED per 00_BOOT step 8 and
+gate is red from out-of-scope in-flight edits, mark BLOCKED per .agent/00_BOOT.md step 8 and
 release - do not fix outside your scope. Use your name and version as agent_id.
 Do NOT read .agent/HANDOFF.md: it is superseded and its state section is stale.
 '@

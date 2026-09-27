@@ -417,6 +417,19 @@ public class GameController {
                 }
                 break;
 
+            // ── B5-0661: Unconditional Surrender (rulebook :815–:821) ─────────
+            case SURRENDER: // B5-0661
+                if (action.getTarget() != null
+                        && rules.canSurrender(p, action.getTarget(), state)) {
+                    rules.executeSurrender(p, action.getTarget(), state);
+                } else {
+                    state.log(p.getName() + " cannot surrender"
+                            + (action.getTarget() == null
+                                ? " — no valid target."
+                                : " — not at war, or target is invalid."));
+                }
+                break;
+
             // ── B5-0376: war conflict declaration ──────────────────────────────
             case DECLARE_WAR_CONFLICT: {
                 WarKind kind = null;

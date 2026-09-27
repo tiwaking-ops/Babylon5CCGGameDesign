@@ -9,5 +9,10 @@ public enum StatKey {
     INTRIGUE,
     PSI,
     LEADERSHIP,
-    MILITARY
+    MILITARY,
+    /** B5-0677 (rulebook :171/:1158, B5-0667 proposal §3.2): a Power add-on.
+     *  Power is a PLAYER-level derived quantity (getPower() = influence + the
+     *  sum of POWER-tagged bonuses), never a card stat; no pool card grants it
+     *  today, so the seam is exercised only through synthetic fixtures. */
+    POWER
 }

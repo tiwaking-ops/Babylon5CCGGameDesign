@@ -1,11 +1,12 @@
 ---
 document:
   title: "Autonomous agent loop — operating procedure"
-  status: "Operating procedure (not governance; 00_BOOT.md and AGENTS.md win on conflict)"
+  status: "Operating procedure (not governance; .agent/00_BOOT.md and AGENTS.md win on conflict)"
 provenance:
   author_llm: {name: "opencode (space-bunny-free)", version: "space-bunny-free"}
-  assessor_llm: []
-  last_modified_by_llm: {name: "opencode (space-bunny-free)", version: "space-bunny-free"}
+  assessor_llm:
+    - {name: "opencode (big-pickle-free)", version: "big-pickle-free", passes: 1, last_pass: "2026-09-27", note: "edit: qualified the bare .agent/00_BOOT.md in the status line, the string an unattended agent copied verbatim and resolved against the repository root (B5-0693)"}
+  last_modified_by_llm: {name: "opencode (big-pickle-free)", version: "big-pickle-free"}
   created_date: "2026-09-27"
   last_modified_date: "2026-09-27"
 ---
@@ -85,7 +86,7 @@ procedure can be argued with rather than merely obeyed.
 
 | Clause | Traces to |
 |---|---|
-| census only via `run-queue.ps1` | B5-0613 — a hand-rolled census missed 14 rows and the runner's own single-leading-pipe regex could not see them |
+| census only via `.agent/run-queue.ps1` | B5-0613 — a hand-rolled census missed 14 rows and the runner's own single-leading-pipe regex could not see them |
 | one spelling per agent, for life | B5-0337 — twin sessions under one id could not see each other's in-flight intent |
 | sanitise only `:` and `/` | Amendment A1.1 — `agent_id` == filename stem is unsatisfiable on Windows; `solar-pro4:free` is cited in 114 ledger rows and cannot be changed to suit a filename |
 | one id claimed by one file | A1.1 — two files asserting one identity make `live_claims` ambiguous however well-formed either is |

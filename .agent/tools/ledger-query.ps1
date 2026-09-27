@@ -4,7 +4,7 @@
 .DESCRIPTION
   Prints one line per row of .agent/TASK_LEDGER.md matching an optional status
   filter (default OPEN) as: ID | status | pipeCount | doubleLead | claimOwner |
-  claimAgeMin | hbAgeMin | verdict [reason] | defectReport
+  claimAgeMin | hbAgeMin | reportAgeMin | verdict [reason] | defectReport
 
   Hard rules (B5-0609 spec):
     * Parses ONLY structured row-start fields (^|B5-xxxx|status|). Task IDs that
@@ -13,10 +13,22 @@
     * The agent_id -> heartbeat filename join normalises punctuation on BOTH
       sides (colons, U+2028/U+2029, spaces, dashes, underscores stripped) so
       "solar-pro4:free" matches the heartbeat file "solar-pro4<U+2028>free.json".
-    * Liveness = NEWEST of claim started_utc (or claim file mtime when
-      unparseable) and the owner heartbeat file mtime, against the TTL
-      (default 30 min). An absent signal prints UNKNOWN with a visible reason
-      and is NEVER treated as fresh (a -1 age must not satisfy the test).
+    * THREE-SIGNAL LIVENESS (B5-0659, human-approved 2026-09-27), implementing the
+      rule already binding in .agent/HEARTBEATS/README.md section "Liveness: three
+      signals, never one":
+        live(T) <=> newest of ( claim started_utc, or claim file mtime when
+                             unparseable
+                           , owner heartbeat file mtime
+                           , report file mtime ) is within the TTL
+      Verdicts: LIVE = at least one signal found and within TTL; STALE = at least
+      one found and none within TTL; UNKNOWN = a required signal absent or
+      unparseable. A reaper may remove a claim only when NO signal is fresh.
+      The owner heartbeat is REQUIRED, so its absence is UNKNOWN with a reason and
+      is never read as freshness. The report signal is CONTRIBUTING-ONLY: a report
+      is written at close-out, so its ordinary absence before then must not
+      manufacture an UNKNOWN on every in-flight task, and a report that does exist
+      legitimately refreshes the task. An UNCLAIMED row is neither LIVE nor STALE
+      and carries no signal at all.
     * CLAIMS-FIRST (B5-0657, human-approved 2026-09-27): reads .agent/CLAIMS/
       before reporting and marks any row whose claim is not provably stale as
       `suppressed-live-claim` in the defectReport column, with a footer naming
@@ -43,6 +55,7 @@ $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $ledger = Join-Path $repoRoot ".agent/TASK_LEDGER.md"
 $claimsDir = Join-Path $repoRoot ".agent/CLAIMS"
 $hbDir = Join-Path $repoRoot ".agent/HEARTBEATS"
+$reportsDir = Join-Path $repoRoot ".agent/REPORTS"
 $now = [DateTime]::UtcNow
 
 if (-not (Test-Path -LiteralPath $ledger)) { Write-Error "ledger not found: $ledger"; exit 2 }
@@ -83,19 +96,38 @@ function Get-NormName([string]$name) {
 $claims = @{}
 if (Test-Path -LiteralPath $claimsDir) {
     Get-ChildItem -LiteralPath $claimsDir -Filter "B5-*.json" | ForEach-Object {
+        # Bind the file item ONCE. Inside a catch block `$_` is rebound to the
+        # ErrorRecord, so `$_ .BaseName` there is null and the hashtable index
+        # throws "the array index evaluated to null". The pre-B5-0659 code got away
+        # with it only because its catch body was empty.
+        $cf = $_
         try {
-            $c = Get-Content -Raw -LiteralPath $_.FullName | ConvertFrom-Json
+            $c = Get-Content -Raw -LiteralPath $cf.FullName | ConvertFrom-Json
             $started = $null
             if ($c.started_utc) {
                 try { $started = [DateTime]::Parse($c.started_utc).ToUniversalTime() } catch { $started = $null }
             }
-            if (-not $started) { $started = $_.LastWriteTimeUtc }
-            $claims[$_.BaseName] = [pscustomobject]@{
+            if (-not $started) { $started = $cf.LastWriteTimeUtc }
+            $claims[$cf.BaseName] = [pscustomobject]@{
                 Owner   = $c.agent_id
                 Started = $started
-                FileT   = $_.LastWriteTimeUtc
+                FileT   = $cf.LastWriteTimeUtc
+                Bad     = $false
             }
-        } catch { }  # corrupt claim file -> simply no claim info
+        } catch {
+            # An UNPARSEABLE claim is UNKNOWN, not UNCLAIMED (B5-0659). Dropping it
+            # from the index the way this used to made a corrupt claim file read as
+            # "no claim at all", which is the exact opposite of the truth: a claim
+            # EXISTS, this tool simply cannot read it. The file's own mtime is still
+            # a usable signal, because the filesystem maintains it without the
+            # writer's cooperation, so record it and let the verdict say UNKNOWN.
+            $claims[$cf.BaseName] = [pscustomobject]@{
+                Owner   = $null
+                Started = $null
+                FileT   = $cf.LastWriteTimeUtc
+                Bad     = $true
+            }
+        }
     }
 }
 
@@ -105,6 +137,24 @@ if (Test-Path -LiteralPath $hbDir) {
         $key = Get-NormName $_.BaseName
         if (-not $heartbeats.ContainsKey($key) -or $_.LastWriteTimeUtc -gt $heartbeats[$key]) {
             $heartbeats[$key] = $_.LastWriteTimeUtc
+        }
+    }
+}
+
+# Report-mtime index: task id -> newest report mtime (B5-0659, third signal).
+# Reports are named <date>-<agent-id>-<task-id>.md and may carry suffixes such as
+# -WITHDRAWN, so the match is a SUBSTRING test on the stem rather than a suffix
+# test. A task with no report yet contributes nothing, which is correct: the report
+# is written at close-out, so its absence mid-task is the normal case.
+$reports = @{}
+if (Test-Path -LiteralPath $reportsDir) {
+    Get-ChildItem -LiteralPath $reportsDir -Filter "*.md" -ErrorAction SilentlyContinue | ForEach-Object {
+        $stem = $_.BaseName
+        foreach ($m in [regex]::Matches($stem, 'B5-[0-9]{4}[a-z]?')) {
+            $rid = $m.Value
+            if (-not $reports.ContainsKey($rid) -or $_.LastWriteTimeUtc -gt $reports[$rid]) {
+                $reports[$rid] = $_.LastWriteTimeUtc
+            }
         }
     }
 }
@@ -133,11 +183,24 @@ function Get-CensusSuppression {
     # which is the B5-0609 defect class (a lookup matching nothing returned -1, and
     # -1 compares as younger than any TTL, manufacturing LIVE from an absent signal).
     #
-    # The predicate is deliberately IDENTICAL to Test-LiveClaim in .agent/run-queue.ps1,
-    # including the future-dated and unreadable-claim cases. Two tools disagreeing
-    # about which rows are reportable would recreate exactly the defect class this
-    # protocol exists to stop, and .agent/tools/census-crosscheck.ps1 is the shipped
-    # instrument for proving they agree.
+    # B5-0659: the three-signal rule from .agent/HEARTBEATS/README.md, so the report
+    # mtime participates too. The comment above already promised that an absent
+    # heartbeat is not staleness, but the code did the opposite -- the heartbeat was
+    # folded in only `if ($heartbeats.ContainsKey($k))`, so a claim whose owner has
+    # no heartbeat file fell through to claim age alone and could be reported
+    # reportable on the strength of the one signal that was never in dispute. Now a
+    # claim with no matching heartbeat is NOT provably stale and is suppressed, which
+    # is the fail-safe direction the protocol already states: an unreadable signal is
+    # not evidence of a defect, and the remedy for a suppressed row is re-census
+    # after release, not a report.
+    #
+    # The verdict predicate is deliberately IDENTICAL to Test-LiveClaim in
+    # .agent/run-queue.ps1. Two tools disagreeing about which rows are reportable
+    # would recreate exactly the defect class this protocol exists to stop, and
+    # .agent/tools/census-crosscheck.ps1 is the shipped instrument for proving they
+    # agree. NOTE: run-queue.ps1 is still TWO-signal and still falls back to claim
+    # age on a missing heartbeat, because .agent/CLAIMS/B5-0653.json holds a live
+    # claim on that function; reconciling it is seeded as B5-0660.
     $sup = @{}
     if (-not (Test-Path -LiteralPath $claimsDir)) { return $sup }
     foreach ($f in (Get-ChildItem -LiteralPath $claimsDir -Filter "B5-*.json")) {
@@ -158,11 +221,12 @@ function Get-CensusSuppression {
         }
         if (-not $started) { $started = $f.LastWriteTimeUtc }
         if ($started -gt $now) { $sup[$id] = $owner; continue }   # future-dated clock skew: not a defect
+        if (-not $owner) { $sup[$id] = "<unreadable agent_id>"; continue }  # cannot join to a heartbeat
+        $k = Get-NormName $owner
+        if (-not $heartbeats.ContainsKey($k)) { $sup[$id] = $owner; continue }  # required signal absent: not provably stale
         $newest = $started
-        if ($owner) {
-            $k = Get-NormName $owner
-            if ($heartbeats.ContainsKey($k) -and $heartbeats[$k] -gt $newest) { $newest = $heartbeats[$k] }
-        }
+        if ($heartbeats[$k] -gt $newest) { $newest = $heartbeats[$k] }
+        if ($reports.ContainsKey($id) -and $reports[$id] -gt $newest) { $newest = $reports[$id] }
         if (($now - $newest).TotalMinutes -lt $ttl) { $sup[$id] = $owner }
     }
     return $sup
@@ -176,24 +240,37 @@ foreach ($r in $rows) {
     $claimOrNull = $null
     if ($claims.ContainsKey($r.Id)) { $claimOrNull = $claims[$r.Id] }
 
-    $owner = "-"; $claimAge = "-"; $hbAge = "-"; $verdict = "-"; $reason = ""
+    $owner = "-"; $claimAge = "-"; $hbAge = "-"; $reportAge = "-"; $verdict = "-"; $reason = ""
     if ($claimOrNull) {
+        if ($claimOrNull.Bad) {
+            $claimAge = [math]::Round(($now - $claimOrNull.FileT).TotalMinutes, 1)
+            $verdict = "UNKNOWN"
+            $reason = "claim file present but unparseable; its mtime is still a usable signal, an unreadable signal is never LIVE"
+        } else {
         $owner = $claimOrNull.Owner
         if ($owner) {
             $claimAge = [math]::Round(($now - $claimOrNull.Started).TotalMinutes, 1)
             $normOwner = Get-NormName $owner
-            if ($heartbeats.ContainsKey($normOwner)) {
-                $hf = $heartbeats[$normOwner]
-                $hbAge = [math]::Round(($now - $hf).TotalMinutes, 1)
-                $newestMin = [math]::Min([double]$claimAge, [double]$hbAge)
-                $verdict = if ($newestMin -lt $TtlMinutes) { "LIVE" } else { "STALE" }
-            } else {
+            if (-not $heartbeats.ContainsKey($normOwner)) {
                 $verdict = "UNKNOWN"
                 $reason = "no heartbeat file matching owner '$owner' (normalised '$normOwner'); absent signal never treated as live"
+            } else {
+                $hf = $heartbeats[$normOwner]
+                $hbAge = [math]::Round(($now - $hf).TotalMinutes, 1)
+                # Newest of the signals that were FOUND. The heartbeat is required,
+                # so at this point it is present; the report is contributing-only, so
+                # its absence simply does not join the max (B5-0659).
+                $newestMin = [math]::Min([double]$claimAge, [double]$hbAge)
+                if ($reports.ContainsKey($r.Id)) {
+                    $reportAge = [math]::Round(($now - $reports[$r.Id]).TotalMinutes, 1)
+                    $newestMin = [math]::Min($newestMin, [double]$reportAge)
+                }
+                $verdict = if ($newestMin -lt $TtlMinutes) { "LIVE" } else { "STALE" }
             }
         } else {
             $verdict = "UNKNOWN"
             $reason = "claim file present but agent_id unreadable"
+        }
         }
     } else {
         $verdict = "UNCLAIMED"
@@ -213,9 +290,9 @@ foreach ($r in $rows) {
     $verdictCell = $verdict
     if ($reason) { $verdictCell = $verdict + " [" + $reason + "]" }
 
-    $out += ("{0} | {1} | {2} | {3} | {4} | {5} | {6} | {7} | {8}" -f `
+    $out += ("{0} | {1} | {2} | {3} | {4} | {5} | {6} | {7} | {8} | {9}" -f `
         $r.Id, $r.Status, $r.Pipes, $(if ($r.Double) { "yes" } else { "no" }),
-        $owner, $claimAge, $hbAge, $verdictCell, $defect)
+        $owner, $claimAge, $hbAge, $reportAge, $verdictCell, $defect)
 }
 
 if ($out.Count -eq 0) { Write-Output "No rows match status filter '$Status'."; exit 0 }

@@ -39,6 +39,10 @@ public class GameAction {
         // in applied-pool influence (bids cumulate; the highest total controls
         // at the mercenary phase).
         BID_ON_MERCENARY,
+        // B5-0661 (rulebook :815–:819): a player at war may surrender during
+        // the discard round; the opponent gains 3 influence and receives an
+        // asylum copy of the ambassador as a supporting character.
+        SURRENDER,
         PASS
     }
 
@@ -170,6 +174,14 @@ public class GameAction {
         GameAction a = new GameAction(Type.BID_ON_MERCENARY, merc, null);
         a.amount = amount;
         return a;
+    }
+
+    /** B5-0661 (rulebook :815–:819): unconditional surrender during the
+     *  discard round. The surrendering player declares a war opponent; that
+     *  opponent gains 3 influence and receives an asylum copy of the
+     *  surrendering player's ambassador as a supporting character. */
+    public static GameAction surrender(Player target) {
+        return new GameAction(Type.SURRENDER, null, target);
     }
 
     // ── Accessors ────────────────────────────────────────────────────────────

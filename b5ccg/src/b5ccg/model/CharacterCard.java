@@ -21,6 +21,10 @@ public class CharacterCard extends Card {
     // yet; recorded in DECISIONS.)
     private boolean assistantBonus = false;
 
+    /** B5-0661: set on an asylum copy of an ambassador (AsylumCharacterCard).
+     *  Asylum cards may not be elevated to the Inner Circle (rulebook :819). */
+    private boolean inAsylum = false;
+
     public CharacterCard(String id, String title, String subtype,
                          Rarity rarity, Faction faction, CardSet cardSet,
                          String imageKey, String text,
@@ -111,5 +115,21 @@ public class CharacterCard extends Card {
         int ps = effective(psi, StatKey.PSI);
         int lead = effective(leadership, StatKey.LEADERSHIP) + (assistantBonus ? 1 : 0);
         return Math.max(Math.max(dip, intr), Math.max(ps, lead));
+    }
+
+    /** B5-0661: asylum cards may not be elevated to the Inner Circle. */
+    public boolean isInAsylum() { return inAsylum; }
+    public void setInAsylum(boolean v) { inAsylum = v; }
+
+    /** B5-0661: creates an asylum duplicate of this character (same printed
+     *  stats, not an ambassador). The caller is responsible for setting the
+     *  owner and placing the copy in the target's supporting role. */
+    public CharacterCard createAsylumCopy(String newId) {
+        // B5-0661 repair: the asylum copy must carry the AsylumCharacterCard type
+        // identity (refused Inner Circle elevation via canPromote's instanceof
+        // guard), not merely the flag on a plain CharacterCard.
+        return new AsylumCharacterCard(newId, getTitle(), getSubtype(),
+                getRarity(), getFaction(), getCardSet(), getImageKey(), getText(),
+                getDiplomacy(), getIntrigue(), getPsi(), getLeadership(), this);
     }
 }

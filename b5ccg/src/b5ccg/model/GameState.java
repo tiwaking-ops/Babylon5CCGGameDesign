@@ -79,17 +79,221 @@ public class GameState {
     public void    markWarConflictInitiated(Player p)        { warConflictsInitiatedThisTurn.add(p); }
     public void    clearWarConflictInitiated(Player p)       { warConflictsInitiatedThisTurn.remove(p); }
 
-    // ── Tension matrix (B5-0376; proposal §2.1) ─────────────────────────────
+    // ── Surrender tracking (B5-0661; rulebook :815–:821) ────────────────────
+    private final Set<Player> surrenderedPlayers = new HashSet<Player>();
+    public boolean hasSurrendered(Player p)      { return surrenderedPlayers.contains(p); }
+    public void    markSurrendered(Player p)     { surrenderedPlayers.add(p); }
+    public int     countSurrendered()            { return surrenderedPlayers.size(); }
+
+    /** Returns the count of players who have neither forfeited nor surrendered. */
     private final TensionMatrix tensionMatrix = new TensionMatrix();
+    /** B5-0691: Civil War machine per race — created on first dual-race entry
+     *  attempt; absent for single-faction races, so the standard game never
+     *  allocates one. */
+    private final Map<Faction, CivilWarState> civilWars =
+            new LinkedHashMap<Faction, CivilWarState>();
     public TensionMatrix getTensionMatrix()               { return tensionMatrix; }
+
+    // ── B5-0691: Civil War machinery (rulebook :990–:1009; B5-0669 proposal
+    //    §5.2 option b, §5.3, §5.4). Inert in the standard single-faction
+    //    game: entry requires a dual race (two players of one faction), and
+    //    the race-level TensionMatrix above is byte-identical to its pre-0691
+    //    behaviour. ──
+
+    /** Same-race tension substrate (§5.2 option b): parallel matrix keyed on
+     *  player names — stable within a game — so same-race tension between two
+     *  factions of one race is expressible without touching the landed
+     *  race-level enum matrix (whose == identity discipline the B5-0358
+     *  header documents). Clamped 1..5 per :280/:972 (starts at 2, :972). */
+    private final Map<String, Map<String, Integer>> sameRaceTension =
+            new LinkedHashMap<String, Map<String, Integer>>();
+
+    private void sameRaceRow(Player source) {
+        Map<String, Integer> row = sameRaceTension.get(source.getName());
+        if (row == null) {
+            row = new LinkedHashMap<String, Integer>();
+            sameRaceTension.put(source.getName(), row);
+        }
+    }
+
+    /** Raise same-race tension source→target (same Faction players only),
+     *  clamped 1..5. No-op across different races or for self. */
+    public void raiseSameRaceTension(Player source, Player target, int delta) {
+        if (source == null || target == null || source == target
+                || source.getFaction() != target.getFaction()) return;
+        sameRaceRow(source);
+        Map<String, Integer> row = sameRaceTension.get(source.getName());
+        Integer cur = row.get(target.getName());
+        int v = (cur == null ? 2 : cur.intValue()) + delta;   // :972 start 2
+        row.put(target.getName(), Integer.valueOf(Math.max(1, Math.min(5, v))));
+    }
+
+    /** Current same-race tension source→target (start value 2 when unset, :972). */
+    public int getSameRaceTension(Player source, Player target) {
+        if (source == null || target == null || source == target
+                || source.getFaction() != target.getFaction()) return 0;
+        Map<String, Integer> row = sameRaceTension.get(source.getName());
+        Integer v = row == null ? null : row.get(target.getName());
+        return v == null ? 2 : v.intValue();
+    }
+
+    /** Rulebook :974 — Non-Aggression auto-state between same-race factions
+     *  while same-race tension <= 3 and the race is not in Civil War. */
+    public boolean isNonAggression(Player a, Player b) {
+        if (a == null || b == null || a.getFaction() != b.getFaction()) return false;
+        CivilWarState cws = civilWarOfRace(a.getFaction());
+        if (cws != null && cws.getPhase() == CivilWarState.Phase.CIVIL_WAR) return false;
+        return getSameRaceTension(a, b) <= 3;
+    }
+
+    /** The Civil War machine of one race, or null when the race has never
+     *  had one built (single-faction races never do). */
+    public CivilWarState civilWarOfRace(Faction race) { return civilWars.get(race); }
+
+    /** All races currently in Civil War (read-only view). */
+    public Set<Faction> civilWarRaces() { return Collections.unmodifiableSet(civilWars.keySet()); }
+
+    /** All players of one race (synthetic dual-race boards expressible). */
+    public List<Player> playersOfRace(Faction race) {
+        List<Player> out = new ArrayList<Player>();
+        for (Player p : players) {
+            if (p.getFaction() == race) out.add(p);
+        }
+        return out;
+    }
+
+    /**
+     * Rulebook :992 — attempt Civil War entry for `race`. Fires when two or
+     * more players share the race, the race is UNIFIED, and some faction of
+     * the race holds same-race tension 5 toward a rival faction of the same
+     * race at the end of a turn. On entry: unrest +1 for every faction of the
+     * race (:994) and the race-level tension snapshot per :1000.
+     */
+    public boolean enterCivilWarIfTriggered(Faction race, int round) {
+        List<Player> racePlayers = playersOfRace(race);
+        if (racePlayers.size() < 2) return false;
+        CivilWarState cws = civilWars.get(race);
+        if (cws == null) {
+            cws = new CivilWarState(race, racePlayers);
+            civilWars.put(race, cws);
+        }
+        if (cws.getPhase() != CivilWarState.Phase.UNIFIED) return false;
+        boolean atFive = false;
+        for (Player a : racePlayers) {
+            for (Player b : racePlayers) {
+                if (a != b && getSameRaceTension(a, b) >= 5) atFive = true;
+            }
+        }
+        if (!cws.enterCivilWar(round, atFive)) return false;
+        cws.raiseUnrestOfRace();
+        Map<Faction, Integer> snapshot = new LinkedHashMap<Faction, Integer>();
+        for (Faction f : Faction.values()) {
+            if (f != race) snapshot.put(f, Integer.valueOf(tensionMatrix.getTension(race, f)));
+        }
+        cws.snapshotSplitTensions(snapshot);
+        log(race + " enters Civil War (rulebook :992); unrest +1 for every faction of the race.");
+        return true;
+    }
+
+    /**
+     * Rulebook :992 second sentence — direct entry by war declaration or any
+     * other same-race war effect (the tension-5 end-of-turn path is
+     * {@link #enterCivilWarIfTriggered}). Same preconditions otherwise: dual
+     * race, currently UNIFIED. On entry: unrest +1 per faction (:994) and the
+     * :1000 race-level tension snapshot.
+     */
+    public boolean forceCivilWarEntry(Faction race, int round) {
+        List<Player> racePlayers = playersOfRace(race);
+        if (racePlayers.size() < 2) return false;
+        CivilWarState cws = civilWars.get(race);
+        if (cws == null) {
+            cws = new CivilWarState(race, racePlayers);
+            civilWars.put(race, cws);
+        }
+        if (!cws.enterByDeclaration(round)) return false;
+        cws.raiseUnrestOfRace();
+        Map<Faction, Integer> snapshot = new LinkedHashMap<Faction, Integer>();
+        for (Faction f : Faction.values()) {
+            if (f != race) snapshot.put(f, Integer.valueOf(tensionMatrix.getTension(race, f)));
+        }
+        cws.snapshotSplitTensions(snapshot);
+        log(race + " enters Civil War by declaration (rulebook :992); unrest +1 for every faction of the race.");
+        return true;
+    }
+
+    /**
+     * Rulebook :998 — exit by war end: unrest −1 for every faction and the
+     * split tensions merge as the ROUNDED-UP AVERAGE back into the race-level
+     * matrix per target race (:1000). Returns the merged map (empty when the
+     * race was not in Civil War).
+     */
+    public Map<Faction, Integer> exitCivilWarByWarEnd(Faction race) {
+        CivilWarState cws = civilWars.get(race);
+        if (cws == null || cws.getPhase() != CivilWarState.Phase.CIVIL_WAR) {
+            return Collections.emptyMap();
+        }
+        Map<Faction, Integer> merged = cws.exitByWarEnd();
+        for (Map.Entry<Faction, Integer> e : merged.entrySet()) {
+            tensionMatrix.raiseTension(race, e.getKey(),
+                    e.getValue().intValue() - tensionMatrix.getTension(race, e.getKey()));
+        }
+        log(race + " leaves Civil War; unrest -1 for every faction; split tensions merged (rounded-up average).");
+        return merged;
+    }
+
+    /**
+     * Rulebook :1006 — exit by unconditional surrender leaving one faction of
+     * the race: unrest −1, no merge (the survivor's split row governs).
+     */
+    public Map<Faction, Integer> exitCivilWarBySurrender(Faction race, Player survivor) {
+        CivilWarState cws = civilWars.get(race);
+        if (cws == null || cws.getPhase() != CivilWarState.Phase.CIVIL_WAR) {
+            return Collections.emptyMap();
+        }
+        Map<Faction, Integer> row = cws.exitBySurrender(survivor);
+        if (!row.isEmpty()) {
+            log(race + " leaves Civil War by unconditional surrender; unrest -1; no tension merge.");
+        }
+        return row;
+    }
+
+    /**
+     * Rulebook :980 — Joint Effects, the steady-state of the split: while a
+     * race is UNIFIED, a military-conflict influence loss to one faction of
+     * the race spills to EVERY faction of that race; while CIVIL_WAR, factions
+     * are separate races and the loss lands on the loser alone.
+     */
+    public void applyRaceJointInfluenceLoss(Player loser, int amount) {
+        if (amount <= 0) return;
+        CivilWarState cws = civilWarOfRace(loser.getFaction());
+        if (cws != null && cws.getPhase() == CivilWarState.Phase.CIVIL_WAR) {
+            loser.loseInfluence(amount);
+            return;
+        }
+        List<Player> racePlayers = playersOfRace(loser.getFaction());
+        for (Player p : racePlayers) {
+            p.loseInfluence(amount);
+        }
+    }
     public boolean        isAtWar(Faction a, Faction b)   { return tensionMatrix.isAtWar(a, b); }
-    public boolean        isAtWar(Faction faction)        {
+    public boolean isAtWar(Faction faction) {
         // true when faction is at war with any other faction
         for (Player p : players) {
             if (p.getFaction() != null && p.getFaction() != faction
                     && tensionMatrix.isAtWar(faction, p.getFaction())) return true;
         }
         return false;
+    }
+
+    /** B5-0661: returns the number of players who are still active (neither
+     *  forfeited nor surrendered). Used by checkVictory for the last-standing
+     *  and all-surrendered Major Victory checks. */
+    public int activePlayersCount() {
+        int count = 0;
+        for (Player p : players) {
+            if (!p.hasForfeited() && !p.hasSurrendered()) count++;
+        }
+        return count;
     }
     public void raiseTension(Faction source, Faction target, int delta) {
         tensionMatrix.raiseTension(source, target, delta);

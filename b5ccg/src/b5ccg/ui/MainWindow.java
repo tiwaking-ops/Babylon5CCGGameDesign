@@ -1429,8 +1429,30 @@ public class MainWindow extends JFrame {
         refreshCostPreview();
 
         if (state.isGameOver()) {
-            statusLabel.setText("GAME OVER Ã¢â‚¬â€ Winner: "
-                + (state.getWinner() != null ? state.getWinner().getName() : "None"));
+            VictoryPathResult vpr = rules.checkVictoryPath(state);
+            if (vpr != null && vpr.getPath() != null) {
+                StringBuilder sb = new StringBuilder("GAME OVER — ");
+                sb.append(vpr.getPath()).append(" win");
+                sb.append("  |  Power: ").append(vpr.getPower());
+                switch (vpr.getPath()) {
+                    case AGENDA_CONDITION:
+                        sb.append("  |  Agenda: ").append(vpr.getQualifierAsString());
+                        break;
+                    case LAST_STANDING:
+                        sb.append("  |  Remaining: ").append(vpr.getQualifierAsInt());
+                        break;
+                    case STATION_CONDITION_2:
+                        sb.append("  |  Station: ").append(vpr.getQualifierAsInt());
+                        break;
+                    case MAJOR:
+                    case STANDARD:
+                        sb.append("  |  Lead: ").append(vpr.getQualifierAsInt());
+                        break;
+                }
+                statusLabel.setText(sb.toString());
+            } else {
+                statusLabel.setText("GAME OVER — No winner");
+            }
             passButton.setEnabled(false);
             playCardOnlyButton.setEnabled(false);
             initiateConflictButton.setEnabled(false);

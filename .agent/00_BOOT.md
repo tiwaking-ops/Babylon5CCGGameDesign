@@ -10,10 +10,14 @@ provenance:
     - {name: "opencode (space-bunny-free)", version: "space-bunny-free" - claim row-status precondition (step 6) and post-write duplicate-ID census (step 9), human-approved 2026-09-27 (B5-0622)}
     - {name: "muse-spark", version: "muse-spark-1.3-contributor-free" - pipe-integrity seeding rule in step 9 (B5-0621)}
     - {name: "opencode (space-bunny-free)", version: "space-bunny-free", passes: 1, last_pass: "2026-09-27", note: "edit: claims-first census rule in steps 4 and 9, human-approved 2026-09-27 (B5-0657)"}
-  last_modified_by_llm: {name: "opencode (space-bunny-free)", version: "space-bunny-free"}
+    - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash", passes: 2, last_pass: "2026-09-27", note: "edit: step 6 started_utc guidance line (B5-0653); step 10 three-signal restatement (B5-0660)"}
+    - {name: "opencode (big-pickle-free)", version: "big-pickle-free", passes: 1, last_pass: "2026-09-27", note: "edit: qualified the three bare .agent/TASK_LEDGER.md references in steps 4, 9 and 10, where step 4 already carried the qualified form two lines below the bare one (B5-0693)"}
+  last_modified_by_llm: {name: "opencode (big-pickle-free)", version: "big-pickle-free"}
   created_date: "2026-09-21"
   last_modified_date: "2026-09-27"
 ---
+
+# 00_BOOT — read this first, every session
 
 1. Read `AGENTS.md`, `guidelines/Guidelines.md`, `docs/DECISIONS.md`.
 2. Read `.agent/TASK_LEDGER.md` + list `.agent/CLAIMS/*.json` +
@@ -30,7 +34,7 @@ provenance:
 4. Obtain the OPEN-task census ONLY by running the shared census tool:
    `powershell -NoProfile -ExecutionPolicy Bypass -File .agent/run-queue.ps1 -DryRun`
    (or its bash equivalent `bash .agent/run-queue.sh -DryRun`). Do NOT read or
-   grep `TASK_LEDGER.md` directly to find OPEN tasks — hand-rolled censuses miss
+   grep `.agent/TASK_LEDGER.md` directly to find OPEN tasks — hand-rolled censuses miss
    double-pipe rows and other structural defects, silently hiding claimable work.
    The one-liner `rg -o '^\|+(?:\s*)(B5-\d+)(?:\s*\|)\s*\|/{0,1}OPEN' .agent/TASK_LEDGER.md`
    is the manual fallback if the shared tool is unavailable. A task ID mentioned in
@@ -67,7 +71,7 @@ provenance:
    `b5ccg/src-java8-archive/` is frozen. No external libs without human approval.
 8. Verify: `compile.bat/sh` green. On red, mark task `BLOCKED` with the log
    excerpt and release your claim.
-9. Finish: update `TASK_LEDGER.md` row, append `docs/DECISIONS.md` entry, write
+9. Finish: update `.agent/TASK_LEDGER.md` row, append `docs/DECISIONS.md` entry, write
    `.agent/REPORTS/<date>-<agent-id>-<task-id>.md` (with `author_llm`), delete
    your claim file, refresh `.agent/HEARTBEATS/<agent-id>.json`. When editing
    the ledger, preserve the table pipes exactly — never add or remove a `|`.
@@ -106,9 +110,12 @@ provenance:
     agent held a live claim on that row, so it is **not a defect report** —
     re-run the detector after the claim is released and judge the row then. Your
     own row, the one you just wrote under your own claim, is the exception that
-    proves the rule: you know it is yours and complete, so judge it directly.
-10. Claims older than 30 min are stale: you may reap one ONLY after noting the
-   reaping in `TASK_LEDGER.md`. Never touch live claims or heartbeats.
+    proves the rule: you know it is yours and complete, so judge it directly.10. Claims older than 30 min are stale: you may reap one ONLY after noting
+    the reaping in `.agent/TASK_LEDGER.md`. Never touch live claims or heartbeats.
+    Staleness is judged on the THREE-SIGNAL rule (`.agent/HEARTBEATS/README.md`
+    is canonical): a claim is LIVE while the NEWEST of its claim age, its
+    owner's heartbeat, and its report mtime falls inside the TTL — never
+    judge a claim on its timestamp alone (B5-0660).
 11. Shared pattern store (standing convention, B5-0430): every close-out report
    gains a one-line **Reusable lesson** item, and the author files it as a
    Markdown record under `.agent/PATTERNS/<agent-id>/` (front matter with

@@ -37,20 +37,59 @@ public class Player {
     private int     actionsLeft  = 1;
     private boolean hasForfeited = false;
 
+    /** B5-0661 (rulebook :815–:819): set when this player has unconditionally
+     *  surrendered; a surrendered player is out of the game and may not act
+     *  or win. Distinct from forfeiture. */
+    private boolean hasSurrendered = false;
+
+    /** B5-0661: characters placed in asylum on this player's side.
+     *  Asylum characters may not be elevated to the Inner Circle. */
+    private final List<CharacterCard> asylumCards = new ArrayList<CharacterCard>();
+
     // B5-0339 (rulebook §IV): 1 while the ambassador "may apply 1 influence
     // less than usual when sponsoring a card" later this turn — granted by
     // executing the assistant's sponsor-discount ability, consumed by the
     // first recruit and cleared with the turn at startRound.
     private int sponsorDiscount = 0;
 
+    /** B5-0691 (rulebook :968/:278/:280; B5-0669 proposal §5.1): per-faction
+     *  unrest — government/public hostility. Starts at 1 (:278; :888 gives
+     *  Non-Aligned 2), clamped 1..5 (:280). Its own axis, never the tension
+     *  matrix. No pool card references it today (B5-0669 census). Set in the
+     *  constructor (faction must be assigned first). */
+    private int unrest = 1;
+
     public Player(String name, Faction faction, boolean isHuman) {
         this.name     = name;
         this.faction  = faction;
         this.isHuman  = isHuman;
+        this.unrest   = faction == Faction.NON_ALIGNED ? 2 : 1;   // B5-0691 (:278, :888)
     }
 
     // ── Influence ────────────────────────────────────────────────────────────
     public int  getInfluence()          { return influence; }
+
+    /** B5-0677 (rulebook :171/:1158; B5-0667 proposal §3.2): Power is
+     *  COMPUTED, never stored — influence plus the sum of POWER-tagged
+     *  StatBonus entries. With no POWER bonus in play this equals
+     *  getInfluence() exactly, byte-identical to the pre-seam behaviour.
+     *  Every economy path (gains, spends, rewards) stays on getInfluence();
+     *  only power-referencing rules read this. */
+    public int  getPower() {
+        return influence + getPowerBonusTotal();
+    }
+
+    /** Sum of this player's POWER-tagged bonus deltas (may be negative).
+     *  Rides the existing StatBonus channel, so expiry sweeps
+     *  (sweepBonusExpiries) and source removal (removeBonusesBySource)
+     *  clear Power add-ons through the same path as every other bonus. */
+    public int  getPowerBonusTotal() {
+        int total = 0;
+        for (StatBonus b : bonuses) {
+            if (b.stat == StatKey.POWER) total += b.delta;
+        }
+        return total;
+    }
     public int  getAppliedPool()        { return appliedPool; }
     public void gainInfluence(int n)    { if (n > 0) { influence += n; appliedPool += n; } }
     public void loseInfluence(int n) {
@@ -159,6 +198,16 @@ public class Player {
     /** True once this player could not draw and had no Inner Circle
      *  character left to discard (rulebook Draw Round Step 3: he loses). */
     public boolean hasForfeited() { return hasForfeited; }
+
+    /** B5-0661: true once this player has unconditionally surrendered
+     *  (rulebook :815–:819). A surrendered player is out of the game. */
+    public boolean hasSurrendered() { return hasSurrendered; }
+    public void setHasSurrendered(boolean v) { hasSurrendered = v; }
+
+    /** B5-0661: characters in asylum on this player's side (may not be
+     *  elevated to the Inner Circle). */
+    public List<CharacterCard> getAsylumCards() { return asylumCards; }
+    public void addAsylumCard(CharacterCard ch) { if (ch != null) asylumCards.add(ch); }
 
     // ── Inner Circle management ──────────────────────────────────────────────
     public void recruitToInnerCircle(CharacterCard ch) {
@@ -372,6 +421,13 @@ public class Player {
         sponsorDiscount -= used;
         return used;
     }
+
+    // ── Unrest (B5-0691; rulebook :968/:278/:280) ─────────────────────────
+    public int  getUnrest()   { return unrest; }
+    /** Raise unrest, clamped to the rulebook 1..5 band (:280). */
+    public void raiseUnrest(int n)   { unrest = Math.min(5, unrest + Math.max(0, n)); }
+    /** Lower unrest, clamped to the rulebook 1..5 band (:280). */
+    public void lowerUnrest(int n)   { unrest = Math.max(1, unrest - Math.max(0, n)); }
 
     @Override
     public String toString() {

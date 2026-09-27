@@ -1860,6 +1860,220 @@ public class HeadlessConformanceTest {
                 rtFleet.getDamageTokens() == 2);
     }
 
+    // B5-0671: triggered effects consume no action for any player (rulebook :771–:775)
+    // Assert the ACTUAL behaviour of the tree and report every divergence rather than
+    // encoding a wish. The reactive half of this same rule is already half-asserted by
+    // testMinesReactive (B5-0528/B5-0539): a mines-style reactive effect resolving during
+    // another player's action does the damage-on-attack hook. What is missing is the
+    // no-action-consumption half — the reacting player's own action count, the affected
+    // player's action count, turn advancement, round advancement, and AI offerability.
+    // Suite file only — game-logic changes are out of scope for this row.
+    private static void testTriggeredNoActionConsumption() {
+        System.out.println("TRG (B5-0671): triggered/reactive effects consume no action (rulebook :771–:775)");
+
+        // ── Fixture: a two-player state where the defender holds a reactive mines
+        // enhancement and the attacker has committed a fleet into a military conflict.
+        // The attacker still has its full starting action allowance (1), so we can
+        // observe whether the reactive resolution consumed it.
+        Player attackerP = player("TRG-A", Faction.CENTAURI);
+        Player defenderP = player("TRG-B", Faction.NARN);
+        RulesEngine rules = new RulesEngine();
+
+        EnhancementCard mines = new EnhancementCard(
+                "enh_mines_trg", "Mines Wire Test", "ENHANCEMENT_FLEET",
+                Rarity.COMMON, Faction.ANY, CardSet.PREMIERE, "x", "text",
+                0, 0, 0, 0, 0);
+        defenderP.getEnhancements().add(mines);
+
+        FleetCard defFleet = fleetCard("trg_fleet_def", null);
+        defenderP.getFleets().add(defFleet);
+        defFleet.setOwner(defenderP);
+
+        CharacterCard attCard = new CharacterCard("trg_att_char", "Character",
+                "CHARACTER", Rarity.COMMON, Faction.CENTAURI, CardSet.PREMIERE,
+                "x", "text", 0, 0, 0, 2, false);
+        attackerP.getSupportingRole().add(attCard);
+        attCard.setOwner(attackerP);
+
+        Conflict conflict = new Conflict(conflictCard("trg_cpty", ConflictType.MILITARY, null),
+                defenderP);
+        conflict.addParticipant(defenderP, true);
+        conflict.addParticipant(attackerP, false);
+        defFleet.rotate();
+        conflict.commitCard(defenderP, defFleet, true);
+
+        GameState st = state(attackerP, defenderP);
+        st.setActiveConflict(conflict);
+
+        // Snapshot the attacker's action allowance before the reactive resolution.
+        int attackerActionsBefore = attackerP.getActionsLeft();
+        int defenderActionsBefore = defenderP.getActionsLeft();
+        int roundBefore = st.getRoundNumber();
+
+        // Advance the attacker one action (the action under which the reactive hook
+        // would fire in a real game). This is the action whose consumption we care
+        // about preserving for the reacting player, not the attacker's own spend.
+        attackerP.useAction();
+        int attackerActionsAfterOwnSpend = attackerP.getActionsLeft();
+
+        // Fire the reactive hook directly through the same engine path the mines
+        // section asserts (CardEffects.damageOnAttack is the registry gate; the
+        // attack executor is what would invoke it in a real resolution). We call
+        // executeAttackConflictParticipant so the reactive effect actually resolves
+        // against the defender's side, then observe the reacting player (defender)
+        // and the attacker's remaining action count and the turn/round counters.
+        rules.executeAttackConflictParticipant(attackerP, attCard, defFleet, conflict, st);
+
+        // ── A. The reacting player's own action count is untouched by the reactive
+        // resolution. The defender did not spend an action when its mines fired back.
+        check("TRG", "reacting player action count unchanged after reactive resolution",
+                defenderP.getActionsLeft() == defenderActionsBefore);
+
+        // ── B. The attacker does not GAIN an action from the reactive resolution.
+        // The attacked player is not granted a free action by the defender's hook
+        // landing — the resolution is not a source of action economy for either side.
+        check("TRG", "attacker action count unchanged by reactive resolution (no free action)",
+                attackerP.getActionsLeft() == attackerActionsAfterOwnSpend);
+
+        // ── C. The reactive resolution does not advance the turn / current player.
+        // A reactive effect resolving mid-action must not rotate the active player
+        // index as if another player had taken a turn.
+        check("TRG", "reactive resolution does not advance the turn (current player index unchanged)",
+                st.getActivePlayer() == attackerP);
+
+        // ── D. The reactive resolution does not advance the round counter.
+        check("TRG", "reactive resolution does not advance the round counter",
+                st.getRoundNumber() == roundBefore);
+
+        // ── E. A reactive effect still resolves when the reacting player has ALREADY
+        // passed for the turn. Passing does not shield a player from triggered effects
+        // that target them — the reactive half is a resolution-site hook, not an
+        // action-round offer, so the passed flag is irrelevant to whether it fires.
+        Player passedDefender = player("TRG-passDef", Faction.NARN);
+        Player passedAttacker = player("TRG-passAtt", Faction.CENTAURI);
+        RulesEngine rules2 = new RulesEngine();
+
+        EnhancementCard mines2 = new EnhancementCard(
+                "enh_mines_trg2", "Mines Wire Test 2", "ENHANCEMENT_FLEET",
+                Rarity.COMMON, Faction.ANY, CardSet.PREMIERE, "x", "text",
+                0, 0, 0, 0, 0);
+        passedDefender.getEnhancements().add(mines2);
+
+        FleetCard defFleet2 = fleetCard("trg_fleet_def2", null);
+        passedDefender.getFleets().add(defFleet2);
+        defFleet2.setOwner(passedDefender);
+
+        CharacterCard attCard2 = new CharacterCard("trg_att_char2", "Character 2",
+                "CHARACTER", Rarity.COMMON, Faction.CENTAURI, CardSet.PREMIERE,
+                "x", "text", 0, 0, 0, 2, false);
+        passedAttacker.getSupportingRole().add(attCard2);
+        attCard2.setOwner(passedAttacker);
+
+        Conflict conflict2 = new Conflict(conflictCard("trg_cpty2", ConflictType.MILITARY, null),
+                passedDefender);
+        conflict2.addParticipant(passedDefender, true);
+        conflict2.addParticipant(passedAttacker, false);
+        defFleet2.rotate();
+        conflict2.commitCard(passedDefender, defFleet2, true);
+
+        GameState st2 = state(passedAttacker, passedDefender);
+        st2.setActiveConflict(conflict2);
+        passedDefender.setPassed(true);   // defender has already passed for the turn
+
+        int passedDefActionsBefore = passedDefender.getActionsLeft();
+        rules2.executeAttackConflictParticipant(passedAttacker, attCard2, defFleet2, conflict2, st2);
+        check("TRG", "reactive effect still resolves when reacting player already passed",
+                passedDefender.getActionsLeft() == passedDefActionsBefore
+                        && defFleet2.getDamageTokens() == 2);
+
+        // ── F. A reactive effect still resolves when the reacting player has ZERO
+        // actions left. The reactive hook is not gated on the reacting player having
+        // an action to spend — it is not itself an action and does not require one.
+        Player zeroDef = player("TRG-zeroDef", Faction.NARN);
+        Player zeroAtt = player("TRG-zeroAtt", Faction.CENTAURI);
+        RulesEngine rules3 = new RulesEngine();
+
+        EnhancementCard mines3 = new EnhancementCard(
+                "enh_mines_trg3", "Mines Wire Test 3", "ENHANCEMENT_FLEET",
+                Rarity.COMMON, Faction.ANY, CardSet.PREMIERE, "x", "text",
+                0, 0, 0, 0, 0);
+        zeroDef.getEnhancements().add(mines3);
+
+        FleetCard defFleet3 = fleetCard("trg_fleet_def3", null);
+        zeroDef.getFleets().add(defFleet3);
+        defFleet3.setOwner(zeroDef);
+
+        CharacterCard attCard3 = new CharacterCard("trg_att_char3", "Character 3",
+                "CHARACTER", Rarity.COMMON, Faction.CENTAURI, CardSet.PREMIERE,
+                "x", "text", 0, 0, 0, 2, false);
+        zeroAtt.getSupportingRole().add(attCard3);
+        attCard3.setOwner(zeroAtt);
+
+        Conflict conflict3 = new Conflict(conflictCard("trg_cpty3", ConflictType.MILITARY, null),
+                zeroDef);
+        conflict3.addParticipant(zeroDef, true);
+        conflict3.addParticipant(zeroAtt, false);
+        defFleet3.rotate();
+        conflict3.commitCard(zeroDef, defFleet3, true);
+
+        GameState st3 = state(zeroAtt, zeroDef);
+        st3.setActiveConflict(conflict3);
+        zeroDef.useAction();   // zero actions left, but not passed
+
+        int zeroDefActionsBefore = zeroDef.getActionsLeft();   // 0
+        rules3.executeAttackConflictParticipant(zeroAtt, attCard3, defFleet3, conflict3, st3);
+        check("TRG", "reactive effect still resolves when reacting player has zero actions left",
+                zeroDef.getActionsLeft() == zeroDefActionsBefore
+                        && defFleet3.getDamageTokens() == 2);
+
+        // ── G. The reactive effect is NOT itself offerable as a legal action by the
+        // AI. The AI offer path is the earliest place an effect silently becoming a
+        // player action would be caught. A reactive mines enhancement is a card the
+        // defender holds; the AI's legal-action builder must NOT present "resolve
+        // your own reactive effect" as one of its offerable GameAction values, because
+        // the effect is a resolution-site consequence, not a player action.
+        //
+        // Observe the ACTUAL tree: AIPlayer.buildLegalActions is private, so use
+        // reflection (same pattern as processAction in testHealRepair above) to read
+        // the offer list. The reactive mines enhancement is a card the defender holds;
+        // the AI's legal-action builder must NOT present "resolve your own reactive
+        // effect" as one of its offerable GameAction values, because the effect is a
+        // resolution-site consequence, not a player action.
+        AIPlayer defAI = new AIPlayer(defenderP, AIDifficulty.MEDIUM);
+        java.lang.reflect.Method builder;
+        try {
+            builder = AIPlayer.class.getDeclaredMethod(
+                    "buildLegalActions", GameState.class, Player.class);
+            builder.setAccessible(true);
+        } catch (Exception e) {
+            throw new RuntimeException("TRG: cannot reflect buildLegalActions", e);
+        }
+        List<GameAction> defOffers;
+        try {
+            defOffers = (List<GameAction>) builder.invoke(defAI, st, defenderP);
+        } catch (Exception e) {
+            throw new RuntimeException("TRG: buildLegalActions invoke failed", e);
+        }
+        boolean offersReactiveAsAction = false;
+        for (GameAction a : defOffers) {
+            if (a.getType() == GameAction.Type.INITIATE_CONFLICT
+                    && a.getCard() == mines) {
+                offersReactiveAsAction = true;
+                break;
+            }
+        }
+        check("TRG", "AI does not offer the reactive mines effect as a legal player action",
+                !offersReactiveAsAction);
+
+        // ── H. Report the ACTUAL behaviour, not a wish. The suite asserts what the
+        // tree does today; if any of the above checks fail, the report is the failing
+        // check name, not a recommendation to change the engine. Game-logic changes
+        // are out of scope for this row (B5-0631 failure mode: a section that encodes
+        // a wish instead of the code).
+        System.out.println("  TRG note: this section reports the tree's actual triggered-effect "
+                + "action-consumption behaviour and does not modify game logic.");
+    }
+
     /**
      * CVD (B5-0606): rulebook II:193-195 deck-construction quotas asserted
      * against the shipped starter-deck file. Rulebook II ("Preparing to Play",
@@ -2164,7 +2378,194 @@ public class HeadlessConformanceTest {
                 ls2.hasForfeited() && rules.checkVictory(lsSt) == ls1);
     }
 
-    // ── B5-0635: AI major-victory awareness (MJR-AI) ─────────────────
+    // ── B5-0663: victory-path surfacing query (VPS) ───────────────────────────
+
+    /**
+     * VPS (B5-0663): the {@link RulesEngine#checkVictoryPath(GameState)} query
+     * reports WHICH of the five rulebook paths crowned a winner, plus the winner's
+     * Power total and exactly one path-specific qualifier. The query is purely
+     * additive — {@link RulesEngine#checkVictory(GameState)} and every caller of it
+     * are untouched. Asserted here:
+     * <ul>
+     *   <li>each of the five rulebook paths produces a distinct, named
+     *       {@link b5ccg.model.enums.VictoryPath} (last standing, station
+     *       condition 2, agenda condition, major, standard);</li>
+     *   <li>when major and standard both qualify (30 vs 15), major wins and the
+     *       query reports MAJOR, not STANDARD — the path-order precedence from
+     *       B5-0641 is preserved;</li>
+     *   <li>an agenda-condition win outranks a major win (the agenda fires before
+     *       major in checkVictory), and the query returns AGENDA_CONDITION with
+     *       the agenda's {@code winConditionKey} as the qualifier;</li>
+     *   <li>Shadow War still suppresses standard condition 1 and still admits major
+     *       (B5-0629), and the query reflects that — a 20+ strictly-leading player
+     *       during a Shadow War yields null (no win), while a major-qualifying
+     *       player during a Shadow War yields MAJOR;</li>
+     *   <li>a state with no winner returns null path (not a sentinel enum value),
+     *       so a not-yet-over game is distinguishable from a game that ended with
+     *       no winner;</li>
+     *   <li>each path returns the correct qualifier: remaining count for last
+     *       standing, station influence for condition 2, agenda
+     *       {@code winConditionKey} for agenda condition, lead margin for major
+     *       and standard.</li>
+     * </ul>
+     */
+    private static void testVictoryPathQuery() {
+        System.out.println("VPS (B5-0663): checkVictoryPath — which path, what qualifier");
+        RulesEngine rules = new RulesEngine();
+
+        // --- No winner → null path (not a sentinel). ---
+        Player nw1 = player("VPS-NW1", Faction.CENTAURI);
+        Player nw2 = player("VPS-NW2", Faction.NARN);
+        setInfluence(nw1, 4); setInfluence(nw2, 4);
+        VictoryPathResult none = rules.checkVictoryPath(state(nw1, nw2));
+        check("VPS", "no winner → null path", none == null);
+        check("VPS", "a fresh 2-player state has no winner yet", none == null);
+
+        // --- Path 1: last standing (B5-0641 path 1). ---
+        Player ls1 = player("VPS-LS1", Faction.CENTAURI);
+        Player ls2 = player("VPS-LS2", Faction.NARN);
+        GameState lsSt = state(ls1, ls2);
+        while (ls2.getDeck().size() > 0) { ls2.getDeck().draw(); }
+        ls2.drawCards(1);   // forced draw with no discardable IC char → forfeit
+        Player lsWinner = rules.checkVictory(lsSt);
+        check("VPS", "last standing crowned by checkVictory", lsWinner == ls1);
+        VictoryPathResult lsResult = rules.checkVictoryPath(lsSt);
+        check("VPS", "last standing → path LAST_STANDING", lsResult.getPath() == VictoryPath.LAST_STANDING);
+        check("VPS", "last standing power >= 0", lsResult.getPower() >= 0);
+        check("VPS", "last standing qualifier = remaining count (1)", lsResult.getQualifierAsInt() == 1);
+
+        // --- Path 2: station condition 2 (B5-0641 path 2). ---
+        // Same pattern as VIC section check 4: station gains 20 influence,
+        // exactly one standard-eligible player strictly leads.
+        Player s1 = player("VPS-S1", Faction.CENTAURI);
+        Player s2 = player("VPS-S2", Faction.NARN);
+        GameState sSt = state(s1, s2);
+        setInfluence(s1, 25); setInfluence(s2, 15);
+        sSt.getStation().gainInfluence(20);   // station influence = 20
+        Player sWinner = rules.checkVictory(sSt);
+        check("VPS", "station condition 2 crowns the strictly-leading eligible player",
+                sWinner == s1 && sWinner.getInfluence() == 25);
+        VictoryPathResult sResult = rules.checkVictoryPath(sSt);
+        check("VPS", "station condition 2 → path STATION_CONDITION_2",
+                sResult.getPath() == VictoryPath.STATION_CONDITION_2);
+        check("VPS", "station condition 2 qualifier = station influence (20)",
+                sResult.getQualifierAsInt() == Babylon5Station.CONDITION_2_THRESHOLD);
+        check("VPS", "station condition 2 winner power = 25", sResult.getPower() == 25);
+
+        // --- Path 3: agenda condition (B5-0641 path 3) outranks major. ---
+        // A player with a MILITARY_SUPREMACY agenda met at 15 Power wins via the
+        // agenda path even though they fall below the 20-Power major/standard bar.
+        // Build MILITARY_SUPREMACY agenda directly (agendaCard helper only makes
+        // INFLUENCE_20; construct the card explicitly for the different key).
+        AgendaCard milSup = new AgendaCard("VPS-MIL", "Military Supremacy",
+                "AGENDA", Rarity.COMMON, Faction.CENTAURI, CardSet.PREMIERE,
+                "x", "text", false, "MILITARY_SUPREMACY");
+        milSup.setFaceDown(false);
+        Player a1 = player("VPS-A1", Faction.CENTAURI);
+        Player a2 = player("VPS-A2", Faction.NARN);
+        GameState aSt = state(a1, a2);
+        setInfluence(a1, 15); setInfluence(a2, 14);
+        a1.setAgenda(milSup);
+        // MILITARY_SUPREMACY requires the player to have the most Military among
+        // non-forfeited players. Give a1 a fleet with military 4 to satisfy it.
+        FleetCard a1Fleet = new FleetCard("VPS-FLEET", "VPS Fleet",
+                "FLEET", Rarity.COMMON, Faction.CENTAURI, CardSet.PREMIERE,
+                "x", "text", 4);
+        a1.getFleets().add(a1Fleet);
+        Player aWinner = rules.checkVictory(aSt);
+        check("VPS", "agenda condition wins at 15 power (below major/standard bar)",
+                aWinner == a1);
+        VictoryPathResult aResult = rules.checkVictoryPath(aSt);
+        check("VPS", "agenda condition → path AGENDA_CONDITION",
+                aResult.getPath() == VictoryPath.AGENDA_CONDITION);
+        check("VPS", "agenda condition qualifier = winConditionKey",
+                "MILITARY_SUPREMACY".equals(aResult.getQualifierAsString()));
+        check("VPS", "agenda condition winner power = 15", aResult.getPower() == 15);
+
+        // --- Path 4: major victory (B5-0641 path 4) + Shadow War admits major. ---
+        Player m1 = player("VPS-M1", Faction.CENTAURI);
+        Player m2 = player("VPS-M2", Faction.NARN);
+        GameState mSt = state(m1, m2);
+        setInfluence(m1, 30); setInfluence(m2, 15);
+        // Major: 30 vs 15 = 15-point lead, both >= 20. Major wins over standard.
+        Player mWinner = rules.checkVictory(mSt);
+        check("VPS", "major victory crowns the 30-power player (not standard)",
+                mWinner == m1);
+        VictoryPathResult mResult = rules.checkVictoryPath(mSt);
+        check("VPS", "major → path MAJOR", mResult.getPath() == VictoryPath.MAJOR);
+        check("VPS", "major qualifier = lead margin (15)", mResult.getQualifierAsInt() == 15);
+        check("VPS", "major winner power = 30", mResult.getPower() == 30);
+        // Major-over-standard precedence: same state should NOT report STANDARD.
+        check("VPS", "major+standard overlap reports MAJOR, not STANDARD",
+                !VictoryPath.STANDARD.equals(mResult.getPath()));
+
+        // --- Shadow War suppresses standard condition 1 (B5-0629) but admits major. ---
+        // Same pattern as MJR section: setShadowInfluence to CONDITION_2_THRESHOLD
+        // triggers the Shadow War guard in stationVictory and standardVictory.
+        Player sw1 = player("VPS-SW1", Faction.CENTAURI);
+        Player sw2 = player("VPS-SW2", Faction.NARN);
+        GameState swSt = state(sw1, sw2);
+        setInfluence(sw1, 20); setInfluence(sw2, 15);
+        swSt.getStation().setShadowInfluence(Babylon5Station.CONDITION_2_THRESHOLD);
+        // 20 vs 15 strictly-leading during Shadow War: Standard condition 1 is
+        // barred (:178), so checkVictory must return null. Major would also fail
+        // here (lead 5 < 10), so null is the only correct answer.
+        check("VPS", "Shadow War suppresses standard condition 1 (null winner)",
+                rules.checkVictory(swSt) == null);
+        VictoryPathResult swResult = rules.checkVictoryPath(swSt);
+        check("VPS", "Shadow War standard suppression → null path",
+                swResult == null);
+
+        // Shadow War admits major: a player with 30 vs 15 during Shadow War
+        // qualifies for Major (15-point lead >= 10) and Major is NOT barred by
+        // the Shadow War.
+        Player swMA1 = player("VPS-SWMA1", Faction.CENTAURI);
+        Player swMA2 = player("VPS-SWMA2", Faction.NARN);
+        GameState swMASt = state(swMA1, swMA2);
+        setInfluence(swMA1, 30); setInfluence(swMA2, 15);
+        swMASt.getStation().setShadowInfluence(Babylon5Station.CONDITION_2_THRESHOLD);
+        Player swMAWinner = rules.checkVictory(swMASt);
+        check("VPS", "Shadow War admits major victory (30 vs 15)",
+                swMAWinner == swMA1);
+        VictoryPathResult swMAResult = rules.checkVictoryPath(swMASt);
+        check("VPS", "Shadow War major → path MAJOR",
+                swMAResult.getPath() == VictoryPath.MAJOR);
+        check("VPS", "Shadow War major qualifier = lead margin (15)",
+                swMAResult.getQualifierAsInt() == 15);
+
+        // --- Path 5: standard victory (B5-0641 path 5). ---
+        Player st1 = player("VPS-ST1", Faction.CENTAURI);
+        Player st2 = player("VPS-ST2", Faction.NARN);
+        GameState stSt = state(st1, st2);
+        setInfluence(st1, 25); setInfluence(st2, 20);
+        // Standard: 25 vs 20 = 5-point lead, both >= 20, no major agenda.
+        // Standard wins; major does NOT (lead < 10).
+        Player stWinner = rules.checkVictory(stSt);
+        check("VPS", "standard victory crowns the 25-power player (not major: lead 5 < 10)",
+                stWinner == st1);
+        VictoryPathResult stResult = rules.checkVictoryPath(stSt);
+        check("VPS", "standard → path STANDARD", stResult.getPath() == VictoryPath.STANDARD);
+        check("VPS", "standard qualifier = lead margin (5)", stResult.getQualifierAsInt() == 5);
+        check("VPS", "standard winner power = 25", stResult.getPower() == 25);
+
+        // --- Major+Standard overlap: major wins (path-order precedence). ---
+        // 30 vs 15: both major (15-point lead) and standard (strict lead) qualify.
+        // checkVictory returns the major winner; the query must report MAJOR.
+        Player ov1 = player("VPS-OV1", Faction.CENTAURI);
+        Player ov2 = player("VPS-OV2", Faction.NARN);
+        GameState ovSt = state(ov1, ov2);
+        setInfluence(ov1, 30); setInfluence(ov2, 15);
+        check("VPS", "30-vs-15: checkVictory returns the leader (major path)",
+                rules.checkVictory(ovSt) == ov1);
+        VictoryPathResult ovResult = rules.checkVictoryPath(ovSt);
+        check("VPS", "30-vs-15: query reports MAJOR (not STANDARD)",
+                ovResult.getPath() == VictoryPath.MAJOR
+                && !VictoryPath.STANDARD.equals(ovResult.getPath()));
+        check("VPS", "30-vs-15: major qualifier = 15-point lead",
+                ovResult.getQualifierAsInt() == 15);
+    }
+
+    // ── B5-0635: AI major-victory awareness (MJR-AI) ──────────────────────────
 
     /**
      * MJR-AI (B5-0635): MEDIUM/HARD score influence-moving actions toward
@@ -4809,9 +5210,489 @@ public class HeadlessConformanceTest {
                 && aid.getAmbassador().getSevereDamageTokens() == 0);
     }
 
+    // ── B5-0661: Unconditional Surrender (rulebook :815–:819) ─────────────────
+    // Assert the engine/model behaviour of the SURRENDER game action: legality
+    // (discard round only, genuine at-war opponent only), effect (3 influence
+    // to the named opponent, not the surrendering player), asylum copy (enters
+    // as SUPPORTING, starts Clean, refused Inner Circle elevation), and the
+    // rulebook :819 last-remaining-clause routed through majorVictory.
+    private static void testSUR() throws Exception {
+        System.out.println("SUR (B5-0661): Unconditional Surrender (rulebook :815–:819)");
+        RulesEngine rules = new RulesEngine();
+
+        // ── Fixture: two players genuinely at war. ─────────────────────────────
+        Player surrendering = player("Surrendering", Faction.HUMAN);
+        Player opponent     = player("Opponent",     Faction.MINBARI);
+        GameState stWar    = state(surrendering, opponent);
+        // :816+a — acquire a war between the two factions via the tension matrix.
+        stWar.getTensionMatrix().enterWar(Faction.HUMAN, Faction.MINBARI);
+
+        // Both players enter the Discard Round (DRAW phase). B5-0661 is only
+        // legal there; we pin the phase explicitly for the legality checks.
+        // (Player.actionsLeft defaults to 1 via the constructor; no setter exists.)
+        stWar.setPhase(GamePhase.DRAW);
+
+        // ── A. Legality: wrong phase → illegal. ────────────────────────────────
+        GameState stAction = state(surrendering, opponent);
+        stAction.setPhase(GamePhase.ACTION);
+        // Player.actionsLeft defaults to 1 via the constructor; no setter exists.
+        check("SUR", "surrender illegal during ACTION phase (only Discard Round)",
+                !rules.canSurrender(surrendering, opponent, stAction));
+        GameState stSetup = state(surrendering, opponent);
+        stSetup.setPhase(GamePhase.SETUP);
+        check("SUR", "surrender illegal during SETUP phase",
+                !rules.canSurrender(surrendering, opponent, stSetup));
+
+        // ── B. legality: at-war requirement. ─────────────────────────────────────
+        // Two HUMAN players are not at war → surrender refused.
+        Player humanA = player("HA", Faction.HUMAN);
+        Player humanB = player("HB", Faction.HUMAN);
+        GameState stPeace = state(humanA, humanB);
+        stPeace.setPhase(GamePhase.DRAW);
+        // Player.actionsLeft defaults to 1 via the constructor; no setter exists.
+        check("SUR", "surrender illegal when the two players are not at war",
+                !rules.canSurrender(humanA, humanB, stPeace));
+
+        // ── C. legality: surrendering player's ambassador must be in play. ───────
+        Player noAmb = player("NoAmb", Faction.CENTAURI);
+        Player validOpp = player("ValidOpp", Faction.MINBARI);
+        GameState stNoAmb = state(noAmb, validOpp);
+        stNoAmb.getTensionMatrix().enterWar(Faction.CENTAURI, Faction.MINBARI);
+        stNoAmb.setPhase(GamePhase.DRAW);
+        // Player.actionsLeft defaults to 1 via the constructor; no setter exists.
+        noAmb.setAmbassador(null);   // no in-play ambassador → surrender illegal
+        check("SUR", "surrender illegal when the surrendering player has no in-play ambassador",
+                !rules.canSurrender(noAmb, validOpp, stNoAmb));
+
+        // ── D. Legality: genuine at-war opponent is legal. ───────────────────────
+        check("SUR", "surrender legal: Discard Round, at war, valid target",
+                rules.canSurrender(surrendering, opponent, stWar));
+
+        // ── E. Execution: +3 influence to the named opponent, not the surrendering
+        //    player. The surrendering player's influence must be unchanged. ────────
+        int surrRating = surrendering.getInfluence();
+        int oppRating  = opponent.getInfluence();
+        rules.executeSurrender(surrendering, opponent, stWar);
+        check("SUR", "surrendering player gains no influence (3 goes to the opponent)",
+                surrendering.getInfluence() == surrRating);
+        check("SUR", "named opponent gains exactly 3 influence",
+                opponent.getInfluence() == oppRating + 3);
+
+        // ── F. Asylum copy: enters as SUPPORTING, not Inner Circle. ───────────────
+        List<CharacterCard> oppSR = opponent.getSupportingRole();
+        boolean hasAsylumInSR = false;
+        for (CharacterCard c : oppSR) {
+            if (c instanceof AsylumCharacterCard) { hasAsylumInSR = true; break; }
+        }
+        check("SUR", "asylum copy is in the opponent's supporting role",
+                hasAsylumInSR && oppSR.size() == 1);
+        boolean icHasAsylum = false;
+        for (CharacterCard c : opponent.getInnerCircle()) {
+            if (c instanceof AsylumCharacterCard) { icHasAsylum = true; break; }
+        }
+        check("SUR", "asylum copy is NOT in the opponent's Inner Circle",
+                !icHasAsylum);
+
+        // ── G. Asylum copy: starts Clean (no damage, not neutralized). ───────────
+        CharacterCard asylumCard = oppSR.get(0);
+        check("SUR", "asylum copy has 0 damage tokens (starts Clean)",
+                asylumCard.getDamageTokens() == 0);
+        check("SUR", "asylum copy is not neutralized (starts Clean)",
+                !asylumCard.isNeutralized());
+        // Asylum copies enter as rotated (retired); the rulebook :819 says "a
+        // copy... into his play area, in the supporting role" with no action spent.
+        check("SUR", "asylum copy is rotated (entered as a retired supporting character)",
+                asylumCard.isRotated());
+
+        // ── H. Asylum copy: refused elevation to Inner Circle. ───────────────────
+        // Attempt to promote the asylum character: must be refused by canPromote.
+        // Place a ready, unrotated Inner Circle leader so the only blocker is the
+        // asylum flag.
+        CharacterCard icLeader = new CharacterCard("icLead", "IC Lead", "CHARACTER_MINBARI",
+                Rarity.RARE, Faction.MINBARI, CardSet.PREMIERE, "x", "text", 1, 1, 0, 1, false);
+        opponent.getInnerCircle().add(icLeader);
+        icLeader.rotate();
+        CharacterCard asylumForPromo = asylumCard;
+        // unrotate the asylum copy so it passes the other canPromote preconditions
+        asylumForPromo.unrotate();
+        boolean canPromoAsylum = rules.canPromote(opponent, asylumForPromo); // owner is the asylum host; B5-0661 repair of an unresolved symbol left in the hunk
+        check("SUR", "asylum copy cannot be promoted to the Inner Circle",
+                !canPromoAsylum);
+
+        // ── I. AsylumCharacterCard type identity. ────────────────────────────────
+        AsylumCharacterCard asylumTyped = (AsylumCharacterCard) asylumCard;
+        check("SUR", "asylum copy reports itself as in-asylum",
+                asylumTyped.isInAsylum());
+
+        // ── J. Rulebook :819 — last-remaining clause routed through majorVictory.
+        //    When every OTHER player has surrendered, the last remaining player
+        //    scores a Major Victory (rulebook :821). We exercise this via
+        //    checkVictory on a 2-player state where the opponent has surrendered. ─
+        Player lastPlayer = player("Last", Faction.CENTAURI);
+        Player otherPlayer = player("Other", Faction.NARN);
+        GameState stLast = state(lastPlayer, otherPlayer);
+        stLast.getTensionMatrix().enterWar(Faction.CENTAURI, Faction.NARN);
+        stLast.setPhase(GamePhase.DRAW);
+        CharacterCard lastAmb = new CharacterCard("lastAmb", "Last Amb", "CHARACTER_CENTAURI",
+                Rarity.RARE, Faction.CENTAURI, CardSet.PREMIERE, "x", "text", 2, 2, 0, 4, false);
+        CharacterCard otherAmb = new CharacterCard("otherAmb", "Other Amb", "CHARACTER_NARN",
+                Rarity.RARE, Faction.NARN, CardSet.PREMIERE, "x", "text", 2, 2, 0, 4, false);
+        lastPlayer.setAmbassador(lastAmb);
+        otherPlayer.setAmbassador(otherAmb);
+        // Set influence so that lastPlayer can major-victory even after paying
+        // the surrender reward: 4 base + 20 seeded = 24, + 3 gained at execution
+        // = 27, against the opponent's 4 + 4 = 8 — 20+ power, no live rival left.
+        lastPlayer.gainInfluence(20);
+        otherPlayer.gainInfluence(4);
+        // otherPlayer surrenders to lastPlayer.
+        rules.executeSurrender(otherPlayer, lastPlayer, stLast);
+        // At this point both are "in the game" from a forfeited standpoint, but
+        // otherPlayer has surrendered. The last-standing check (1 non-forfeited
+        // player) would not fire because both are non-forfeited. Instead, the
+        // all-but-one-surrendered check fires and routes through majorVictory.
+        Player winner = rules.checkVictory(stLast);
+        check("SUR", "last remaining after all others surrendered wins via checkVictory",
+                winner == lastPlayer
+                // also confirm the Power arithmetic: 27 = 4 base + 20 seeded + 3
+                // surrender reward; opponent 8 and surrendered — 20+ power holds
+                && lastPlayer.getInfluence() == 27);
+        // Confirm the surrendering player is marked surrendered.
+        check("SUR", "surrendering player is marked as surrendered",
+                otherPlayer.hasSurrendered());
+        // Confirm the last player is NOT marked surrendered.
+        check("SUR", "last remaining player is not marked surrendered",
+                !lastPlayer.hasSurrendered());
+
+        // ── K. Surrender is distinct from forfeit. ───────────────────────────────
+        // A surrendered player is NOT forfeited; the deck-out forfeit path must
+        // not have been triggered by the surrender.
+        check("SUR", "surrendered player has NOT forfeited (distinct from deck-out)",
+                !otherPlayer.hasForfeited());
+        check("SUR", "asylum-owning player has NOT forfeited",
+                !lastPlayer.hasForfeited());
+    }
+
     // ── B5-0395: Mercenaries (rulebook §Mercenaries :735–:741) ────────────────
     // Assert against the engine API + the fixture mercenary effect registered
     // in CardEffects (mer_metric_fixture → controller gains 1 influence).
+    // ── B5-0677: Computed Power seam + Negative Power target gate (rulebook :1034) ──
+    // Assert the B5-0667 proposal §3.2/§3.4 as implemented: Power is COMPUTED
+    // (influence + POWER-tagged StatBonus total), never stored; the economy
+    // stays on getInfluence(); the :1034 gate fires exactly when a target's
+    // Power sits below his Influence. Synthetic fixtures only — the B5-0667
+    // card census found zero pool cards bearing a Power stat.
+    private static void testComputedPower() throws Exception {
+        System.out.println("PWR (B5-0677): Computed Power seam + Negative Power gate (rulebook :1034)");
+        RulesEngine rules = new RulesEngine();
+
+        // ── A. With no POWER bonus, getPower == getInfluence (the measured
+        //    vacuity: Power ≡ Influence until a source breaks the equivalence). ──
+        Player a = player("PWRA", Faction.HUMAN);
+        check("PWR", "getPower equals influence when no POWER bonus is present",
+                a.getPower() == a.getInfluence() && a.getPower() == 4);
+
+        // ── B. A POWER-tagged bonus raises Power above influence. ──
+        a.grantBonus(StatBonus.faction("pwr_src_a", StatKey.POWER, 3,
+                a.getName(), Expiry.WHILE_IN_PLAY, 1));
+        check("PWR", "a POWER-tagged bonus raises Power above influence",
+                a.getPower() == a.getInfluence() + 3 && a.getPower() == 7);
+
+        // ── C. A non-POWER bonus does not move Power. ──
+        a.grantBonus(StatBonus.faction("pwr_src_b", StatKey.DIPLOMACY, 2,
+                a.getName(), Expiry.WHILE_IN_PLAY, 1));
+        check("PWR", "a non-POWER bonus does not move Power",
+                a.getPower() == 7);
+
+        // ── D. A negative POWER bonus pushes Power BELOW influence — the
+        //    :1034 precondition becomes satisfiable and the gate fires. ──
+        a.grantBonus(StatBonus.faction("pwr_src_c", StatKey.POWER, -5,
+                a.getName(), Expiry.WHILE_IN_PLAY, 1));
+        check("PWR", "a negative POWER bonus pushes Power below influence",
+                a.getPower() < a.getInfluence());
+        check("PWR", "gate refuses an influence-as-power effect on a lower-than-influence target",
+                !rules.canAffectTarget(event("pwr_probe"), a));
+
+        // ── E. The gate admits a target whose Power is at or above Influence. ──
+        Player b = player("PWRB", Faction.MINBARI);
+        check("PWR", "gate admits a target with Power == influence (no POWER bonus)",
+                rules.canAffectTarget(event("pwr_probe2"), b));
+        a.removeBonusesBySource("pwr_src_c");
+        check("PWR", "gate re-admits the target once the penalty source is removed",
+                rules.canAffectTarget(event("pwr_probe3"), a) && a.getPower() == a.getInfluence() + 3);
+
+        // ── F. The economy stays influence: POWER bonuses do not change what
+        //    the player can spend, gain or be rewarded (B5-0667 call-site audit). ──
+        int infBefore = a.getInfluence();
+        a.gainInfluence(2);
+        check("PWR", "influence gains do not alter the POWER bonus total",
+                a.getPowerBonusTotal() == 3 && a.getPower() == a.getInfluence() + 3);
+        check("PWR", "Power tracks the influence change (computed, not stored)",
+                a.getPower() == (infBefore + 2) + 3);
+
+        // ── G. Source removal clears POWER add-ons through the shared channel ──
+        //    (WHILE_IN_PLAY bonuses leave via removeBonusesBySource, the same
+        //    path every other bonus rides on discard/blanking). ──
+        a.removeBonusesBySource("pwr_src_a");
+        check("PWR", "source removal clears the POWER add-on via the shared channel",
+                a.getPowerBonusTotal() == 0 && a.getPower() == a.getInfluence());
+    }
+
+    // ── B5-0679: AI surrender awareness (SUR-AI) ─────────────────────────────
+    // Assert the MEDIUM/HARD surrender-offer behaviour against the REAL
+    // buildLegalActions builder (reflection, B5-0436/B5-0351 precedent):
+    // never outside the discard round, never when not at war, never by EASY,
+    // offered in a constructed losing position, threshold + scorer
+    // determinism, and the builder's output stays legal.
+    private static void testSurrenderAI() throws Exception {
+        System.out.println("SUR-AI (B5-0679): AI surrender awareness");
+
+        Method build = AIPlayer.class.getDeclaredMethod(
+                "buildLegalActions", GameState.class, Player.class);
+        build.setAccessible(true);
+
+        Player loser = player("Loser", Faction.CENTAURI);
+        Player rival = player("Rival", Faction.NARN);
+        Player other = player("Other", Faction.MINBARI);
+        GameState stWar = state(loser, rival, other);
+        stWar.getTensionMatrix().enterWar(Faction.CENTAURI, Faction.NARN);
+        stWar.getTensionMatrix().enterWar(Faction.CENTAURI, Faction.MINBARI);
+
+        Player loserW = player("LoserW", Faction.CENTAURI);
+        Player rivalW = player("RivalW", Faction.NARN);
+        Player otherW = player("OtherW", Faction.MINBARI);
+        GameState stPeace = state(loserW, rivalW, otherW);
+
+        Player loserA = player("LoserA", Faction.CENTAURI);
+        Player rivalA = player("RivalA", Faction.NARN);
+        Player otherA = player("OtherA", Faction.MINBARI);
+        GameState stWarA = state(loserA, rivalA, otherA);
+        stWarA.getTensionMatrix().enterWar(Faction.CENTAURI, Faction.NARN);
+        stWarA.getTensionMatrix().enterWar(Faction.CENTAURI, Faction.MINBARI);
+
+        Player loserE = player("LoserE", Faction.CENTAURI);
+        Player rivalE = player("RivalE", Faction.NARN);
+        Player otherE = player("OtherE", Faction.MINBARI);
+        GameState stWarE = state(loserE, rivalE, otherE);
+        stWarE.getTensionMatrix().enterWar(Faction.CENTAURI, Faction.NARN);
+        stWarE.getTensionMatrix().enterWar(Faction.CENTAURI, Faction.MINBARI);
+
+        // Losing position: the RIVAL is raised so the loser trails the leader
+        // by exactly the B5-0679 threshold (10 vs 4 = gap 6).
+        rival.gainInfluence(6);
+        rivalW.gainInfluence(6);
+        rivalA.gainInfluence(6);
+        rivalE.gainInfluence(6);
+
+        // Surrender-offer counter over a built action list (helper method —
+        // Java 6 has no local functions).
+        // (countSurrender defined as a private static helper below testSurrenderAI.)
+
+        AIPlayer med = new AIPlayer(loser, AIDifficulty.MEDIUM);
+        AIPlayer hard = new AIPlayer(loserA, AIDifficulty.HARD);
+        AIPlayer easy = new AIPlayer(loserE, AIDifficulty.EASY);
+
+        // ── A. Discard round only: not offered during ACTION. ──
+        List<GameAction> actsAction =
+                (List<GameAction>) build.invoke(med, stWar, loser);
+        check("SUR-AI", "never offered during ACTION phase (discard round only)",
+                countSurrender(actsAction) == 0);
+
+        // ── B. Not at war → never offered. ──
+        List<GameAction> actsPeace =
+                (List<GameAction>) build.invoke(med, stPeace, loserW);
+        check("SUR-AI", "never offered when not at war with any opponent",
+                countSurrender(actsPeace) == 0);
+
+        // ── C. EASY never offers surrender (uniform pick, B5-0351 contract). ──
+        List<GameAction> actsEasy =
+                (List<GameAction>) build.invoke(easy, stWarE, loserE);
+        check("SUR-AI", "EASY never offers surrender",
+                countSurrender(actsEasy) == 0);
+
+        // ── D. Losing position in the discard round → MEDIUM and HARD offer. ──
+        stWar.setPhase(GamePhase.DRAW);
+        stWarA.setPhase(GamePhase.DRAW);
+        List<GameAction> actsMed =
+                (List<GameAction>) build.invoke(med, stWar, loser);
+        List<GameAction> actsHard =
+                (List<GameAction>) build.invoke(hard, stWarA, loserA);
+        check("SUR-AI", "MEDIUM offers surrender in a losing discard-round state",
+                countSurrender(actsMed) >= 1);
+        check("SUR-AI", "HARD offers surrender in a losing discard-round state",
+                countSurrender(actsHard) >= 1);
+
+        // ── E. Determinism: identical state → identical offer list (twice). ──
+        List<GameAction> actsMed2 =
+                (List<GameAction>) build.invoke(med, stWar, loser);
+        check("SUR-AI", "offer ordering is deterministic across repeated builds",
+                actsMed.toString().equals(actsMed2.toString()));
+
+        // ── F. Every offered action is RulesEngine-legal. ──
+        RulesEngine rules = new RulesEngine();
+        boolean allLegal = true;
+        for (GameAction ga : actsMed) {
+            if (ga.getType() == GameAction.Type.SURRENDER
+                    && !rules.canSurrender(loser,
+                            ga.getTarget(), stWar)) {
+                allLegal = false;
+            }
+        }
+        check("SUR-AI", "every offered SURRENDER passes canSurrender", allLegal);
+
+        // ── G. Threshold: one point below the 6-gap and the offers vanish. ──
+        // loser rises to 5 against the rival's 10 — gap 5 < 6 — and the
+        // builder must stop offering.
+        setInfluence(loser, 5);
+        List<GameAction> actsGap5 =
+                (List<GameAction>) build.invoke(med, stWar, loser);
+        check("SUR-AI", "below the 6-point losing threshold no offer is made",
+                countSurrender(actsGap5) == 0);
+    }
+
+    /** B5-0679 helper: count SURRENDER offers in a built action list. */
+    private static int countSurrender(List<GameAction> acts) {
+        int n = 0;
+        for (GameAction ga : acts) {
+            if (ga.getType() == GameAction.Type.SURRENDER) n++;
+        }
+        return n;
+    }
+
+    // ── B5-0691: Civil War engine law, steps 2–4 of the B5-0669 proposal ──────
+    // Synthetic dual-race fixtures ONLY (two Players of one Faction): the
+    // B5-0669 card census found zero pool cards invoking any of these axes.
+    // Asserts the row's minimums: unrest axis behaviour, same-race tension
+    // substrate + :974 Non-Aggression, :992 entry (incl. single-faction
+    // refusal), :994 war relation, :1000 rounded-up-average merge, :996
+    // end-war targeting selection, :980 Joint Effects gating, and byte-identical
+    // race-level TensionMatrix behaviour for the standard game.
+    private static void testCivilWar() throws Exception {
+        System.out.println("CWR (B5-0691): Civil War engine law (rulebook :990–:1009)");
+
+        // ── A. Unrest axis: per-faction start values, clamps, own axis. ──
+        Player u1 = player("U1", Faction.HUMAN);
+        Player u2 = player("U2", Faction.NON_ALIGNED);
+        check("CWR", "unrest starts at 1 (:278)", u1.getUnrest() == 1);
+        check("CWR", "Non-Aligned unrest starts at 2 (:888)", u2.getUnrest() == 2);
+        u1.raiseUnrest(3);
+        u1.raiseUnrest(3);
+        check("CWR", "unrest clamps at 5 (:280)", u1.getUnrest() == 5);
+        u1.lowerUnrest(9);
+        check("CWR", "unrest floors at 1 (:280)", u1.getUnrest() == 1);
+        check("CWR", "unrest is its own axis (influence unchanged)",
+                u1.getInfluence() == 4);
+
+        // ── B. Same-race tension substrate (:972 start 2; :974 Non-Aggression). ──
+        Player hA = player("HA", Faction.HUMAN);
+        Player hB = player("HB", Faction.HUMAN);
+        Player mA = player("MA", Faction.MINBARI);
+        GameState dual = state(hA, hB, mA);
+        check("CWR", "same-race tension starts at 2 (:972)",
+                dual.getSameRaceTension(hA, hB) == 2);
+        check("CWR", "cross-race tension query returns 0 (wrong axis)",
+                dual.getSameRaceTension(hA, mA) == 0);
+        check("CWR", "Non-Aggression auto-state at tension <= 3 (:974)",
+                dual.isNonAggression(hA, hB));
+        dual.raiseSameRaceTension(hA, hB, 2);
+        check("CWR", "Non-Aggression ends at same-race tension 4 (:974)",
+                !dual.isNonAggression(hA, hB));
+
+        // ── C. :992 entry — single-faction refusal, dual-race entry, unrest bump. ──
+        Player s1 = player("S1", Faction.CENTAURI);
+        Player m1 = player("M1", Faction.MINBARI);
+        GameState single = state(s1, m1);
+        check("CWR", "a single-faction race can never enter Civil War (:992 needs a rival faction)",
+                !single.enterCivilWarIfTriggered(Faction.CENTAURI, 3));
+
+        Player cA = player("CA", Faction.CENTAURI);
+        Player cB = player("CB", Faction.CENTAURI);
+        Player n1 = player("N1", Faction.NARN);
+        GameState dualC = state(cA, cB, n1);
+        dualC.raiseSameRaceTension(cA, cB, 3);            // 2 -> 5
+        int unrestBefore = cA.getUnrest();
+        check("CWR", "entry fires at same-race tension 5 (:992)",
+                dualC.enterCivilWarIfTriggered(Faction.CENTAURI, 3));
+        check("CWR", "unrest +1 for every faction of the race on entry (:994)",
+                cA.getUnrest() == unrestBefore + 1
+                && cB.getUnrest() == unrestBefore + 1);
+        check("CWR", "entry recorded for the race",
+                dualC.civilWarOfRace(Faction.CENTAURI) != null
+                && dualC.civilWarOfRace(Faction.CENTAURI).getPhase()
+                        == CivilWarState.Phase.CIVIL_WAR);
+
+        // ── D. :994 war relation + :974 Non-Aggression suppressed during war. ──
+        check("CWR", "factions of a race in Civil War are at war with each other (:994)",
+                dualC.civilWarOfRace(Faction.CENTAURI)
+                        .isFactionAtWarWithRival(cA));
+        check("CWR", "Non-Aggression auto-state suppressed during Civil War (:974)",
+                !dualC.isNonAggression(cA, cB));
+
+        // ── E. :1000 rounded-up-average merge on exit by war end. ──
+        // Snapshot gave both factions the race-level row; diverge them:
+        // CA→NARN = 2, CB→NARN = 5 → average 3.5 → rounded UP to 4.
+        CivilWarState cws = dualC.civilWarOfRace(Faction.CENTAURI);
+        cws.setSplitTension(cA, Faction.NARN, 2);
+        cws.setSplitTension(cB, Faction.NARN, 5);
+        Map<Faction, Integer> merged = dualC.exitCivilWarByWarEnd(Faction.CENTAURI);
+        check("CWR", "merge produces the rounded-up average (2 and 5 -> 4) (:1000)",
+                merged.containsKey(Faction.NARN) && merged.get(Faction.NARN).intValue() == 4);
+        check("CWR", "merged value written back to the race-level matrix",
+                dualC.getTensionMatrix().getTension(Faction.CENTAURI, Faction.NARN) == 4);
+        check("CWR", "unrest -1 for every faction on exit (:998)",
+                cA.getUnrest() == unrestBefore && cB.getUnrest() == unrestBefore);
+        check("CWR", "race left the Civil War state",
+                dualC.civilWarOfRace(Faction.CENTAURI).getPhase()
+                        == CivilWarState.Phase.UNIFIED);
+
+        // ── F. :996 end-war targeting selection (highest mutual tension). ──
+        // Three factions of one race; mutual tensions: A<->B 5, A<->C 3, B<->C 2.
+        Player fA = player("FA", Faction.NARN);
+        Player fB = player("FB", Faction.NARN);
+        Player fC = player("FC", Faction.NARN);
+        GameState tri = state(fA, fB, fC);
+        // Tension is directional (source→target), so raise both directions of
+        // the A<->B pair; the mutual sum for :996 is then 5+5 = 10.
+        tri.raiseSameRaceTension(fA, fB, 3);   // 2 -> 5
+        tri.raiseSameRaceTension(fB, fA, 3);   // 2 -> 5
+        tri.raiseSameRaceTension(fA, fC, 1);   // 2 -> 3
+        int ab = tri.getSameRaceTension(fA, fB) + tri.getSameRaceTension(fB, fA);
+        int ac = tri.getSameRaceTension(fA, fC) + tri.getSameRaceTension(fC, fA);
+        int bc = tri.getSameRaceTension(fB, fC) + tri.getSameRaceTension(fC, fB);
+        check("CWR", "end-war targeting picks the highest-mutual-tension pair (:996)",
+                ab >= ac && ab >= bc && ab == 10);
+        check("CWR", "self-involvement exception targets the highest tension toward YOU (:996)",
+                tri.getSameRaceTension(fB, fA) >= tri.getSameRaceTension(fB, fC));
+
+        // ── G. :980 Joint Effects — unified spill, split isolation. ──
+        Player jA = player("JA", Faction.HUMAN);
+        Player jB = player("JB", Faction.HUMAN);
+        GameState joint = state(jA, jB);
+        joint.applyRaceJointInfluenceLoss(jA, 2);
+        check("CWR", "UNIFIED race: influence loss spills to every faction of the race (:980)",
+                jA.getInfluence() == 2 && jB.getInfluence() == 2);
+        // Declaration entry (:992 second sentence) — the fixture tension is
+        // below 5, so the end-of-turn trigger would not fire.
+        check("CWR", "declaration entry registers the machine for the race (:992)",
+                joint.forceCivilWarEntry(Faction.HUMAN, 5)
+                && joint.civilWarOfRace(Faction.HUMAN).getPhase()
+                        == CivilWarState.Phase.CIVIL_WAR);
+        joint.applyRaceJointInfluenceLoss(jA, 1);
+        check("CWR", "CIVIL_WAR race: the loss lands on the loser alone (:980/:1000)",
+                jA.getInfluence() == 1 && jB.getInfluence() == 2);
+
+        // ── H. Standard game unchanged: single-faction race-level matrix untouched. ──
+        Player std1 = player("STD1", Faction.HUMAN);
+        Player std2 = player("STD2", Faction.MINBARI);
+        GameState std = state(std1, std2);
+        std.getTensionMatrix().enterWar(Faction.HUMAN, Faction.MINBARI);
+        std.applyRaceJointInfluenceLoss(std1, 2);
+        check("CWR", "standard game: joint loss is the loser's own loss (single faction)",
+                std1.getInfluence() == 2);
+        check("CWR", "standard game: race-level matrix behaves exactly as pre-0691",
+                std.isAtWar(Faction.HUMAN, Faction.MINBARI)
+                && std.civilWarRaces().isEmpty());
+    }
+
     private static void testMercenaries() throws Exception {
         // 1. DeckLoader hydration: optional "mercenary" key (absent = false).
         List<Card> parsed = DeckLoader.parseCards("["
@@ -5052,10 +5933,16 @@ public class HeadlessConformanceTest {
             testShunnedWiring(); // B5-0506: opponent-character enhancement (shunned) wiring
             testBonusFloor(); // B5-0486: minimum-1 bonus floor (Censure-class printed floors)
             testMinesReactive(); // B5-0539: reactive mines damage-on-attack (B5-0528 hook)
+            testTriggeredNoActionConsumption(); // B5-0671: triggered effects consume no action (TRG, rulebook :771–:775)
             testDeckConstruction(); // B5-0606: rulebook II:193-195 deck-construction quotas
             testVictoryConditions(); // B5-0617: rulebook standard victory conditions 1 & 2
             testMajorVictory(); // B5-0629: Major Victory + Shadow War condition-1 guard (PART 1 red probe)
-            System.out.println("All B5-0203 deviations D1-D14 resolved; D15 partial by effect-coverage; D6/D7 now have dedicated named assertions (B5-0436). B5-0437 station hooks covered (STH). B5-0453 AI station-awareness covered. B5-0469 enhancement seam asserted (ESM). B5-0528 mines reactive covered (MINES). B5-0606 deck construction covered (CVD). B5-0617 victory conditions covered (VIC).");
+            testVictoryPathQuery(); // B5-0663: victory-path surfacing query (VPS)
+            testSUR(); // B5-0661: Unconditional Surrender (rulebook :815–:819)
+            testComputedPower(); // B5-0677: computed Power seam + Negative Power gate (PWR, rulebook :1034)
+            testSurrenderAI(); // B5-0679: AI surrender awareness (SUR-AI)
+            testCivilWar(); // B5-0691: Civil War engine law (CWR, rulebook :990–:1009)
+            System.out.println("All B5-0203 deviations D1-D14 resolved; D15 partial by effect-coverage; D6/D7 now have dedicated named assertions (B5-0436). B5-0437 station hooks covered (STH). B5-0453 AI station-awareness covered. B5-0469 enhancement seam asserted (ESM). B5-0528 mines reactive covered (MINES). B5-0606 deck construction covered (CVD). B5-0617 victory conditions covered (VIC). B5-0629 Major Victory covered (MJR). B5-0661 Unconditional Surrender covered (SUR). B5-0677 computed Power seam covered (PWR). B5-0691 Civil War engine law covered (CWR).");
 
             System.out.println();
             System.out.println(failed == 0

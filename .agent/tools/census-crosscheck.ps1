@@ -27,6 +27,11 @@
                    heartbeat file reads UNKNOWN here and falls back to claim age
                    there. This tool reports it like any other disagreement; the
                    operator decides, the checker does not silently forgive.
+    suppression    (B5-0658) each tool's own Get-CensusSuppression replicated
+                   verbatim: run-queue two-signal (claim+heartbeat, falls back to
+                   claim age when no heartbeat for owner) vs ledger-query three-
+                   signal (claim+heartbeat+report, suppresses on missing heartbeat).
+                   Diffs suppression verdict per row id; disagreement = divergence.
 
   Output: one line per disagreement as
     ID | rule | run-queue: value | ledger-query: value
@@ -156,6 +161,16 @@ function Get-Verdict-R([string]$taskId) {
         if ($found) { $newest = $best }
       }
     }
+    # B5-0660 reconcile: run-queue Test-LiveClaim is now THREE-signal (claim,
+    # owner heartbeat, and the newest report matching the task id). Mirror the
+    # report signal here so the two tools compare the same triad.
+    $reportsDir = Join-Path $repoRoot 'REPORTS'
+    if (Test-Path -LiteralPath $reportsDir) {
+      $pattern = '*' + $taskId + '*.md'
+      Get-ChildItem -LiteralPath $reportsDir -Filter $pattern -File -ErrorAction SilentlyContinue | ForEach-Object {
+        if ($_.LastWriteTimeUtc -gt $newest) { $newest = $_.LastWriteTimeUtc }
+      }
+    }
     if ($started -gt $now) { return ("live(started-future,ttl " + $ttl + ")") }
     $ageMin = [math]::Round(($now - $newest).TotalMinutes, 1)
     if ($ageMin -lt $ttl) { return ("live(age " + $ageMin + ",ttl " + $ttl + ")") }
@@ -214,6 +229,109 @@ function Get-Word([string]$verdict) {
   return "unknown"
 }
 
+# --- Rule 6: claims-first suppression (B5-0658) ---
+# Replicate each tool's Get-CensusSuppression verbatim and diff the results.
+# run-queue.ps1 Get-CensusSuppression: two-signal (claim + heartbeat), falls
+#   back to claim age when no heartbeat exists for the owner.
+# ledger-query.ps1 Get-CensusSuppression: three-signal (claim + heartbeat +
+#   report), suppresses immediately when no heartbeat exists for the owner.
+
+$ReportsDir = Join-Path $repoRoot ".agent/REPORTS"
+
+# Build report index for ledger-query side (third signal per B5-0659).
+$reportsL = @{}
+if (Test-Path -LiteralPath $ReportsDir) {
+  Get-ChildItem -LiteralPath $ReportsDir -Filter "*.md" -ErrorAction SilentlyContinue | ForEach-Object {
+    $stem = $_.BaseName
+    foreach ($m in [regex]::Matches($stem, 'B5-[0-9]{4}[a-z]?')) {
+      $rid = $m.Value
+      if (-not $reportsL.ContainsKey($rid) -or $_.LastWriteTimeUtc -gt $reportsL[$rid]) {
+        $reportsL[$rid] = $_.LastWriteTimeUtc
+      }
+    }
+  }
+}
+
+# Build heartbeat index for run-queue side (uses Get-NormName-R).
+$hbR = @{}
+if (Test-Path -LiteralPath $HbDir) {
+  Get-ChildItem -LiteralPath $HbDir -Filter "*.json" -ErrorAction SilentlyContinue | ForEach-Object {
+    $k = Get-NormName-R $_.BaseName
+    if (-not $hbR.ContainsKey($k) -or $_.LastWriteTimeUtc -gt $hbR[$k]) {
+      $hbR[$k] = $_.LastWriteTimeUtc
+    }
+  }
+}
+
+function Get-Suppression-R {
+  # Replicates run-queue.ps1 Get-CensusSuppression (lines 73-137): two-signal,
+  # falls back to claim age when no heartbeat for the owner exists.
+  param([string]$taskId)
+  $claimPath = Join-Path $ClaimsDir ($taskId + ".json")
+  if (-not (Test-Path -LiteralPath $claimPath)) { return $null }
+  try {
+    $j = Get-Content -LiteralPath $claimPath -Raw | ConvertFrom-Json
+    $ttl = 30
+    if ($j.ttl_min) { $ttl = [int]$j.ttl_min }
+    $started = $null
+    if ($j.started_utc) {
+      try {
+        $started = [System.DateTime]::Parse(
+          [string]$j.started_utc,
+          [System.Globalization.CultureInfo]::InvariantCulture,
+          [System.Globalization.DateTimeStyles]::RoundtripKind).ToUniversalTime()
+      } catch { $started = $null }
+    }
+    if (-not $started) { $started = (Get-Item -LiteralPath $claimPath).LastWriteTimeUtc }
+    if ($started -gt $now) { return "suppressed(future-dated)" }
+    $newest = $started
+    $owner = [string]$j.agent_id
+    if ($owner) {
+      $k = Get-NormName-R $owner
+      if ($hbR.ContainsKey($k) -and $hbR[$k] -gt $newest) { $newest = $hbR[$k] }
+    }
+    # run-queue: no heartbeat -> fall back to claim age (do NOT suppress)
+    if (($now - $newest).TotalMinutes -lt $ttl) { return "suppressed($owner)" }
+    return "reportable"
+  } catch {
+    return "suppressed(unreadable-claim)"
+  }
+}
+
+function Get-Suppression-L {
+  # Replicates ledger-query.ps1 Get-CensusSuppression (lines 160-230): three-
+  # signal, suppresses immediately when no heartbeat for the owner exists.
+  param([string]$taskId)
+  $claimPath = Join-Path $ClaimsDir ($taskId + ".json")
+  if (-not (Test-Path -LiteralPath $claimPath)) { return $null }
+  try {
+    $c = Get-Content -Raw -LiteralPath $claimPath | ConvertFrom-Json
+    $owner = $c.agent_id
+    $ttl = $TtlMinutes
+    if ($c.ttl_min) { $ttl = [int]$c.ttl_min }
+    $started = $null
+    if ($c.started_utc) {
+      try { $started = [DateTime]::Parse($c.started_utc).ToUniversalTime() } catch { $started = $null }
+    }
+    if (-not $started) { $started = (Get-Item -LiteralPath $claimPath).LastWriteTimeUtc }
+    if ($started -gt $now) { return "suppressed(future-dated)" }
+    if (-not $owner) { return "suppressed(unreadable-agent_id)" }
+    $k = Get-NormName-L $owner
+    if (-not $hbL.ContainsKey($k)) { return "suppressed(no-heartbeat)" }
+    $claimAge = [math]::Round(($now - $started).TotalMinutes, 1)
+    $hbAge = [math]::Round(($now - $hbL[$k]).TotalMinutes, 1)
+    $newestMin = [math]::Min([double]$claimAge, [double]$hbAge)
+    if ($reportsL.ContainsKey($taskId)) {
+      $rptAge = [math]::Round(($now - $reportsL[$taskId]).TotalMinutes, 1)
+      $newestMin = [math]::Min($newestMin, $rptAge)
+    }
+    if ($newestMin -lt $ttl) { return "suppressed($owner)" }
+    return "reportable"
+  } catch {
+    return "suppressed(unreadable-claim)"
+  }
+}
+
 # --- diff over the union of IDs ---
 $allIds = @()
 foreach ($id in $rowsR.Keys) { if ($allIds -notcontains $id) { $allIds += $id } }
@@ -249,6 +367,21 @@ foreach ($id in $allIds) {
   $ivl = Get-Verdict-L $id
   if ((Get-Word $ivr) -ne (Get-Word $ivl)) {
     $divs += ("{0} | claim-liveness | run-queue: {1} | ledger-query: {2}" -f $id, $ivr, $ivl)
+  }
+}
+
+# --- Rule 6 suppression diff (B5-0658) ---
+# Compare each tool's own Get-CensusSuppression verdict per row.
+foreach ($id in $allIds) {
+  $ivR = Get-Suppression-R $id
+  $ivL = Get-Suppression-L $id
+  if ($ivR -eq $null -and $ivL -eq $null) { continue }
+  if ($ivR -ne $null -and $ivL -eq $null) {
+    $divs += ("{0} | suppression | run-queue: {1} | ledger-query: not-in-census" -f $id, $ivR)
+  } elseif ($ivR -eq $null -and $ivL -ne $null) {
+    $divs += ("{0} | suppression | run-queue: not-in-census | ledger-query: {1}" -f $id, $ivL)
+  } elseif ($ivR -ne $ivL) {
+    $divs += ("{0} | suppression | run-queue: {1} | ledger-query: {2}" -f $id, $ivR, $ivL)
   }
 }
 

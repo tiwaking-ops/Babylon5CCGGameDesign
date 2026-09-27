@@ -339,7 +339,7 @@ public class AIPlayer {
             }
         }
 
-        // ── Agenda lifecycle (B5-0364; B5-0345 Tier-1 #3) ──────────────────
+        // ── Contingencies (B5-0365; B5-0345 Tier-2 #4) ─────────────────────
         // DISCARD_AGENDA: non-Major agendas only (engine refuses Majors).
         if (rules.canDiscardAgenda(p)) {
             actions.add(GameAction.discardAgenda(p.getAgenda()));
@@ -394,6 +394,24 @@ public class AIPlayer {
             }
         }
 
+        // ── Surrender (B5-0679) ──────────────────────────────────────────────
+        // MEDIUM/HARD offer SURRENDER when the RulesEngine legality holds AND
+        // the player is losing by the defined threshold (trailing the leader
+        // by >= 6 influence). This is never a routine influence move — it is
+        // an exit from a hopeless position. EASY stays uniform through
+        // easyChoose (difficulty contract, B5-0351).
+        if (difficulty != AIDifficulty.EASY) {
+            Player leader = leadingPlayer(state, p);
+            int gap = leader.getInfluence() - p.getInfluence();
+            if (gap >= 6) {
+                for (Player target : state.getPlayers()) {
+                    if (target != p && rules.canSurrender(p, target, state)) {
+                        actions.add(GameAction.surrender(target));
+                    }
+                }
+            }
+        }
+
         return actions;
     }
 
@@ -426,6 +444,44 @@ public class AIPlayer {
         AgendaCard ag = p.getAgenda();
         if (ag != null) hosts.add(ag);
         return hosts;
+    }
+
+    // ── B5-0679: Surrender scoring helpers ────────────────────────────────────
+    // The threshold for offering surrender is defined here: the player must
+    // trail the leading opponent by at least 6 influence points. This is
+    // logged in DECISIONS.md as the B5-0679 threshold definition.
+    //
+    // Scoring principle: surrender is never a routine influence move. It is
+    // offered only from a genuinely hopeless position. The +3 influence that
+    // lands on the opponent is a cost — HARD explicitly avoids feeding a
+    // winning rival by penalizing surrender-to-leader.
+    // (leadingPlayer is the pre-existing HEAD helper at file tail — reused, not
+    // duplicated, by the B5-0679 offer gating and scorers.)
+
+    /** B5-0679: MEDIUM surrender score. Positive only when the player is
+     *  losing by the threshold (>= 6 behind the leader). The score decreases
+     *  as the gap grows (a 6-point gap is the most urgent), and surrender to
+     *  the leader is penalized because the +3 influence would feed the rival
+     *  who is already winning. */
+    private int scoreSurrenderMedium(GameState state, Player p, Player target) {
+        Player leader = leadingPlayer(state, p);
+        int gap = leader.getInfluence() - p.getInfluence();
+        if (gap < 6) return -1;  // not losing badly enough
+        int score = 10 - gap;     // 6..4 for gaps 6..10+ (higher = more urgent)
+        if (target == leader) score -= 5;  // don't feed the leader
+        return score;
+    }
+
+    /** B5-0679: HARD surrender score. Same threshold gating, but HARD weighs
+     *  the +3-influence swing explicitly: surrendering to a winning rival is
+     *  strongly disfavored because it widens their lead. */
+    private double scoreSurrenderHard(GameState state, Player p, Player target) {
+        Player leader = leadingPlayer(state, p);
+        int gap = leader.getInfluence() - p.getInfluence();
+        if (gap < 6) return -1.0;  // not losing badly enough
+        double base = 5.0 - gap * 0.5;  // decreases with gap
+        if (target == leader) base -= 4.0;  // strong penalty for feeding the leader
+        return base;
     }
 
     /** B5-0403: the highest cumulative mercenary bid on `merc` by any player
@@ -707,6 +763,14 @@ public class AIPlayer {
                         / (projected + bestOtherMercenaryBid(state, p, merc) + 2.0);
                 return (int) Math.round(4.0 * winProb - inc * 0.5);
             }
+            case SURRENDER:
+                // B5-0679: offered only from a losing position (trailing the
+                // leader by >= 6 influence). Value the exit from a certain
+                // loss, penalized when the +3 swing feeds the leader.
+                if (a.getTarget() != null) {
+                    return scoreSurrenderMedium(state, p, a.getTarget());
+                }
+                return -10;
             default:
                 return 1;
         }
@@ -898,6 +962,14 @@ public class AIPlayer {
                         / (projected + bestOtherMercenaryBid(state, p, merc) + 2.0);
                 return 5.0 * winProb - inc * 0.75;
             }
+            case SURRENDER:
+                // B5-0679: HARD surrenders only from a losing position,
+                // preferring to surrender to a non-leader war opponent (don't
+                // feed the leader +3 influence).
+                if (a.getTarget() != null) {
+                    return scoreSurrenderHard(state, p, a.getTarget());
+                }
+                return -5.0;
             default:
                 return 1;
         }

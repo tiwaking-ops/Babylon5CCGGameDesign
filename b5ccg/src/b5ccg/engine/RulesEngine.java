@@ -166,6 +166,7 @@ public class RulesEngine {
     public boolean canPromote(Player p, CharacterCard ch) {
         if (ch == null || !p.getSupportingRole().contains(ch)) return false;
         if (ch.isRotated() || ch.isFaceDown() || !ch.canActAfterNeutralization()) return false;
+        if (ch instanceof AsylumCharacterCard) return false; // B5-0661
         boolean hasLeader = false;
         for (CharacterCard ic : p.getInnerCircle()) {
             if (!ic.isRotated() && ic.canActAfterNeutralization()) { hasLeader = true; break; }
@@ -405,7 +406,10 @@ public class RulesEngine {
             if (initiatorWon && !contested) {
                 Player target = conflict.getTarget();
                 if (target != null && target != winner) {
-                    target.loseInfluence(1);
+                    // B5-0691 (rulebook :980): joint loss across the target's
+                    // race while UNIFIED (:1000 exempts Civil War). Note the
+                    // winner's gain stays single-faction — only losses spill.
+                    state.applyRaceJointInfluenceLoss(target, 1);
                     winner.gainInfluence(1);
                     state.log("War outcome: " + target.getName()
                             + " loses 1, " + winner.getName()
@@ -566,6 +570,24 @@ public class RulesEngine {
         }
         if (remaining == 1) return lastStanding;
 
+        // B5-0661 (rulebook :821): if every other player has surrendered and
+        // the last remaining active player still stands, that player scores a
+        // Major Victory — routed through majorVictory() so the win is recorded
+        // as a Major Victory path rather than a second divergent victory type.
+        // Surrendered players are NOT forfeited, so the last-standing check
+        // above does not catch this; we count active (non-forfeited AND
+        // non-surrendered) players here.
+        int activeRemaining = 0;
+        Player lastActive = null;
+        for (Player p : state.getPlayers()) {
+            if (p.hasForfeited() || p.hasSurrendered()) continue;
+            activeRemaining++;
+            lastActive = p;
+        }
+        if (activeRemaining == 1 && lastActive != null) {
+            if (majorVictory(state, lastActive)) return lastActive;
+        }
+
         // Standard Victory condition 2 (rulebook :176): if Babylon 5 has an
         // Influence Rating of 20 or more at the end of a turn — and one player
         // eligible to win a standard victory is leading in Power — then that
@@ -608,6 +630,99 @@ public class RulesEngine {
             }
         }
         return null;
+    }
+
+    // ── B5-0663: victory-path query (additive, preserves checkVictory) ────────
+
+    /**
+     * B5-0663 — query WHICH victory path crowned a winner, plus the winner's
+     * Power total and exactly one path-specific qualifier that explains the win.
+     * Purely additive: {@link #checkVictory(GameState)} and every caller of it
+     * are untouched. Returns null when nobody has won yet (distinct from a
+     * sentinel enum — a not-yet-over game is not a "no winner" game).
+     *
+     * Path order mirrors {@link #checkVictory(GameState)} exactly (B5-0641):
+     * last standing → station condition 2 → agenda condition → major → standard.
+     * A reorder would silently change which path fires when two paths qualify on
+     * the same state (e.g. 30-vs-15 Major+Standard overlap — Major wins because
+     * it is tested first in checkVictory).
+     */
+    public VictoryPathResult checkVictoryPath(GameState state) {
+        Player winner = checkVictory(state);
+        if (winner == null) return null;
+        int power = winner.getInfluence();
+
+        // Path 1: last standing (B5-0641 path 1, checkVictory lines 560–568).
+        // checkVictory returns the sole non-forfeited player when remaining == 1.
+        int remaining = 0;
+        for (Player p : state.getPlayers()) {
+            if (!p.hasForfeited()) remaining++;
+        }
+        if (remaining == 1) {
+            return new VictoryPathResult(VictoryPath.LAST_STANDING, power,
+                    Integer.valueOf(remaining));
+        }
+
+        // Path 2: station condition 2 (B5-0641 path 2, checkVictory line 599,
+        // stationVictory lines 644–661).
+        Babylon5Station station = state.getStation();
+        if (!state.isShadowWar()
+                && station.getInfluence() >= Babylon5Station.CONDITION_2_THRESHOLD) {
+            Player stationLeader = null;
+            int leaders = 0;
+            for (Player p : state.getPlayers()) {
+                if (p.hasForfeited()) continue;
+                AgendaCard agenda = p.getAgenda();
+                if (agenda != null && !agenda.isFaceDown() && agenda.isMajorAgenda()) continue;
+                if (strictlyLeads(state, p, true)) {
+                    stationLeader = p;
+                    leaders++;
+                }
+            }
+            if (leaders == 1 && stationLeader == winner) {
+                return new VictoryPathResult(VictoryPath.STATION_CONDITION_2, power,
+                        Integer.valueOf(station.getInfluence()));
+            }
+        }
+
+        // Path 3: agenda condition (B5-0641 path 3, checkVictory lines 610–613).
+        AgendaCard agenda = winner.getAgenda();
+        if (agenda != null && !agenda.isFaceDown() && agenda.isConditionMet(state, winner)) {
+            return new VictoryPathResult(VictoryPath.AGENDA_CONDITION, power,
+                    agenda.getWinConditionKey());
+        }
+
+        // Path 4: major victory (B5-0641 path 4, checkVictory line 621,
+        // majorVictory lines 691–698). Includes the B5-0661 surrender case
+        // (activeRemaining == 1 && majorVictory) — that routes through this
+        // same majorVictory check, so it is the MAJOR path, not last-standing.
+        if (majorVictory(state, winner)) {
+            int nextHighest = 0;
+            for (Player q : state.getPlayers()) {
+                if (q == winner || q.hasForfeited() || q.hasSurrendered()) continue;
+                if (q.getInfluence() > nextHighest) nextHighest = q.getInfluence();
+            }
+            return new VictoryPathResult(VictoryPath.MAJOR, power,
+                    Integer.valueOf(power - nextHighest));
+        }
+
+        // Path 5: standard victory (B5-0641 path 5, checkVictory lines 625–626,
+        // standardVictory lines 673–677).
+        if (standardVictory(state, winner)) {
+            int nextHighest = 0;
+            for (Player q : state.getPlayers()) {
+                if (q == winner || q.hasForfeited() || q.hasSurrendered()) continue;
+                if (q.getInfluence() > nextHighest) nextHighest = q.getInfluence();
+            }
+            return new VictoryPathResult(VictoryPath.STANDARD, power,
+                    Integer.valueOf(power - nextHighest));
+        }
+
+        // Unreachable: checkVictory returned a winner but no path matched.
+        // Defensive fallback — the B5-0663 VPS section asserts this line is
+        // never reached on any state checkVictory can produce.
+        return new VictoryPathResult(VictoryPath.STANDARD, power,
+                Integer.valueOf(power));
     }
 
     /**
@@ -660,29 +775,31 @@ public class RulesEngine {
     /**
      * B5-0629 — Major Victory path 1 (rulebook :182): "Have at least 20
      * Power, and at least 10 more than each other player". Interpreted as:
-     * every OTHER non-forfeited player sits at least 10 Power below the
-     * candidate; a 9-point lead or a tie crowns nobody. Forfeited players are
-     * excluded from the comparison, matching standardVictory/strictlyLeads
-     * ("each other player" reads as players still in the game; interpretation
-     * recorded in DECISIONS B5-0629). No major-agenda bar and no Shadow War
-     * gate: :178 names Major Victory as the path that REMAINS when Standard
-     * Victory is barred or the War has begun.
+     * every OTHER non-forfeited non-surrendered player sits at least 10 Power
+     * below the candidate; a 9-point lead or a tie crowns nobody. Forfeited
+     * AND surrendered players are excluded from the comparison (a surrendered
+     * player is out of the game — B5-0661), matching standardVictory/
+     * strictlyLeads ("each other player" reads as players still in the game;
+     * interpretation recorded in DECISIONS B5-0629). No major-agenda bar and
+     * no Shadow War gate: :178 names Major Victory as the path that REMAINS
+     * when Standard Victory is barred or the War has begun.
      */
     private boolean majorVictory(GameState state, Player p) {
         if (p.getInfluence() < 20) return false;
         for (Player q : state.getPlayers()) {
-            if (q == p || q.hasForfeited()) continue;
+            if (q == p || q.hasForfeited() || q.hasSurrendered()) continue;
             if (q.getInfluence() > p.getInfluence() - 10) return false;
         }
         return true;
     }
 
     /** Shared D12 strict-leader predicate. Condition 2 excludes barred players
-     *  from candidate and tie-blocking comparisons; condition 1 compares all. */
+     *  from candidate and tie-blocking comparisons; condition 1 compares all.
+     *  B5-0661: surrendered players are also excluded (out of the game). */
     private boolean strictlyLeads(GameState state, Player p,
                                   boolean ignoreMajorAgendaPlayers) {
         for (Player q : state.getPlayers()) {
-            if (q == p || q.hasForfeited()) continue;
+            if (q == p || q.hasForfeited() || q.hasSurrendered()) continue;
             if (ignoreMajorAgendaPlayers) {
                 AgendaCard agenda = q.getAgenda();
                 if (agenda != null && !agenda.isFaceDown() && agenda.isMajorAgenda()) continue;
@@ -690,6 +807,73 @@ public class RulesEngine {
             if (q.getInfluence() >= p.getInfluence()) return false;
         }
         return true;
+    }
+
+    // ── B5-0661: Unconditional Surrender (rulebook :815–:821) ────────────────
+
+    /**
+     * B5-0661: surrender is legal when the phase is the discard round
+     * (GamePhase.DRAW), the surrendering player is not already surrendered or
+     * forfeited, the target is another non-surrendered non-forfeited player,
+     * and the two players' factions are at war (rulebook :817: "You must
+     * surrender to a player of a race with whom you are at war").
+     */
+    public boolean canSurrender(Player p, Player target, GameState state) {
+        if (state.getPhase() != GamePhase.DRAW) return false;
+        if (p.hasSurrendered() || p.hasForfeited()) return false;
+        if (target == null || target == p) return false;
+        if (target.hasSurrendered() || target.hasForfeited()) return false;
+        Faction myFaction = p.getFaction();
+        Faction theirFaction = target.getFaction();
+        if (myFaction == null || theirFaction == null) return false;
+        if (!state.isAtWar(myFaction, theirFaction)) return false;
+        // B5-0661: the surrendering player must have an ambassador in play to
+        // place in asylum (rulebook :819).
+        if (p.getAmbassador() == null) return false;
+        return true;
+    }
+
+    /**
+     * B5-0661: execute unconditional surrender.
+     * (1) Mark the surrendering player as surrendered (out of the game).
+     * (2) Grant the target 3 influence (rulebook :817: "gains 3 influence").
+     * (3) Create an asylum copy of the surrendering player's ambassador as a
+     *     supporting character on the target's side, starting Clean (no
+     *     aftermath/enhancement attachments carried over — the copy is a fresh
+     *     card with no bonus registry) and refused elevation to the Inner
+     *     Circle (rulebook :819).
+     * Distinct from forfeiture: this does NOT discard the ambassador or set
+     * hasForfeited, and the +3 influence grants to the OPPONENT, not discards
+     * from the surrendering player.
+     */
+    public void executeSurrender(Player p, Player target, GameState state) {
+        // (1) Mark surrendered
+        p.setHasSurrendered(true);
+        state.markSurrendered(p);
+        state.log(p.getName() + " unconditionally surrenders to "
+                  + target.getName() + ".");
+
+        // (2) Grant 3 influence to the target
+        target.gainInfluence(3);
+        state.log(target.getName() + " gains 3 influence from the surrender ("
+                  + target.getInfluence() + " total).");
+
+        // (3) Asylum copy of the ambassador
+        CharacterCard originalAmb = p.getAmbassador();
+        if (originalAmb != null) {
+            // Fresh copy with same printed stats, NOT an ambassador, in asylum
+            CharacterCard asylumCopy = originalAmb.createAsylumCopy(
+                    "asylum_" + p.getName() + "_" + originalAmb.getId());
+            asylumCopy.setOwner(target);
+            asylumCopy.heal(); // start Clean — no damage, no aftermaths, no enhancements
+            asylumCopy.rotate(); // B5-0661 repair: enters as a retired supporting character
+            target.placeInSupportingRole(asylumCopy);
+            target.addAsylumCard(asylumCopy);
+            state.log(target.getName() + " places an asylum copy of " + p.getName()
+                      + "'s ambassador (" + originalAmb.getTitle()
+                      + ") as a supporting character (Clean, asylum — may not "
+                      + "be elevated to the Inner Circle).");
+        }
     }
 
     // ── Legality checks ──────────────────────────────────────────────────────
@@ -720,6 +904,22 @@ public class RulesEngine {
     public boolean canPlayCard(Player p, Card c) {
         if (!p.getHand().contains(c)) return false;
         return c.getFaction().isPlayableBy(p.getFaction());
+    }
+
+    /**
+     * B5-0677 (rulebook :1034, B5-0667 proposal §3.4): the Negative Power
+     * target gate. A card that "refers to only counting influence as power"
+     * cannot affect a player whose Power is lower than his Influence.
+     * Evaluated ONCE, at effect-application time, as a target gate beside the
+     * other target-legality gates — never re-checkable after the fact (the
+     * rule protects a player from being targeted, not from having been
+     * affected). With no POWER-tagged bonus in play, Power equals Influence
+     * and the protection can never fire (the B5-0667 measured vacuity); it
+     * becomes exercisable exactly when a source pushes Power below Influence.
+     */
+    public boolean canAffectTarget(Card source, Player target) {
+        if (source == null || target == null) return true;
+        return target.getPower() >= target.getInfluence();
     }
 
     /** B5-0365: contingencies may only attach to a valid in-play host controlled by the player. */

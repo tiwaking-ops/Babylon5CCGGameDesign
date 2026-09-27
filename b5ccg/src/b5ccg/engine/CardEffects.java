@@ -366,7 +366,10 @@ public final class CardEffects {
 
         Integer loseInf = (Integer) CONFLICT_LOSER_INFLUENCE.get(id);
         if (loseInf != null) {
-            loser.loseInfluence(loseInf.intValue());
+            // B5-0691 (rulebook :980): while the loser's race is UNIFIED the
+            // loss spills to every faction of that race; byte-identical in the
+            // standard single-faction game (the race list holds only the loser).
+            state.applyRaceJointInfluenceLoss(loser, loseInf.intValue());
             state.log(loser.getName() + " loses " + loseInf + " influence ("
                     + conflict.getCard().getTitle() + ").");
         }
@@ -386,7 +389,9 @@ public final class CardEffects {
         if (steal != null) {
             int amount = Math.min(steal.intValue(), loser.getInfluence());
             if (amount > 0) {
-                loser.loseInfluence(amount);
+                // B5-0691 (rulebook :980): joint loss across the loser's race
+                // while UNIFIED (single-faction behaviour unchanged).
+                state.applyRaceJointInfluenceLoss(loser, amount);
                 winner.gainInfluence(amount);
                 state.log(winner.getName() + " steals " + amount + " influence from "
                         + loser.getName() + " (" + conflict.getCard().getTitle() + ").");
