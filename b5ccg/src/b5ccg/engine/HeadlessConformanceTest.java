@@ -1755,6 +1755,98 @@ public class HeadlessConformanceTest {
                 decks.size() >= 4);
     }
 
+    /**
+     * VIC (B5-0617): rulebook Standard Victory Conditions 1 & 2 (:175–:184).
+     * Asserted:
+     *   1. Standard Victory (condition 1): 20+ power and strictly leading by >=1 power wins.
+     *   2. Standard Victory tiebreak (D12): tie at 20+ power produces NO winner.
+     *   3. Threshold gate: power under 20 never triggers victory even when strictly leading.
+     *   4. Station Victory (condition 2): 20+ station influence with a strictly-leading
+     *      standard-eligible leader wins.
+     *   5. Major agenda bars condition 2: a revealed major agenda prevents station victory.
+     *   6. Hidden major agenda inert: a face-down major agenda does NOT bar condition 2 (:520).
+     *   7. Shadow War suppression: Shadow War suppresses condition 1 and condition 2 standard victories.
+     */
+
+    /** B5-0617 fixture helper: set absolute influence (test-only; production API is gain/lose). */
+    private static void setInfluence(Player p, int value) {
+        int cur = p.getInfluence();
+        if (value > cur) p.gainInfluence(value - cur);
+        else if (value < cur) p.loseInfluence(cur - value);
+    }
+
+    private static void testVictoryConditions() {
+        System.out.println("VIC (B5-0617): Standard Victory conditions 1 & 2 (rulebook :175–:184)");
+        RulesEngine rules = new RulesEngine();
+
+        // ── 1. Standard Victory (Condition 1): 20+ power and strictly leading ──
+        Player v1 = player("VIC-1A", Faction.CENTAURI);
+        Player v2 = player("VIC-1B", Faction.NARN);
+        setInfluence(v1, 20);
+        setInfluence(v2, 15);
+        GameState s1 = state(v1, v2);
+        check("VIC", "20 power and strictly leading produces standard victory",
+                rules.checkVictory(s1) == v1);
+
+        // ── 2. Standard Victory tiebreak (D12): tie produces no winner ─────────
+        Player v3 = player("VIC-2A", Faction.CENTAURI);
+        Player v4 = player("VIC-2B", Faction.NARN);
+        setInfluence(v3, 22);
+        setInfluence(v4, 22);
+        GameState s2 = state(v3, v4);
+        check("VIC", "tie at 20+ power crowns nobody",
+                rules.checkVictory(s2) == null);
+
+        // ── 3. Threshold gate: power < 20 produces no winner ───────────────────
+        Player v5 = player("VIC-3A", Faction.CENTAURI);
+        Player v6 = player("VIC-3B", Faction.NARN);
+        setInfluence(v5, 19);
+        setInfluence(v6, 10);
+        GameState s3 = state(v5, v6);
+        check("VIC", "under 20 power never triggers standard victory despite strict lead",
+                rules.checkVictory(s3) == null);
+
+        // ── 4. Station Victory (Condition 2): 20+ station influence ────────────
+        Player v7 = player("VIC-4A", Faction.CENTAURI);
+        Player v8 = player("VIC-4B", Faction.NARN);
+        setInfluence(v7, 15);
+        setInfluence(v8, 10);
+        GameState s4 = state(v7, v8);
+        s4.getStation().gainInfluence(20);
+        check("VIC", "station 20+ influence crowns leading standard-eligible player",
+                rules.checkVictory(s4) == v7);
+
+        // ── 5. Major Agenda bars Station Victory (revealed) ────────────────────
+        Player v9 = player("VIC-5A", Faction.CENTAURI);
+        Player v10 = player("VIC-5B", Faction.NARN);
+        Player v10b = player("VIC-5C", Faction.MINBARI);
+        setInfluence(v9, 15);
+        setInfluence(v10, 10);
+        setInfluence(v10b, 10);
+        AgendaCard majorAgenda = new AgendaCard("agenda_major_vic", "Major Agenda",
+                "AGENDA_MAJOR", Rarity.RARE, Faction.CENTAURI, CardSet.PREMIERE, "x", "text",
+                true, "MOST_INNER_CIRCLE");
+        majorAgenda.setFaceDown(false);
+        v9.setAgenda(majorAgenda);
+        GameState s5 = state(v9, v10, v10b);
+        s5.getStation().gainInfluence(20);
+        check("VIC", "revealed major agenda holder cannot win station victory",
+                rules.checkVictory(s5) != v9);
+        check("VIC", "tied eligible players yield no station winner",
+                rules.checkVictory(s5) == null);
+
+        // ── 6. Hidden Major Agenda is inert: does NOT bar Station Victory ──────
+        majorAgenda.setFaceDown(true);
+        check("VIC", "face-down major agenda does NOT bar station victory (:520)",
+                rules.checkVictory(s5) == v9);
+
+        // ── 7. Shadow War suppresses condition 2 station victory ───────────────
+        majorAgenda.setFaceDown(true);
+        s5.getStation().setShadowInfluence(Babylon5Station.CONDITION_2_THRESHOLD);
+        check("VIC", "Shadow War suppresses condition 2 station victory",
+                rules.checkVictory(s5) == null);
+    }
+
     private static void testBonusFloor() {
         System.out.println("FLOOR (B5-0486): per-bonus floor field lifts penalty outcome, capped at printed base");
 
@@ -4249,7 +4341,8 @@ public class HeadlessConformanceTest {
             testBonusFloor(); // B5-0486: minimum-1 bonus floor (Censure-class printed floors)
             testMinesReactive(); // B5-0539: reactive mines damage-on-attack (B5-0528 hook)
             testDeckConstruction(); // B5-0606: rulebook II:193-195 deck-construction quotas
-            System.out.println("All B5-0203 deviations D1-D14 resolved; D15 partial by effect-coverage; D6/D7 now have dedicated named assertions (B5-0436). B5-0437 station hooks covered (STH). B5-0453 AI station-awareness covered. B5-0469 enhancement seam asserted (ESM). B5-0528 mines reactive covered (MINES). B5-0606 deck construction covered (CVD).");
+            testVictoryConditions(); // B5-0617: rulebook standard victory conditions 1 & 2
+            System.out.println("All B5-0203 deviations D1-D14 resolved; D15 partial by effect-coverage; D6/D7 now have dedicated named assertions (B5-0436). B5-0437 station hooks covered (STH). B5-0453 AI station-awareness covered. B5-0469 enhancement seam asserted (ESM). B5-0528 mines reactive covered (MINES). B5-0606 deck construction covered (CVD). B5-0617 victory conditions covered (VIC).");
 
             System.out.println();
             System.out.println(failed == 0

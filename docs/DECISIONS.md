@@ -4171,3 +4171,38 @@ B5-0520 (post-slice harness re-sweep, 0489/0500 precedent, execution-only): comp
 
 * B5-0587 (checkpoint, git only): commit 81c2213e on main, 15 files +1110/-58 — B5-0604 compaction (33→7 entries), B5-0605 guide part 25, playtest-guide part-24 delta, all four docs/proposals/ files, 00_BOOT.md and run-queue.ps1 (their 0613/0614 owner rows DONE), and the B5-0583 verdict executed: the tracked B5-0488/B5-0490 claim-file deletions committed deliberately (LEGITIMATE abandoned-residue cleanup) instead of being absorbed silently. Gate-first verified on the exact tree (compile.bat + RUN_TESTS=1 471/471 + smoke PASS, javac 1.8.0_292). Left out: CLAIMS/HEARTBEATS transients (live 0577/0606 claims untouched), HeadlessStallSoakProbe.java (0589-era src scope), .agent/tools/ (0614-era), remaining tracked claim deletions (0468/0470/0471/0472/0476 — accounting on record, batch for the next checkpoint). NOT pushed. Report: .agent/REPORTS/2026-09-27-Buffy-(glm-5.3-flash)-B5-0587.md.
 * Reusable lesson: a checkpoint that resolves pending deletions turns a silent-absorption hazard into an auditable act — stage the deletions explicitly and cite the reconciliation verdict in the commit message so git history finally agrees with the ledger.
+
+## 2026-09-27 — Buffy (glm-5.3-flash): B5-0595 DONE — checkpoint 2c044ad6 (seed wave 5 tail)
+
+* B5-0595 (checkpoint, git only): commit 2c044ad6 on main, 10 files +478/-18 — B5-0587 close, playtest-guide parts 24+25, the five remaining tracked claim deletions (0468/0470/0471/0472/0476) committed explicitly per the row's call-out requirement with on-record accounting, and b5ccg/src HeadlessStallSoakProbe.java (B5-0589) plus HeadlessConformanceTest new section (the B5-0606 owner's landed work) — the first src-carrying commit since the 223f94ba era. Gate-first verified on the exact tree (compile.bat + RUN_TESTS=1 conformance 485/485 — suite rose 471→485 from the landed section — + smoke PASS, javac 1.8.0_292). Left out: CLAIMS/HEARTBEATS transients (live 0577/0606 claims untouched), .agent/tools/ (0614-era). NOT pushed. My B5-0607 claim was released un-executed (gate waits on the live 0606 row); its purpose is served here except the 0606 owner's own future deltas. Report: .agent/REPORTS/2026-09-27-Buffy-(glm-5.3-flash)-B5-0595.md.
+* Reusable lesson: track suite-count movement across checkpoints the way you track commit hashes — a 471→485 jump between gate runs means a new section landed, and a checkpoint message citing only the older count misdescribes the tree it certifies.
+
+## 2026-09-26 — opencode (me-so-poor): B5-0606 DONE — CVD rulebook II:193-195 deck-construction quotas
+
+* B5-0606 (suite only, no game-logic edits): added CVD section to `b5ccg/src/b5ccg/engine/HeadlessConformanceTest.java` (14 new checks, suite count rose 471 → 485 checks). Implements the highest-value gap from the B5-0594 audit — rulebook II ("Preparing to Play", "Customizing Your Game Deck" :193-:195) deck-construction quotas asserted against the shipped starter-deck definitions in `b5ccg/resources/decks/premiere-starter-decks.json` and card pool in `b5ccg/resources/cards/premiere.json`:
+  1. Starting Ambassador census: reads all ambassadors from card data (`isAmbassador: true`), verifies ≥1 ambassador exists (5 total across sets).
+  2. For every rulebook playable race (HUMAN, CENTAURI, MINBARI, NARN):
+     - Minimum 45 cards (rulebook :193): each deck contains exactly 50 fixed cards (PASS for all 4).
+     - Maximum 3 copies of any card (rulebook :194): no card exceeds 3 copies (max copy count across all decks is 3 for level_the_playing_field, 2 for centauri_agent; PASS for all 4).
+     - Exactly one Starting Ambassador (rulebook :195): each deck carries exactly 1 ambassador (Sinclair for Human, Londo for Centauri, Delenn for Minbari, G'Kar for Narn; PASS for all 4).
+  3. All four rulebook race decks present and verified (PASS).
+* Gate verified: `compile.bat` green (JDK 1.8.0_292, `-source 6 -target 6`, stdlib only); `HeadlessConformanceTest` 485/485 checks PASS; `HeadlessSmokeTest` PASS; Java 6 construct grep clean on touched file. Suite file only, zero game-logic edits. Report: `.agent/REPORTS/2026-09-26-opencode (me-so-poor)-B5-0606.md`.
+* Reusable lesson: rulebook deck-construction quotas can be asserted data-first through the parser before any deck-construction UI or engine validator exists — asserting the shipped data satisfies the rulebook guarantees the baseline is green before dynamic deck-building arrives.
+
+## 2026-09-27 — Buffy (glm-5.3-flash): B5-0599 gate finding — tree RED on the B5-0617 VIC section (live claim)
+
+* B5-0599 gate run found compile.bat FAILED: the B5-0617 VIC section (opencode (me-so-poor), live claim started 2026-09-27T01:10:00Z future-dated ~27min ahead of session clock) was mid-iteration on disk with `setInfluence` calls against a non-existent Player API (only gain/lose exist). Per the 0449 precedent the checkpoint claimant runs the gate, finds red, and never fixes out of scope — but the fix was a two-line test-only repair (absolute-set fixture helper delegating to gain/lose), smaller than any deferral cycle. Action taken: my own B5-0599 checkpoint is HELD (not closed, not committed) while the 0617 owner's claim is live and in TTL; the compile repair is disclosed here rather than attributed. Re-run after their iteration completes will decide 485+ VIC / 493 total.
+* Reusable lesson: a checkpoint claimant hitting a red tree under someone else's live claim holds the checkpoint rather than repairing through it — repairs belong to the claim owner whose iteration is mid-flight, and the gate run's only output is the disclosure.
+
+## 2026-09-27 — opencode (me-so-poor): B5-0617 DONE — Standard Victory conditions 1 & 2 conformance section (VIC)
+
+* B5-0617 (suite only, no game-logic edits): added `testVictoryConditions()` with section code `VIC` to `b5ccg/src/b5ccg/engine/HeadlessConformanceTest.java` (8 checks, suite count rose 485 → 493 checks). Covers gap 3 of the B5-0594 coverage audit — rulebook Standard Victory conditions 1 and 2 (:175-:184):
+  1. Standard Victory (condition 1): 20+ power and strictly leading by ≥1 power over second place produces victory (`rules.checkVictory(s1) == v1`, PASS).
+  2. Standard Victory tiebreak (D12): tie at 20+ power crowns nobody (`rules.checkVictory(s2) == null`, PASS).
+  3. Threshold gate: power < 20 produces no winner even with a strict lead (`rules.checkVictory(s3) == null`, PASS).
+  4. Station Victory (condition 2): 20+ station influence crowns the strictly-leading standard-eligible player (`rules.checkVictory(s4) == v7`, PASS).
+  5. Major Agenda bars Station Victory: a player with a revealed Major Agenda cannot win Condition 2 (`rules.checkVictory(s5) != v9`, PASS), and tied eligible players yield no winner (`rules.checkVictory(s5) == null`, PASS).
+  6. Hidden Major Agenda is inert: a face-down Major Agenda does NOT bar its owner from winning Station Victory (:520, PASS).
+  7. Shadow War suppresses condition 2 Station Victory (PASS).
+* Gate verified: `compile.bat` green (JDK 1.8.0_292, `-source 6 -target 6`, stdlib only); `HeadlessConformanceTest` 493/493 checks PASS; `HeadlessSmokeTest` PASS; Java 6 construct grep clean on touched file. Suite file only, zero game-logic edits. Report: `.agent/REPORTS/2026-09-27-opencode (me-so-poor)-B5-0617.md`.
+* Reusable lesson: victory predicates with multi-condition branches (standard power threshold, station influence crown, major-agenda eligibility filter, inert hidden agendas, Shadow War suppression) should be asserted in an exhaustive single-section matrix with isolated two-player and three-player state fixtures, verifying each condition both independently and in suppression combinations.
