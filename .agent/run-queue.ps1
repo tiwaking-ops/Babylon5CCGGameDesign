@@ -15,10 +15,14 @@
        (e.g. every code task BLOCKED on the same red gate) -> stop.
     c) $MaxIterations reached -> stop (overseer re-invokes).
 
-  Claim TTL rule (mirrors .agent/00_BOOT.md step 9): a claim file younger
-  than its ttl_min is LIVE and is never stolen. Future-dated claims
-  (clock skew - seen before, e.g. B5-0317) are treated as live. Stale
-  claims are left for the agent to reap per protocol, not reaped here.
+  Claim TTL rule (mirrors .agent/00_BOOT.md step 10 and the B5-0597
+  three-signal lesson): a claim is LIVE when the NEWEST of its own
+  started_utc and its owner's heartbeat mtime falls inside its ttl_min, and a
+  live claim is never stolen. Both signals matter: reading started_utc alone
+  declared a working agent free the moment it wrote a placeholder timestamp,
+  and disagreed with .agent/tools/ledger-query.ps1 about the same claim. Future-
+  dated claims (clock skew - seen before, e.g. B5-0317) are treated as live.
+  Stale claims are left for the agent to reap per protocol, not reaped here.
 
 .EXAMPLE
   # Dry run: show what would be claimed, invoke nothing.
@@ -43,6 +47,7 @@ $AgentDir  = $PSScriptRoot
 $RepoRoot  = Split-Path -Parent $AgentDir
 $Ledger    = Join-Path $AgentDir 'TASK_LEDGER.md'
 $ClaimsDir = Join-Path $AgentDir 'CLAIMS'
+$hbDir     = Join-Path $AgentDir 'HEARTBEATS'
 
 $LedgerStatuses = @('OPEN','CLAIMED','DONE','BLOCKED','SUPERSEDED','VOID')
 
@@ -123,21 +128,86 @@ function Get-TaskNumber {
   return 0
 }
 
+function Get-NormName([string]$name) {
+  # Punctuation-normalised key for joining an agent_id to a heartbeat FILENAME.
+  # Copied verbatim from .agent/tools/ledger-query.ps1 (Get-NormName) on purpose:
+  # the two tools must agree, and a second hand-rolled variant is how they came to
+  # disagree in the first place. Strips colons, U+2028/U+2029, spaces, dashes,
+  # underscores and dots; lowercases; keeps letters and digits only. This is what
+  # lets 'solar-pro4:free' match the file 'solar-pro4<U+2028>free.json'.
+  $sb = New-Object System.Text.StringBuilder
+  foreach ($ch in $name.ToCharArray()) {
+    $c = [int]$ch
+    if ($c -eq 0x2028 -or $c -eq 0x2029) { continue }
+    if ($ch -match '[\p{L}\p{N}]') { [void]$sb.Append($ch.ToString().ToLowerInvariant()) }
+  }
+  return $sb.ToString()
+}
+
+function Get-HeartbeatIndex {
+  # normalised agent key -> NEWEST heartbeat mtime for that key. Rebuilt on every
+  # call rather than cached: a single run may iterate many tasks over many minutes,
+  # and a cache captured at start-up would report a growing agent as silent. ~30
+  # files per call is not worth the staleness.
+  $idx = @{}
+  if (Test-Path -LiteralPath $hbDir) {
+    Get-ChildItem -LiteralPath $hbDir -Filter "*.json" -ErrorAction SilentlyContinue | ForEach-Object {
+      $key = Get-NormName $_.BaseName
+      if (-not $idx.ContainsKey($key) -or $_.LastWriteTimeUtc -gt $idx[$key]) { $idx[$key] = $_.LastWriteTimeUtc }
+    }
+  }
+  return $idx
+}
+
 function Test-LiveClaim {
+  # Liveness = the NEWEST of (a) the claim's own started_utc, falling back to the
+  # claim file's mtime when that will not parse, and (b) the OWNER's heartbeat mtime
+  # -- matched through Get-NormName, so 'solar-pro4:free' finds
+  # 'solar-pro4<U+2028>free.json'. Whichever is youngest decides. This mirrors
+  # .agent/tools/ledger-query.ps1 exactly (lines 79-129) and implements the B5-0597
+  # rule, which the previous version of this function ignored: it read started_utc
+  # ALONE, so a real agent mid-task could be declared free the moment it wrote a
+  # placeholder timestamp. Concretely, a live hermes run on B5-0631 wrote
+  # started_utc 2026-09-27T00:00:00Z, which this function called 287 minutes stale
+  # while ledger-query correctly called the same claim LIVE off a 7-minute heartbeat.
+  # Two shipped tools, two truths about one claim; that is the bug this closes.
   param([string]$TaskId)
-  $claimPath = Join-Path $ClaimsDir ($TaskId + ".json")
+  $claimPath = Join-Path $ClaimsDir ($TaskId + '.json')
   if (-not (Test-Path -LiteralPath $claimPath)) { return $false }
   try {
     $j = Get-Content -LiteralPath $claimPath -Raw | ConvertFrom-Json
     $ttl = 30
     if ($j.ttl_min) { $ttl = [int]$j.ttl_min }
-    $started = [System.DateTime]::Parse(
-      [string]$j.started_utc,
-      [System.Globalization.CultureInfo]::InvariantCulture,
-      [System.Globalization.DateTimeStyles]::RoundtripKind).ToUniversalTime()
     $now = (Get-Date).ToUniversalTime()
+
+    $started = $null
+    if ($j.started_utc) {
+      try {
+        $started = [System.DateTime]::Parse(
+          [string]$j.started_utc,
+          [System.Globalization.CultureInfo]::InvariantCulture,
+          [System.Globalization.DateTimeStyles]::RoundtripKind).ToUniversalTime()
+      } catch { $started = $null }
+    }
+    if (-not $started) { $started = (Get-Item -LiteralPath $claimPath).LastWriteTimeUtc }
+    $newest = $started
+
+    $owner = [string]$j.agent_id
+    if ($owner) {
+      $hb = Get-HeartbeatIndex
+      $key = Get-NormName $owner
+      if ($hb.ContainsKey($key) -and $hb[$key] -gt $newest) { $newest = $hb[$key] }
+    }
+    # NOTE a deliberate, documented divergence from ledger-query: that tool reports
+    # UNKNOWN when no heartbeat matches the owner, because it is a reporting tool and
+    # UNKNOWN is a verdict it can print. Here the question is binary -- offer this
+    # task, or not -- so an owner who never wrote a heartbeat at all falls back to
+    # the claim's own age. Returning "not live" in that case would let one
+    # heartbeat-less claim block its task forever, which is a worse failure than the
+    # one being fixed. When NOTHING can be determined (unreadable claim) we still
+    # refuse to hand the task out, per 00_BOOT step 10.
     if ($started -gt $now) { return $true }  # future-dated (clock skew): treat as live
-    return (($now - $started).TotalMinutes -lt $ttl)
+    return (($now - $newest).TotalMinutes -lt $ttl)
   } catch {
     return $true  # unreadable claim file: do not steal it
   }
