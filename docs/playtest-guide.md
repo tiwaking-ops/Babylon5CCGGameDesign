@@ -27,8 +27,10 @@ provenance:
     - {name: "Buffy", version: "unknown" — B5-0558 part 22 refresh: B5-0556 MINES-fix resolution note, 471 suite count, B5-0557 0443 flake classification}
     - {name: "Buffy", version: "unknown" — B5-0558 assessor pass: committed-HEAD claim corrected to working-tree, fix attribution corrected to fixture-primary}
     - {name: "Buffy", version: "unknown" — B5-0550 part 20 refresh: 0548 outcome + actual counts (0539 MINES 10@HEAD/11@worktree), 0541 census update 270/270}
-  last_modified_by_llm: {name: "Buffy", version: "unknown"}
-  last_modified_date: "2026-09-26"
+    - {name: "Buffy", version: "glm-5.3-flash" — B5-0566 part 23 refresh: b2800373 committed-HEAD-green note, B5-0561 human-seat winner-check soft-gate}
+    - {name: "Buffy", version: "glm-5.3-flash" — B5-0578 part 24 refresh: B5-0577 measured stall rate 50% at 120s (upper bound), B5-0575 pipe repairs, 0443-class window failures fully retired}
+    - {name: "Buffy", version: "glm-5.3-flash" — B5-0605 part 25 refresh: B5-0604 frontmatter compaction governance note (33→7 entries, passes-count form)}
+  last_modified_by_llm: {name: "Buffy", version: "glm-5.3-flash"}
 ---
 
 # Human playtest guide — B5 CCG prototype
@@ -330,6 +332,43 @@ known and classified — see the B5-0495 honesty note in section 7.
 > (the MINES x10 section adds 10 assertions to the 460 baseline). Post-B5-0556
 > fix, the live count is **471/471 PASS** — fully green.
 
+> **Update (B5-0566, part 23, 2026-09-26):** two events closed the gap
+> this note tracks. (1) B5-0562 checkpoint **b2800373** committed the
+> B5-0556 fixture half (HeadlessConformanceTest MINES modernization) and
+> the B5-0561 probe hardening, so the suite is fully green at committed
+> HEAD for the first time since the MINES section landed — a bare
+> checkout now compiles and passes 471/471. (2) B5-0561 softened the
+> human-seat probe's winner-within-3-round-window check to a SOFT gate
+> per the B5-0482 precedent (details in the probe bullet below), so the
+> seed-dependent window failure the B5-0557/B5-0558 notes classify is
+> retired as a failure mode; those notes are kept as history. Suite
+> count unchanged at **471/471**; the part-23 window re-verified the
+> post-b2800373 tree green (compile.bat + compile.sh + RUN_TESTS=1
+> conformance 471/471 + smoke PASS, zero code-context Java 6 construct
+> offenders per the B5-0564 build-hygiene re-sweep).
+
+> **Update (B5-0578, part 24, 2026-09-27):** the multi-seed soak is
+> measured. B5-0577 ran HeadlessMultiRoundTest across 10 seeds (1 game
+> each, 120s window): **5 WINNER, 5 TIMEOUT-stalled — a 50% upper-bound
+> stall rate** at that window (8/10 games were still progressing at cap;
+> a longer window was not measured, so this is window-relative, not a
+> game-never-ends rate). Winners emerged at rounds 6–10. This is the
+> first distribution-level measurement — the B5-0312 20–20 stall was a
+> common outcome, not an edge case — and it strengthens the B5-0332
+> option-C (harness reporting tiebreak) recommendation; per-seed data in
+> the B5-0577 report. Supporting evidence: HeadlessReportingTiebreakTest
+> 26/26 on 4 seeds; HeadlessHumanSeatProbe exit 0 on 4 seeds (winner
+> BrAVo round 6 on one; three seed-dependent no-winner windows reported
+> as [INFO] by the B5-0561 soft-gate — the 1/37 failure class is fully
+> retired). New tooling: B5-0589 added
+> `HeadlessStallSoakProbe` (per-seed table with winning-condition
+> labels; exits nonzero only on harness exceptions). Ledger hygiene:
+> B5-0575 (rows 0571–0574), B5-0591 (rows 0569/0570) and B5-0592
+> (rows 0564/0565) repaired the close-out-introduced pipe defects back
+> to canonical 7-pipe form; the four legacy content-contained rows
+> remain excluded per the B5-0568 verdict. Suite count unchanged at
+> **471/471** (re-verified 2026-09-26T23:45Z on committed HEAD).
+
 > **Update (B5-0556 + B5-0557, 2026-09-26):** the 4 MINES failures
 > documented in the B5-0554 honesty note below have been resolved by the
 > B5-0556 engine fix slice. Two one-character engine edits fixed the
@@ -412,7 +451,12 @@ discard-on-heal). Several standalone CLI harnesses exist
   check can fail on slow runs; the B5-0557 sweep reproduced that failure on
   committed HEAD (b5eabc89), classifying it as a pre-existing harness-window
   characteristic, not a regression. This refresh (B5-0558) re-ran the probe:
-  37/37 PASS. **B5-0471 addition:** a face-up agenda install check asserts the
+  37/37 PASS. **B5-0561 update:** that winner check is now a SOFT gate
+  (B5-0482 precedent) — a winner inside the probe window marks PASS; a
+  seed-dependent no-winner window prints an [INFO] line and the run
+  continues instead of failing. Re-verified after the soft-gate landed:
+  36/36 PASS seed 42 (winner=Human, round 6) and 37/37 PASS seed 43.
+  **B5-0471 addition:** a face-up agenda install check asserts the
   `"sets agenda:"` token (the B5-0464 emitter fix for the B5-0459 zero-count
   parser artifact) is emitted from a human seat.
   `java -cp out b5ccg.engine.HeadlessHumanSeatProbe [seed] [timeoutSec]`
@@ -703,6 +747,21 @@ the live list below.
 > content protection applies (B5-0202c, B5-0316).
 
 ## 8. How to record playtest findings
+
+> **Governance note (B5-0605, part 25, 2026-09-27):** the TASK_LEDGER
+> frontmatter `assessor_llm` list was compacted under B5-0604 using the
+> B5-0586 proposal's convention: 33 entries → **7 distinct agents**, each
+> now a single entry `{name, version, passes: N}` (GPT-6 Codex 14, Muse
+> Spark 11, Buffy deepseek 2, me-so-poor 2, Buffy glm 2, Cline 1, Grok 1)
+> in first-appearance order. What changed for contributors: on files that
+> adopt this convention, do NOT append a new entry when your name+version
+> is already listed — increment `passes` and update the file-level
+> `last_modified_date` instead; append a new entry only on first
+> involvement. `author_llm` is still never overwritten, and per-pass
+> appends remain the rule for files that have not adopted the convention
+> (adoption is per-file, recorded in that file's own history — the ledger
+> is the first adopter). This note documents the ledger's actual state;
+> the repo-wide AGENTS.md amendment is still a pending follow-up.
 
 Do not edit code or data while testing. Write observations (bugs, balance,
 confusions) to `investigations/` as a new dated note or into an existing

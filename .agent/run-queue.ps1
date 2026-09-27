@@ -44,25 +44,59 @@ $RepoRoot  = Split-Path -Parent $AgentDir
 $Ledger    = Join-Path $AgentDir 'TASK_LEDGER.md'
 $ClaimsDir = Join-Path $AgentDir 'CLAIMS'
 
+$LedgerStatuses = @('OPEN','CLAIMED','DONE','BLOCKED','SUPERSEDED','VOID')
+
 function Get-LedgerRows {
   $rows = @()
   foreach ($line in (Get-Content -LiteralPath $Ledger)) {
-    if ($line -match '^\|\s*(B5-\d+)\s*\|') {
+    # Anchor tolerantly: 1 or more leading pipes (double-pipe defect class) and an
+    # optional letter suffix on the id (B5-0202c, B5-0329a, ...). The suffix class
+    # was still invisible after the leading-pipe fix, because \d+ cannot match "c".
+    if ($line -match '^\|+\s*(B5-[0-9]{4}[a-z]?)\s*\|') {
       $parts = $line -split '\|'
       if ($parts.Count -ge 4) {
-        $rows += [pscustomobject]@{
-          Id     = $parts[1].Trim()
-          Status = $parts[2].Trim()
+        # Derive Id AND Status the same tolerant way. Reading a fixed cell index is
+        # wrong on every double-pipe row: for "|| B5-0604 | OPEN | ..." the split
+        # yields ['','',' B5-0604 ',' OPEN '], so $parts[2] is the ID, not the status.
+        # That made Status unmatchable against 'OPEN', so the queue-drained stop
+        # condition fired while claimable OPEN rows were on disk.
+        $idPart = $null; $statusPart = $null
+        foreach ($p in $parts) {
+          $tp = $p.Trim()
+          if ($null -eq $idPart -and $tp -match '^B5-[0-9]{4}[a-z]?$') { $idPart = $tp }
+          if ($null -eq $statusPart -and $LedgerStatuses -contains $tp) { $statusPart = $tp }
+          if ($idPart -and $statusPart) { break }
+        }
+        if ($idPart) {
+          $rows += [pscustomobject]@{
+            Id     = $idPart
+            Status = $statusPart
+          }
         }
       }
     }
+  }
+  # Self-check. Compare against a DELIBERATELY PERMISSIVE pattern, not the pattern
+  # under test: the previous check counted matches with the same regex that built
+  # $rows, so it compared a set against itself and could never detect a row the
+  # regex could not see. It reported 312==312 while 9 rows carried a corrupt status.
+  $permissive = 0
+  foreach ($ln in (Get-Content -LiteralPath $Ledger)) {
+    if ($ln -match '^\|+\s*B5-[0-9]{4}[a-z]?\s*\|') { $permissive++ }
+  }
+  if ($permissive -ne $rows.Count) {
+    Write-Warning ("Get-LedgerRows: returned " + $rows.Count + " rows but a permissive scan found " + $permissive + " candidate row lines -- a row filter is silently hiding rows.")
+  }
+  $noStatus = @($rows | Where-Object { -not $_.Status })
+  if ($noStatus.Count -gt 0) {
+    Write-Warning ("Get-LedgerRows: " + $noStatus.Count + " row(s) parsed with no recognisable status: " + (($noStatus | ForEach-Object { $_.Id }) -join ', '))
   }
   return $rows
 }
 
 function Test-LiveClaim {
   param([string]$TaskId)
-  $claimPath = Join-Path $ClaimsDir ("$TaskId.json")
+  $claimPath = Join-Path $ClaimsDir ($TaskId + ".json")
   if (-not (Test-Path -LiteralPath $claimPath)) { return $false }
   try {
     $j = Get-Content -LiteralPath $claimPath -Raw | ConvertFrom-Json
