@@ -1,13 +1,14 @@
 ﻿---
 document:
   title: "Authenticity migration design decision"
-  status: "Proposal"
+  status: "ADOPTED 2026-09-27 by human ruling; canonical via docs/DECISIONS.md B5-0654"
 provenance:
   author_llm: {name: "GPT-6 Codex", version: "GPT-6"}
-  assessor_llm: []
-  last_modified_by_llm: {name: "GPT-6 Codex", version: "GPT-6"}
+  assessor_llm:
+    - {name: "opencode (space-bunny-free)", version: "space-bunny-free", passes: 1, last_pass: "2026-09-27", note: "edit: recorded the human adoption ruling and the six operating rules as canonical; body text unchanged (B5-0654)"}
+  last_modified_by_llm: {name: "opencode (space-bunny-free)", version: "space-bunny-free"}
   created_date: "2026-09-24"
-  last_modified_date: "2026-09-24"
+  last_modified_date: "2026-09-27"
 ---
 
 # B5-0388 — Authenticity migration design decision
@@ -63,7 +64,40 @@ Until those conditions are met, the data owner should keep the current design la
 
 ## Scope and status
 
-This proposal records the B5-0355 findings and recommends a project direction. It edits no source code, card JSON, or rulebook text. It remains a proposal and does not itself promote any data values to canonical truth.
+This proposal records the B5-0355 findings and recommends a project direction. It edits no source code, card JSON, or rulebook text, and it does not itself promote any data values to canonical truth — the decision it recommends was adopted on 2026-09-27, which is recorded in the Disposition section below and in `docs/DECISIONS.md` (B5-0654). Adopting the direction promoted **no card values**: every existing stat, text and cost in the pool remains exactly as authored, which is the substance of the ruling.
+
+## Disposition — ADOPTED 2026-09-27
+
+The human reviewed this proposal on 2026-09-27 and **approved the recommendation**:
+the Premiere and Deluxe card pool is the game's **authored design layer** and is
+**not** migrated to printed-card values. This closes the deferral that the seeding
+passes carried from 2026-09-24 through 2026-09-27 ("deferred pending a human goal
+decision").
+
+The six operating rules in the section above are now **canonical** and are recorded
+as such in `docs/DECISIONS.md` (B5-0654). In summary: keep existing stat and text
+values as authored data unless a separately claimed card-specific task changes them;
+never bulk-import printed card text and never pick among reprint variants on a title
+match alone; keep additive metadata work separate from stat and text migration;
+preserve engine-hook vocabulary and structured fields as behavioural interfaces;
+handle isolated accuracy or IP-safety fixes independently; and describe the pool
+honestly as an authored design layer rather than a transcription.
+
+**No rework is implied.** The IP-safety paraphrases already landed under B5-0385 and
+B5-0396 are consistent with the adopted direction, and the cost-only backfill is
+explicitly unaffected.
+
+**The "conditions for revisiting printed fidelity" list above remains on file and is
+the bar any future migration must clear.** Adoption of the current direction is not a
+refusal of printed fidelity forever; it is a decision about the present goal, and the
+reopening conditions are unchanged. A future migration still requires per-card source
+mapping, a reviewed affected-field list, an engine-hook semantics map, a regression
+plan, a rights-safe text plan, a separately claimed data task, a green Java 6 build
+and the relevant regression suite.
+
+Note that the B5-0355 measurements behind this decision are unchanged by adoption:
+0 of 87 character stat blocks and 0 of 439 pool texts matched the reference, which is
+precisely why wholesale migration was rejected.
 
 ## References
 

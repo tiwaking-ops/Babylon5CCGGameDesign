@@ -7,9 +7,10 @@ provenance:
   assessor_llm:
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
     - {name: "Buffy", version: "glm-5.3-flash"}
-  last_modified_by_llm: {name: "Buffy", version: "glm-5.3-flash"}
+    - {name: "opencode (space-bunny-free)", version: "space-bunny-free", passes: 1, last_pass: "2026-09-27", note: "edit: section 1a assessor_llm compaction convention, human-approved 2026-09-27 (B5-0655)"}
+  last_modified_by_llm: {name: "opencode (space-bunny-free)", version: "space-bunny-free"}
   created_date: "2026-09-21"
-  last_modified_date: "2026-09-25"
+  last_modified_date: "2026-09-27"
 ---
 
 # AGENTS.md — Babylon 5 CCG (autonomous, lightweight)
@@ -22,13 +23,52 @@ shared live files; only external-library use needs a human.
 
 Every LLM-created `.md` MUST open with `author_llm: <name> (<version>)`
 (frontmatter above satisfies this). Original `author_llm` is never overwritten.
-Any LLM that later assesses, edits, or migrates the doc MUST append an
+Any LLM that later assesses, edits, or migrates the doc MUST record an
 `assessor_llm` entry (list, earliest first) and update `last_modified_by_llm`
 + `last_modified_date`. Use `unknown` rather than inventing values. Any file
 for which no record of authorship can be found SHALL be labelled
 `author_llm: {name: "unknown", version: "unknown"}` — never infer authorship
 from style, date, filename, or content. Never list
 yourself as both author and assessor in the same pass.
+
+### 1a. assessor_llm compaction (adopted 2026-09-27, B5-0655)
+
+One entry per agent per file, carrying a pass count, **not** one appended line per
+edit pass. The literal append-per-pass rule turned the ledger's assessor list into
+35 entries holding 7 distinct facts — a monotonic copy counter whose only
+information content was the pass count, which then stopped being usable as an edit
+history.
+
+An assessor entry therefore has the form:
+
+```yaml
+assessor_llm:
+  - {name: "GPT-6 Codex", version: "GPT-6", passes: 14, last_pass: "2026-09-26"}
+  - {name: "Buffy", version: "glm-5.3-flash", passes: 1, last_pass: "2026-09-26", note: "B5-0566 part 23 refresh"}
+```
+
+Rules:
+
+1. **Repeat pass** — your `name` + `version` already appears: do **not** append.
+   Increment `passes` on your existing entry and set `last_pass` to today.
+2. **First pass**, or a same-agent **different version**: append a new entry with
+   `passes: 1` and `last_pass` set. Version is part of identity, matching claim files
+   and heartbeats, so a version bump is a new entry, never an edit of the old one.
+3. `note` is **optional** and only for a substantive pass (a refresh, correction or
+   migration) — not for a drive-by metadata touch.
+4. An entry is never deleted, renamed, or rewritten beyond its `passes` /
+   `last_pass` / `note` fields. The list stays **append-only at the entry level**.
+5. **No retro-compaction.** Lists already on disk keep their full contents forever.
+   Only edits made after this rule was adopted follow it. Do not consolidate existing
+   entries — that is rule 4's deletion case wearing a tidier hat.
+
+Compaction preserves attribution density: counts plus dates carry the same forensic
+information as repetition, which is what the coordination forensics this repo has
+needed (claim destructions, index absorption, seeding collisions are reconstructed
+from pass counts plus report files, not from entry multiplicity). It also makes
+non-append deviations rule-compliant rather than requiring a disclosure note for
+simply following the rule. Rationale and the rejected alternatives:
+`docs/proposals/assessor-list-compaction-proposal.md`.
 
 ## 2. Hard build rules
 

@@ -1,17 +1,88 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(b5ccg\\compile.bat)",
-      "Bash(b5ccg/compile.bat)",
-      "Bash(findstr *)",
-      "Bash(git *)",
-      "Bash(javac *)",
-      "Bash(java *)",
-      "Bash(dir *)",
-      "Read(./b5ccg/**)",
-      "Read(./.agent/**)",
-      "Read(./docs/**)"
+  "providerProtocol": {
+    "omniroute": "openai"
+  },
+  "modelProviders": {
+    "omniroute": [
+      {
+        "id": "me-poor",
+        "name": "me-poor",
+        "baseUrl": "http://localhost:20128/v1",
+        "envKey": "QWEN_CUSTOM_API_KEY_OPENAI_HTTP_LOCALHOST_20128_V1_951428BBC588"
+      }
     ]
   },
-  "$version": 4
+  "mcp_config": {
+    "Filesystem": {
+      "command": "C:\\Users\\Tiwa Pene\\AppData\\Local\\Programs\\Qwen\\resources\\bun\\bun.exe",
+      "args": [
+        "x",
+        "-y",
+        "@modelcontextprotocol/server-filesystem@latest",
+        "/Users"
+      ],
+      "transportType": "stdio",
+      "env": {
+        "PATH": "C:\\Users\\Tiwa Pene\\AppData\\Local\\Programs\\Qwen\\resources\\app.asar\\resources\\bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+        "ALLUSERSPROFILE": "C:\\ProgramData",
+        "APPDATA": "C:\\Users\\Tiwa Pene\\AppData\\Roaming",
+        "ChocolateyInstall": "C:\\ProgramData\\chocolatey",
+        "ChocolateyLastPathUpdate": "134307282529567625",
+        "CommonProgramFiles": "C:\\Program Files\\Common Files",
+        "CommonProgramFiles(x86)": "C:\\Program Files (x86)\\Common Files",
+        "CommonProgramW6432": "C:\\Program Files\\Common Files",
+        "COMPUTERNAME": "DESKTOP-CSKAE2V",
+        "ComSpec": "C:\\Windows\\system32\\cmd.exe",
+        "DriverData": "C:\\Windows\\System32\\Drivers\\DriverData",
+        "FPS_BROWSER_APP_PROFILE_STRING": "Internet Explorer",
+        "FPS_BROWSER_USER_PROFILE_STRING": "Default",
+        "GOPATH": "C:\\Users\\Tiwa Pene\\go",
+        "HERMES_GIT_BASH_PATH": "C:\\Program Files\\Git\\bin\\bash.exe",
+        "HERMES_HOME": "C:\\Users\\Tiwa Pene\\AppData\\Local\\hermes",
+        "HOMEDRIVE": "C:",
+        "HOMEPATH": "\\Users\\Tiwa Pene",
+        "JAVA_TOOL_OPTIONS": "-Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8",
+        "LOCALAPPDATA": "C:\\Users\\Tiwa Pene\\AppData\\Local",
+        "LOGONSERVER": "\\\\DESKTOP-CSKAE2V",
+        "NUMBER_OF_PROCESSORS": "4",
+        "OneDrive": "C:\\Users\\Tiwa Pene\\OneDrive",
+        "ORIGINAL_XDG_CURRENT_DESKTOP": "undefined",
+        "OS": "Windows_NT",
+        "Path": "C:\\Program Files\\AdoptOpenJDK\\jdk-8.0.292.10-hotspot\\bin;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Windows\\System32\\OpenSSH\\;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\ProgramData\\chocolatey\\bin;C:\\Program Files\\Git\\cmd;C:\\Program Files\\Docker\\Docker\\resources\\bin;C:\\Program Files\\nodejs\\;C:\\Program Files\\Go\\bin;C:\\Program Files\\GitHub CLI\\;C:\\Users\\Tiwa Pene\\AppData\\Local\\qwen-code\\bin;C:\\Users\\Tiwa Pene\\AppData\\Local\\Programs\\OpenAI\\Codex\\bin;C:\\Users\\Tiwa Pene\\AppData\\Local\\Programs\\muse;C:\\Users\\Tiwa Pene\\.local\\bin;C:\\Users\\Tiwa Pene\\AppData\\Local\\agy\\bin;C:\\Users\\Tiwa Pene\\scoop\\shims;C:\\Users\\Tiwa Pene\\.grok\\bin;C:\\Users\\Tiwa Pene\\AppData\\Local\\hermes\\bin;C:\\Users\\Tiwa Pene\\AppData\\Local\\Programs\\Python\\Python312\\Scripts\\;C:\\Users\\Tiwa Pene\\AppData\\Local\\Programs\\Python\\Python312\\;C:\\Users\\Tiwa Pene\\AppData\\Local\\Programs\\Python\\Python311\\Scripts\\;C:\\Users\\Tiwa Pene\\AppData\\Local\\Programs\\Python\\Python311\\;C:\\Users\\Tiwa Pene\\.mimocode\\bin;C:\\Users\\Tiwa Pene\\.kimi-code\\bin;C:\\Users\\Tiwa Pene\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\Tiwa Pene\\AppData\\Local\\Microsoft\\WinGet\\Packages\\DenoLand.Deno_Microsoft.Winget.Source_8wekyb3d8bbwe;C:\\Users\\Tiwa Pene\\AppData\\Local\\Microsoft\\WinGet\\Packages\\yt-dlp.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-N-124716-g054dffd133-win64-gpl\\bin;C:\\Users\\Tiwa Pene\\AppData\\Local\\Microsoft\\WinGet\\Packages\\yt-dlp.yt-dlp_Microsoft.Winget.Source_8wekyb3d8bbwe;C:\\Users\\Tiwa Pene\\AppData\\Local\\Python\\bin;C:\\Users\\Tiwa Pene\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\Users\\Tiwa Pene\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\Users\\Tiwa Pene\\AppData\\Local\\Programs\\mongosh\\;C:\\Users\\Tiwa Pene\\AppData\\Roaming\\npm;C:\\Users\\Tiwa Pene\\AppData\\Local\\Programs\\Python\\Python312\\Scripts;C:\\Users\\Tiwa Pene\\AppData\\Local\\Microsoft\\WinGet\\Packages\\BurntSushi.ripgrep.MSVC_Microsoft.Winget.Source_8wekyb3d8bbwe\\ripgrep-15.2.0-x86_64-pc-windows-msvc;C:\\Users\\Tiwa Pene\\AppData\\Local\\Programs\\Cua\\cua-driver\\bin;C:\\Users\\Tiwa Pene\\.mineru\\bin;C:\\Users\\Tiwa Pene\\AppData\\Local\\Kiro-Cli\\;C:\\Users\\Tiwa Pene\\AppData\\Local\\Programs\\Warp\\bin;C:\\Users\\Tiwa Pene\\AppData\\Local\\Microsoft\\WinGet\\Packages\\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe;C:\\Users\\Tiwa Pene\\go\\bin;C:\\Users\\Tiwa Pene\\AppData\\Local\\Microsoft\\WinGet\\Packages\\BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe\\mingw64\\bin;C:\\Users\\Tiwa Pene\\AppData\\Local\\Programs\\pool\\bin;C:\\Users\\Tiwa Pene\\AppData\\Local\\cursor-agent",
+        "PATHEXT": ".COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC",
+        "POWERSHELL_TELEMETRY_OPTOUT": "1",
+        "PROCESSOR_ARCHITECTURE": "AMD64",
+        "PROCESSOR_IDENTIFIER": "Intel64 Family 6 Model 61 Stepping 4, GenuineIntel",
+        "PROCESSOR_LEVEL": "6",
+        "PROCESSOR_REVISION": "3d04",
+        "ProgramData": "C:\\ProgramData",
+        "ProgramFiles": "C:\\Program Files",
+        "ProgramFiles(x86)": "C:\\Program Files (x86)",
+        "ProgramW6432": "C:\\Program Files",
+        "PSModulePath": "C:\\Program Files\\WindowsPowerShell\\Modules;C:\\Windows\\system32\\WindowsPowerShell\\v1.0\\Modules",
+        "PUBLIC": "C:\\Users\\Public",
+        "SESSIONNAME": "Console",
+        "SystemDrive": "C:",
+        "SystemRoot": "C:\\Windows",
+        "TEMP": "C:\\Users\\TIWAPE~1\\AppData\\Local\\Temp",
+        "TMP": "C:\\Users\\TIWAPE~1\\AppData\\Local\\Temp",
+        "USERDOMAIN": "DESKTOP-CSKAE2V",
+        "USERDOMAIN_ROAMINGPROFILE": "DESKTOP-CSKAE2V",
+        "USERNAME": "Tiwa Pene",
+        "USERPROFILE": "C:\\Users\\Tiwa Pene",
+        "windir": "C:\\Windows",
+        "__COMPAT_LAYER": "DetectorsAppHealth"
+      }
+    }
+  },
+  "$version": 4,
+  "model": {
+    "name": "me-poor",
+    "baseUrl": "http://localhost:20128/v1"
+  },
+  "security": {
+    "auth": {
+      "selectedType": "openai"
+    }
+  }
 }

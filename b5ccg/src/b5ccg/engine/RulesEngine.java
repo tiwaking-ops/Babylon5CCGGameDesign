@@ -592,6 +592,14 @@ public class RulesEngine {
                     && agenda.isConditionMet(state, p)) {
                 return p;
             }
+            // B5-0629: Major Victory path 1 (rulebook :182), wired after the
+            // agenda-condition scan and before the Standard path — a Major
+            // Victory is precisely the path a major-agenda holder is entitled
+            // to at :178 ("Instead, they must score a Major Victory to win"),
+            // so it must fire where the Standard path is barred, and it
+            // carries no bar of its own. Path 2 (the agenda's own requirement)
+            // is the agenda-condition scan above.
+            if (majorVictory(state, p)) return p;
             // Standard victory (rulebook: Victory): 20 power AND more than any
             // other player. A major agenda in play blocks the standard path
             // (a hidden one does not — it takes effect only on reveal).
@@ -637,10 +645,36 @@ public class RulesEngine {
      * Standard victory: at least 20 power and STRICTLY more than every other
      * non-forfeited player ("Have 20 Power, and more than any other player").
      * A tie with any opponent blocks the win; forfeited players do not count.
+     * B5-0629 (rulebook :178): during the Shadow War NO Standard Victory is
+     * possible — condition 1 included. Condition 2's stationVictory already
+     * carried this guard from day one (B5-0354); condition 1 did not, which
+     * let a 20+ strictly-leading player be crowned mid-Shadow-War (proven RED
+     * by the B5-0629 MJR probe before this fix).
      */
     private boolean standardVictory(GameState state, Player p) {
+        if (state.isShadowWar()) return false;   // B5-0629: :178 guard (was condition-2-only)
         if (p.getInfluence() < 20) return false;
         return strictlyLeads(state, p, false);
+    }
+
+    /**
+     * B5-0629 — Major Victory path 1 (rulebook :182): "Have at least 20
+     * Power, and at least 10 more than each other player". Interpreted as:
+     * every OTHER non-forfeited player sits at least 10 Power below the
+     * candidate; a 9-point lead or a tie crowns nobody. Forfeited players are
+     * excluded from the comparison, matching standardVictory/strictlyLeads
+     * ("each other player" reads as players still in the game; interpretation
+     * recorded in DECISIONS B5-0629). No major-agenda bar and no Shadow War
+     * gate: :178 names Major Victory as the path that REMAINS when Standard
+     * Victory is barred or the War has begun.
+     */
+    private boolean majorVictory(GameState state, Player p) {
+        if (p.getInfluence() < 20) return false;
+        for (Player q : state.getPlayers()) {
+            if (q == p || q.hasForfeited()) continue;
+            if (q.getInfluence() > p.getInfluence() - 10) return false;
+        }
+        return true;
     }
 
     /** Shared D12 strict-leader predicate. Condition 2 excludes barred players

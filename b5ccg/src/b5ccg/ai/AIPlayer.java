@@ -465,6 +465,57 @@ public class AIPlayer {
         return 0;
     }
 
+    /**
+     * B5-0635: MEDIUM major-victory urgency. Nonzero only when p sits in
+     * major territory (influence >= 10, under the build cap) AND the :182
+     * 10-point lead is not yet met — the closer the needed swing (10 minus
+     * the closest rival gap), the stronger the pull toward influence-moving
+     * actions. Once the threshold is met (need <= 0) the win is already in
+     * hand and urgency drops to 0; Shadow War switches the term off entirely
+     * (victory runs only through the major path there). Forfeited rivals are
+     * excluded, matching the engine victory comparison. Mirrors
+     * stationContextScore's additive style (B5-0453 house precedent).
+     * Bands: need 1..2 -> 3, 3..5 -> 2, 6..10 -> 1.
+     */
+    public int majorProximityMedium(GameState state, Player p) {
+        if (state.getStation().isShadowWar()) return 0;
+        if (p.getInfluence() < 10) return 0;
+        int closestGap = Integer.MAX_VALUE;
+        for (Player q : state.getPlayers()) {
+            if (q == p || q.hasForfeited()) continue;
+            int gap = p.getInfluence() - q.getInfluence();
+            if (gap < closestGap) closestGap = gap;
+        }
+        if (closestGap == Integer.MAX_VALUE) return 0;   // every rival forfeited
+        int need = 10 - closestGap;                       // points of lead still needed
+        if (need <= 0) return 0;                          // :182 lead already met
+        if (need <= 2) return 3;
+        if (need <= 5) return 2;
+        return 1;                                         // need 6..10 (tied at 10)
+    }
+
+    /**
+     * B5-0635: HARD urgency — same shape, finer quarters. Bands: need 1..2
+     * -> 1.5, 3..4 -> 1.0, 5..7 -> 0.5, 8..10 -> 0.25, met -> 0.
+     */
+    public double majorProximityHard(GameState state, Player p) {
+        if (state.getStation().isShadowWar()) return 0.0;
+        if (p.getInfluence() < 10) return 0.0;
+        int closestGap = Integer.MAX_VALUE;
+        for (Player q : state.getPlayers()) {
+            if (q == p || q.hasForfeited()) continue;
+            int gap = p.getInfluence() - q.getInfluence();
+            if (gap < closestGap) closestGap = gap;
+        }
+        if (closestGap == Integer.MAX_VALUE) return 0.0;
+        int need = 10 - closestGap;
+        if (need <= 0) return 0.0;
+        if (need <= 2) return 1.5;
+        if (need <= 4) return 1.0;
+        if (need <= 7) return 0.5;
+        return 0.25;
+    }
+
     // ── EASY ──────────────────────────────────────────────────────────────────
 
     private GameAction easyChoose(List<GameAction> legal, Player p) {
@@ -540,8 +591,11 @@ public class AIPlayer {
             case BUILD_INFLUENCE:
                 // Positive value: pushing toward the Influence cap.
                 // Score scales with how far below the cap we still are.
+                // B5-0635: plus the major-victory urgency term (zero in
+                // build territory — influence <= 9 — since the term gates
+                // at influence >= 10; kept for shape uniformity).
                 int remaining = Math.max(0, 10 - p.getInfluence());
-                return 3 + remaining; // 4..13
+                return 3 + remaining + majorProximityMedium(state, p); // 4..13
             case PROMOTE_CHARACTER:
                 // B5-0321: builds the Inner Circle (more conflict power + the
                 // deck-out buffer). Better early, when the IC-member cost term
@@ -616,7 +670,11 @@ public class AIPlayer {
                     return 2 + ((LocationCard) a.getTargetCard()).getInfluencePerRound()
                             + stationContextScore(state);
                 }
-                return 4;
+                // B5-0635: an uncontested race-target war moves influence on
+                // BOTH sides (+1 own, -1 target) — the one influence-mover
+                // offered above the build cap — so it carries the major
+                // urgency term; location captures do not move influence.
+                return 4 + majorProximityMedium(state, p);
             case ATTACK_CONFLICT_PARTICIPANT:
                 return (int) Math.round(damageAttackScore(a, state, p, false));
             case HEAL_CHARACTER: {
@@ -720,8 +778,9 @@ public class AIPlayer {
             case BUILD_INFLUENCE:
                 // B5-0324: capped value — HARD avoids over-tinging the score table.
                 // Still positive since pushing toward the Influence cap is useful.
+                // B5-0635: plus the HARD major-victory urgency term.
                 int depr = Math.max(0, 10 - p.getInfluence());
-                return 0.25 * depr; // 0..2.25
+                return 0.25 * depr + majorProximityHard(state, p); // 0..2.25 + term
             case PROMOTE_CHARACTER: {
                 // B5-0321: value the new member's best stat, discounted by the
                 // influence spent (raw promotion cost).
@@ -801,11 +860,13 @@ public class AIPlayer {
                             && leader != null && leader.getFaction() == loc.getFaction()) base += 1.0;
                     return base;
                 }
+                // B5-0635: race-target wars carry the HARD major urgency term
+                // (influence swing on both sides; see the MEDIUM branch).
                 if (a.getTarget() != null
                         && leader != null && a.getTarget().getFaction() == leader.getFaction()) {
-                    return 5.0;
+                    return 5.0 + majorProximityHard(state, p);
                 }
-                return 4.0;
+                return 4.0 + majorProximityHard(state, p);
             case ATTACK_CONFLICT_PARTICIPANT:
                 return damageAttackScore(a, state, p, true);
             case HEAL_CHARACTER: {

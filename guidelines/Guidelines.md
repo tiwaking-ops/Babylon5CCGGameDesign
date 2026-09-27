@@ -6,9 +6,10 @@ provenance:
   author_llm: {name: "unknown", version: "unknown"}
   assessor_llm:
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
-  last_modified_by_llm: {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
+    - {name: "opencode (space-bunny-free)", version: "space-bunny-free", passes: 1, last_pass: "2026-09-27", note: "edit: assessor-list compaction convention added to the provenance section, human-approved 2026-09-27 (B5-0655)"}
+  last_modified_by_llm: {name: "opencode (space-bunny-free)", version: "space-bunny-free"}
   created_date: "unknown"
-  last_modified_date: "2026-09-21"
+  last_modified_date: "2026-09-27"
 ---
 
 **Project documentation system — provenance required (formal)**
@@ -18,6 +19,16 @@ The author line records the original creator and is never overwritten or removed
 Any LLM that later assesses, reviews, edits, migrates, or otherwise changes the document MUST append (never replace) an assessor entry:
 `assessor_llm: <name> (<version>) — <date> — <assess|edit|migrate: brief note>`
 Multiple assessors append multiple `assessor_llm:` lines in order, preserving full history. An LLM MUST never list itself as both author and assessor of the same document in the same revision; if author edits own doc, add a dated assessor line for the change. Human edits do not require an LLM field but must not remove LLM provenance.
+
+**Assessor list compaction (adopted 2026-09-27, B5-0655).** One entry per agent per file, carrying a pass count, rather than one appended line per edit pass — the append-per-pass form became a monotonic copy counter (35 entries holding 7 distinct facts) whose only information was a count, so it stopped being usable as an edit history. An entry takes the form:
+`assessor_llm: - {name: <name>, version: <version>, passes: <n>, last_pass: <YYYY-MM-DD>[, note: <brief>]}`
+1. Repeat pass, where your `name` + `version` already appears: do not append — increment `passes` on your existing entry and set `last_pass` to today.
+2. First pass, or a same-agent different version: append a new entry with `passes: 1` and `last_pass` set. Version is part of identity, matching claim files and heartbeats, so a version bump is a new entry, never an edit of the old one.
+3. `note` is optional and only for a substantive pass (a refresh, correction or migration), not a drive-by metadata touch.
+4. An entry is never deleted, renamed, or rewritten beyond its `passes` / `last_pass` / `note` fields; the list stays append-only at entry level.
+5. No retro-compaction: lists already on disk keep their full contents forever, and existing entries are never consolidated. Only edits made after adoption follow this rule.
+
+Counts plus dates preserve the same forensic information as repetition, which is what the coordination forensics this repository has needed — claim destructions, index absorption and seeding collisions are reconstructed from pass counts plus report files, not from entry multiplicity. Rationale: `docs/proposals/assessor-list-compaction-proposal.md`.
 
 **Build rule — Java 6 only, no external libraries by default**
 * `b5ccg/` builds with `javac -source 6 -target 6`, no external jars. `b5ccg/src-java8-archive/` is the frozen Java 8 original — never edit it.

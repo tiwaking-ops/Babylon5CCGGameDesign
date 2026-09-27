@@ -4383,7 +4383,25 @@ B5-0520 (post-slice harness re-sweep, 0489/0500 precedent, execution-only): comp
 * ONE DELIBERATE DIVERGENCE, documented in the function itself: `ledger-query` reports UNKNOWN when no heartbeat matches the owner, because it is a reporting tool and UNKNOWN is a verdict it can print, whereas the runner's question is binary, offer-or-not, so an owner who never wrote a heartbeat at all falls back to the claim's own age, since returning not-live there would let a single heartbeat-less claim block its task forever, a worse failure than the one being fixed; when nothing at all can be determined the task is still not offered, per 00_BOOT step 10.
 * Verified live case FIRST: `ledger-query.ps1` reports B5-0631 as claim 292.7 min and heartbeat 12.3 min, LIVE, and the runner now declines to offer B5-0631 and offers B5-0633 instead. Then seven synthetic cases in an isolated temp harness copied from the live script, all PASS: a 9-hour claim with no heartbeat falling back to FREE, the hermes case of a 9-hour claim with a 2-minute heartbeat reading TAKEN, a 9-hour claim with an 8-hour heartbeat reading FREE, a fresh claim with no heartbeat reading TAKEN, a corrupt claim file never being stolen, no claim file reading FREE, and a future-dated claim treated as live for clock skew.
 * HARNESS DEFECT DISCLOSED: the first synthetic run reported a near-uniform wrong answer, almost every case TAKEN, and the cause was mine twice over, namely a typo in the timestamp format string that made every generated timestamp unparseable so all cases silently fell back to claim-file mtime, and a U+2028 separator typed as literal placeholder text which is not a legal filename character. The run was discarded rather than read as a code defect, and the corrected harness asserts up front that its generated timestamp actually parses, which is exactly the check whose absence let a broken harness look authoritative. A test harness needs its own tests: a green run from a harness that cannot fail is worse than no run, because it gets believed.
-* Also corrected the script header, which still described the superseded started_utc-only rule and cited 00_BOOT step 9 where the reaping step is now 10. The concurrent hermes run was never disturbed and was still alive at 16 minutes at close-out. Runner re-verified after every edit: exit 0, no crash, no duplicate-ID warning, B5-0631 still correctly not offered.
+|* Also corrected the script header, which still described the superseded started_utc-only rule and cited 00_BOOT step 9 where the reaping step is now 10. The concurrent hermes run was never disturbed and was still alive at 16 minutes at close-out. Runner re-verified after every edit: exit 0, no crash, no duplicate-ID warning, B5-0631 still correctly not offered.
+|
+|## 2026-09-27 — solar-pro4:free: B5-0643 DONE — post-wave harness health re-sweep, all green
+|
+|* B5-0643, execution-only re-sweep, no source edits. Gate: `RUN_TESTS=1` green (542 conformance checks + smoke PASS, JDK 1.8.0_292, `-source 6`). Prerequisite B5-0635 (AI Major Victory awareness) already DONE; the sweep covers the full 0631 → 0637 → 0635 suite chain per the B5-0489/B5-0500 precedent.
+|* Standalone probes, each run headless against the same compiled tree:
+|  * B5-0350 (HeadlessReportingTiebreakTest): 26/26 PASS — at a real round-2 cap, 0 of 4 players at 20+, report is well-formed `NOT_APPLICABLE`.
+|  * B5-0351 (HeadlessAIDifficultyContractTest): 10/10 PASS — EASY pass rate 0.457, inside the designed ~53% band; MEDIUM/HARD deterministic; zero-cost invariance holds; cheaper-of-two wins.
+|  * B5-0382 (HeadlessStationVictoryTest): 6/6 PASS — station condition 2 crowns the strict leader at 20, silent on ties, Shadow War suppresses, clearing restores.
+|  * B5-0383 (HeadlessParticipationGatesProbe): all participation-gate scenarios PASS — Border Raid INITIATOR_TARGET + quota + requiresTarget rejection, Limited Strike fleetSubtypes gate (fleetClass NULL → reject-unproven), Complete Support mustTakeSide compels both opposition players and their ambassadors.
+|  * B5-0384 (HeadlessLeadFleetScenarioProbe): 9/9 PASS — legal pairing, rotation + link, Leadership adds to fleet Military, handler D6 no-per-handler-spend, second-leader blocked, round expiry restores base Military and re-legalises the pair, owner-less fleet reads base Military with no crash.
+|  * B5-0419 (HeadlessWarConflictProbe): all DECLARE_WAR_CONFLICT scenarios PASS — declaration legality, tension clamped at 5, location capture and recapture, all-supported uncontested read both ways, attack marks the war conflict contested.
+|  * B5-0443 (HeadlessHumanSeatProbe): 37/37 PASS — a human seat drove a full game to a win in 13 rounds, 69 submissions spanning play/initiate/support/oppose/recruit/promote/build/leadFleet/rotate/attack/heal/repair/agenda lifecycle/bid/war, every submission legal and landing a state change.
+|* Suite count at re-sweep: 542 conformance checks (not the 512 baseline the B5-0645 row pre-declares — the tree has grown since that baseline was written; B5-0645 will cite the live count, not the stale one).
+|* B5-0351 band re-confirmation explicit: EASY pass rate 0.457, inside the designed ~0.35–0.70 band; MEDIUM/HARD remain deterministic and cost-aware; zero-cost invariance holds, so the Major-aware engine did not disturb the AI difficulty contract.
+|* No out-of-scope edits. No source or resources files touched. The tree was clean at boot and is clean at close-out except for the governance files this close-out writes.
+|* Reusable lesson: a re-sweep that runs every standalone probe by full class name against the same `-cp` the suite used is cheap insurance against a probe that compiled yesterday but does not run today; do not assume `compile.sh` success implies a probe's `main` is still on the path — assert each one separately and record the count.
+|
+|ARGUED AGAINST: none — execution-only scope, no code changed, no judgment called on fixture correctness beyond what each probe asserts for itself.
 * Reusable lesson: when two components must agree, ship one implementation and import it rather than maintaining two; and a shared rule that has been written down and implemented once is not yet a rule the system follows. Report: `.agent/REPORTS/2026-09-27-opencode (space-bunny-free)-B5-0649.md`.
 
 ## 2026-09-27 — opencode (space-bunny-free): formal proposal filed — tool-rule convergence, and the undeclared-rule gap beneath it
@@ -4469,3 +4487,227 @@ B5-0520 (post-slice harness re-sweep, 0489/0500 precedent, execution-only): comp
 * ATTRIBUTION, stated carefully and without exonerating anyone. Buffy violated 00_BOOT step 6 by editing before claiming, because it treated "the census said claimable" as a stable fact; its own report says so plainly and that violation is the proximate fault. Its handling after discovery is the best conduct in this record: immediate stop, claims and heartbeats sweep, withdrawal of only its own span with per-step assertions proving the other writer's block was untouched, minimal dated in-place restoration of a third party's destroyed code rather than a refactor, refusal to "fix" the other agent's compile errors, refusal to touch the claimant's claim, heartbeat or row, and self-filing of the incident. Its second reusable lesson is the sharpest formulation of the stop rule recorded here, namely that discovery of a concurrent editor mid-edit must stop work immediately and trigger a claims and heartbeats sweep before any further write, INCLUDING "fixing" the file, which is how one line of another agent's WIP becomes two agents' incident. `solar-pro4:free` stayed in scope and produced real verified work, but wrote a placeholder timestamp into a claim file and made one unsupported citation.
 * NEITHER FAULT IS THE INTERESTING ONE. The interesting one is that a liveness check reading a single signal let a MALFORMED VALUE authorise a second writer, and that a human's test run and an agent's autonomous loop met inside one file because the system coordinates at row level and not at file level. NOT RESOLVED HERE, and deliberately: the placeholder-timestamp habit at source is a separate proposal, and no ruling is made on whether Buffy should have re-read the census more often, because the census was correct when she read it.
 * Reusable lesson: a liveness check that reads ONE signal converts a placeholder, a default, or a clock-skewed value into a PERMISSION SLIP, because the second writer was not violating the protocol by trusting the tool and the tool was not lying; multi-signal liveness exists precisely because any single signal can be wrong in a way indistinguishable from a real answer, and the cost of that indistinguishability is paid in someone else's destroyed code. Corollary: verify the fix LANDS before the window it was meant to close, because this one was correct and eight minutes of overlap too late.
+
+## 2026-09-27 — solar-pro4:free: B5-0641 DONE — Victory-path surfacing audit, report-only
+
+* Read-only audit of `b5ccg/src/b5ccg/ui/` (MainWindow.java, GameBoardPanel.java) plus the engine
+  victory-check path in `b5ccg/src/b5ccg/engine/RulesEngine.java` (checkVictory:559 and private
+  helpers) and `b5ccg/src/b5ccg/model/AgendaCard.java` (isConditionMet:22). No src edits.
+* Five distinct victory paths implemented in checkVictory (RulesEngine.java:559-611), tested in
+  order: (1) last standing :170; (2) station condition 2 :176 via stationVictory:625; (3) agenda
+  condition via agenda.isConditionMet:591 (INFLUENCE_20, MILITARY_SUPREMACY, MOST_INNER_CIRCLE,
+  or unknown key falling through to influence>=20); (4) Major Victory :182 via majorVictory:671;
+  (5) Standard Victory :170 via standardVictory:654. Path 3 fires before 4 and 5; path 4 fires
+  before 5; a player can satisfy both 4 and 5 simultaneously and Major wins by ordering.
+* UI surfaces game end ONLY at MainWindow.java:1431-1436: "GAME OVER — Winner: <name>" plus button
+  disablement. GameBoardPanel.java:186-192 is a per-conflict outcome banner, not a game-victory
+  surface. No other victory/Winner/GAME OVER surface found by repo-wide grep of ui/.
+* Gap 1 (P0/HIGH): all five paths render identically — the player cannot distinguish a MILITARY_
+  SUPREMACY agenda win at 15 Power from a Standard win at 25 Power from a Major win at 30 Power
+  from a station condition-2 win from last-standing. Root cause: checkVictory returns Player-only
+  (RulesEngine.java:559) and the UI shows the name only (MainWindow.java:1432).
+* Gap 2 (P1/MEDIUM): agenda win-condition key (INFLUENCE_20 / MILITARY_SUPREMACY / MOST_INNER_
+  CIRCLE) is never surfaced to the player who satisfied it; AgendaCard.getWinConditionKey() exists
+  but is not consulted at the game-over surface. Root cause: same single-name surface.
+* Gap 3 (P2/LOW): Power total at victory is not surfaced; winner.getInfluence() is available but not
+  shown. Root cause: same single-name surface.
+* Proposed single slice (row constraint respected): add a victory-path enum to the engine (either
+  extend checkVictory's return to a value object or add a getVictoryPath query) as an engine/model
+  change FIRST, then a ui/ task renders the path label in the game-over line. The ui/ rendering
+  slice is blocked on the engine API and cannot be done within ui/ read-only scope — this is a
+  deliberate boundary finding, not a deferred fix.
+* Report: .agent/REPORTS/2026-09-27-solar-pro4-free-B5-0641.md.
+* Reusable lesson filed: .agent/PATTERNS/solar-pro4:free/2026-09-27-victory-path-silent-abstraction-leak.md.
+
+## 2026-09-27 - opencode (space-bunny-free): B5-0657 DONE - claims-first census protocol implemented (human-approved)
+
+* HUMAN RULING (2026-09-27): the live-repair-aware ledger census protocol
+  (`docs/proposals/live-repair-aware-ledger-census-protocol.md`, Solar Pro4) is
+  APPROVED and implemented. A pipe or ID census of `.agent/TASK_LEDGER.md` taken
+  while another agent holds a live claim on the rows being censused can manufacture
+  false defects, because a row mid-repair reads as a transient state belonging to a
+  DIFFERENT defect class than its committed form. Recorded instance: B5-0564 and
+  B5-0565 both read 6 pipes at 2026-09-26T22:18Z under live claim B5-0592, which
+  looks exactly like the missing-trailing-delimiter class, while `git show d8216afa`
+  confirms the committed form was 8 pipes with a leading double pipe.
+* `.agent/tools/ledger-query.ps1`: new `Get-CensusSuppression` returns taskId ->
+  owner for every claim that is not provably stale; a new `defectReport` column
+  prints `suppressed-live-claim` or `reportable`; a `CLAIMS-FIRST` footer names the
+  suppressed rows and states the re-census-after-release duty. The column is
+  deliberately ADDITIVE and computed independently of the printed liveness verdict,
+  so the suppression rule cannot perturb the liveness verdicts
+  `.agent/tools/census-crosscheck.ps1` already diffs. Keyed off the claim FILENAME
+  before JSON parsing, so a claim file the tool cannot read is ALSO suppressed: an
+  unreadable file is not evidence of a defect, and the fail-safe direction is silence
+  because the protocol's remedy for a suppressed row is re-census, not a report.
+* `.agent/run-queue.ps1`: the same predicate, added as `Get-CensusSuppression`, wired
+  into all three `Get-LedgerRows` structural warnings, which ARE defect reports. The
+  permissive-count mismatch is an aggregate COUNT comparison, so the offending row
+  cannot be named from it; when a live claim exists it is annotated as
+  not-a-defect-report with the suppressed IDs named rather than silently dropped. The
+  no-status and duplicate-ID warnings partition into reported and suppressed sets, and
+  a genuine duplicate with no live claim still prints the original unannotated
+  instruction, so this change cannot mask the B5-0622 collision class.
+* Predicate parity, which is the whole point: the two census tools must agree about
+  which rows are reportable, or this change would recreate the divergence class it
+  exists to stop. Both honour per-claim `ttl_min` with a 30-minute default; both treat
+  a future-dated `started_utc` as live; both treat an unreadable claim file as
+  suppressed; and both treat an ABSENT owner heartbeat as absent information rather
+  than staleness. That last one is the B5-0609 defect class, where a lookup matching
+  nothing returned -1 and -1 compares as younger than any TTL, manufacturing LIVE out
+  of an absent signal. "Provably stale" therefore means every DETERMINABLE signal is
+  older than the TTL, never that a signal is missing.
+* `.agent/00_BOOT.md` steps 4 and 9 now carry the rule as governance, including the
+  point that the documented `rg` manual fallback does NOT apply it, so a structural
+  finding from that path on a row under a live claim is a candidate and not a defect
+  report. Provenance appended per AGENTS.md section 1, in the compacted
+  `passes`/`last_pass` form adopted by B5-0655 in the same session, as a new entry
+  rather than a merge, so no existing entry is rewritten and nothing is retro-compacted.
+* VERIFIED. Live tree: `census-crosscheck.ps1` exits 0, CONSISTENT across 343 rows, so
+  the two tools still agree after the change rather than having been made to agree by
+  assertion. `run-queue.ps1 -DryRun` exits 0 with zero warnings on the healthy live
+  ledger. Fixture, in an isolated TEMP copy and never against the live tree, two cases
+  over one synthetic ledger: CASE A with claims `started_utc` 2 minutes old returns
+  `suppressed-live-claim` on all four defective rows, a footer naming them, and both
+  run-queue warnings annotated NOT A DEFECT REPORT; CASE B with the same claims at 3
+  hours old returns `reportable` on all four, a footer reading 0 suppressed, and the
+  ORIGINAL unannotated warnings including `DUPLICATE TASK ID: B5-9002 x2`. The fixture
+  includes a truncated mid-repair row (`| B5-9001 | OPEN`, 2 pipes) that the permissive
+  scan sees and `Get-LedgerRows` cannot parse, which is what makes the count mismatch
+  fire at all. Gate: `b5ccg/compile.bat` green, `Build successful`, JDK 1.8.0_292.
+* NOT DONE, filed as a follow-up rather than absorbed into this task:
+  `census-crosscheck.ps1` has NO coverage of the new suppression rule, because it
+  computes the five rules it knows about and suppression is a sixth. The two copies of
+  the predicate are therefore identical by construction and by review, but not yet by
+  instrument, which is the same latent-duplication condition this repository has
+  already paid for once (the B5-0649 entry). Extending the crosscheck is seeded as
+  B5-0658, and the shared-library leg remains the un-ruled Tasks 2 and 3 of
+  `docs/proposals/tool-rule-convergence-proposal.md`.
+* Report: .agent/REPORTS/2026-09-27-opencode (space-bunny-free)-B5-0657.md.
+* Reusable lesson filed: .agent/PATTERNS/opencode (space-bunny-free)/2026-09-27-a-census-warning-is-a-defect-report.md.
+## 2026-09-27 - opencode (space-bunny-free): B5-0654 DONE - B5-0388 authenticity migration ADOPTED (human ruling)
+
+* HUMAN RULING (2026-09-27): **APPROVED** — the Premiere and Deluxe card pool is the
+  game's **authored design layer** and is NOT migrated to printed-card values. This
+  closes the deferral carried by four consecutive seeding passes between 2026-09-24
+  and 2026-09-27, each recording B5-0388 as "deferred pending a human goal decision"
+  (the notes at the QUEUE 0403..0408, 0410..0413, 0615 and 0635..0647 seed passes,
+  and the DECISIONS entries for 2026-09-25 and the wave-11 pass). Those historical
+  entries are left exactly as written: a log records what was believed when believed,
+  and rewriting them would destroy the record of a three-day open question.
+* CANONICAL, effective now — the proposal's six operating rules, from
+  `docs/proposals/b5-0388-authenticity-migration-design-proposal.md`:
+  (1) keep existing Premiere and Deluxe stat and text values as the current authored
+  game data unless a separately claimed card-specific task changes them;
+  (2) do not bulk-import printed card text, and do not use a title match alone to
+  choose among reprint variants or ambassador versions;
+  (3) keep additive metadata work, such as the cost-only backfill, separate from
+  stat and text migration;
+  (4) preserve engine-hook vocabulary and structured fields as behavioural interfaces
+  — wording cleanup must retain their semantics and pass the relevant conformance
+  coverage;
+  (5) handle isolated accuracy or IP-safety fixes independently; B5-0385's Zack Allan
+  title correction and Commercial Telepaths paraphrase do not imply approval for a
+  wholesale migration;
+  (6) describe the pool in project materials as an authored design layer, never as a
+  transcription of the printed game.
+* WHAT THIS RULING DOES NOT DO, stated explicitly because the temptation to over-read
+  it is the whole risk: it promotes **no card values**. Every stat, text and cost in
+  the pool remains exactly as authored. It is a decision about the present project
+  goal, not a data migration, so no card JSON, no `b5ccg/src/` file and no rulebook
+  text is touched by this entry. compile.bat green, `Build successful`, JDK
+  1.8.0_292, recorded as a tree-health reading rather than as this task's gate.
+* NO REWORK IS IMPLIED, verified by reading the affected rows rather than assumed: the
+  IP-safety paraphrases already landed under B5-0385 (Premiere Commercial Telepaths)
+  and B5-0396 (Deluxe Commercial Telepaths) are exactly the "isolated IP-safety fix"
+  shape rule (5) describes, and the cost-only backfill is the "additive metadata work"
+  shape rule (3) separates. The ruling ratifies work already on disk rather than
+  invalidating it. The B5-0385 row's note that the differently-worded Deluxe variant
+  was "flagged for B5-0388's migration audit" is now answered: that audit happened,
+  it recommended against wholesale migration, and the human agreed.
+* EVIDENCE UNCHANGED BY ADOPTION, restated so the decision does not age into a myth:
+  the B5-0355 audit compared 446 Premiere records against 1,729 reference rows and
+  measured 439/446 title matches, **0 of 87** character stat blocks matching, and
+  **0 of 439** matched pool texts identical to the reference, with 438/439 below 0.5
+  word-set similarity. The four ambassador designs and seven further records lack a
+  unique title join. These numbers are why wholesale adoption was rejected, and
+  adoption of the current direction does not soften them.
+* THE REOPENING BAR IS UNCHANGED and stays on file in the proposal: a future printed-
+  fidelity migration still requires per-card source mapping including set and reprint
+  identity with ambiguous matches left unresolved rather than guessed, a reviewed list
+  of affected stats and texts, a semantics map from every existing engine hook to its
+  proposed representation plus an audit of behaviour the engine cannot represent, a
+  regression plan covering card loading, card effects, deck construction and rule
+  conformance, a rights-safe text plan (the reference site is not permission to
+  reproduce copyrighted card text), a separately claimed data task, a green Java 6
+  build and the relevant regression suite. Adoption is a decision about the present
+  goal, not a permanent refusal.
+* Provenance: the proposal's `status` line and a Disposition section were updated and
+  an assessor entry appended per AGENTS.md section 1, in the compacted
+  `passes`/`last_pass` form adopted by B5-0655 in the same session. The proposal
+  BODY is unchanged; the one sentence reconciled is the "Scope and status" paragraph,
+  which asserted "it remains a proposal" and would otherwise have contradicted the
+  disposition three lines below it. Original `author_llm` (GPT-6 Codex) untouched.
+* Report: .agent/REPORTS/2026-09-27-opencode (space-bunny-free)-B5-0654.md.
+* Reusable lesson filed: .agent/PATTERNS/opencode (space-bunny-free)/2026-09-27-adopting-a-direction-is-not-performing-the-migration.md.
+## 2026-09-27 - opencode (space-bunny-free): B5-0655 DONE - assessor_llm compaction convention adopted (human-approved)
+
+* HUMAN RULING (2026-09-27): **YES** — the assessor-list compaction convention from
+  `docs/proposals/assessor-list-compaction-proposal.md` (Buffy, seeded B5-0586) is
+  adopted. This closes the amendment DECISIONS recorded as "remains pending" when the
+  ledger compaction itself landed under B5-0604: the ledger was compacted, but the
+  rule that was supposed to govern the format was never written down, so the next
+  pass had nothing to follow and the append-per-pass form would have grown back.
+* `AGENTS.md` section 1 gained a new subsection 1a, and the provenance section of
+  `guidelines/Guidelines.md` gained the matching convention. One entry per agent per
+  file carrying `passes` and `last_pass`, instead of one appended line per edit pass:
+  increment `passes` in place and refresh `last_pass` on a repeat pass; append
+  `passes: 1` on a first pass or a same-agent different version, because version is
+  part of identity here exactly as it is in claim files and heartbeats; `note` only
+  for a substantive pass; entries never deleted, renamed or rewritten beyond
+  `passes`/`last_pass`/`note`.
+* **No retro-compaction, stated as a rule rather than left to judgement.** Lists
+  already on disk keep their full contents forever and existing entries are never
+  consolidated. That is rule 4's deletion case wearing a tidier hat: merging three
+  identical appends into one `passes: 3` entry destroys the entries, and the
+  append-only guarantee is the property that makes the ledger trustworthy for
+  forensics. Only edits made after this rule are adopted follow it. Both files were
+  therefore edited by APPENDING one new entry in the compacted shape, leaving every
+  pre-existing entry byte-identical.
+* Why the old rule had to go, measured: the ledger's `assessor_llm` list carried 35
+  entries holding 7 distinct facts (GPT-6 Codex x14, Muse Spark x12, and so on). A
+  monotonic counter whose only information content is its own length stops being an
+  edit history, and it had already forced a rule deviation to escape the trap — one
+  agent skipped a byte-identical third append and recorded the skip as a PROVENANCE
+  DISCLOSURE, which is what a working rule should not make necessary. Following this
+  convention makes that class of deviation rule-compliant instead of disclosable.
+* Attribution density is preserved, which was the constraint the proposal set and the
+  reason this is safe. Counts plus dates carry the same forensic information as
+  repetition, because the coordination forensics this repository has needed are
+  reconstructed from pass counts plus report files and note text — the B5-0433 claim
+  destructions, the index absorption, the B5-0618 seeding collision — not from how
+  many times a name is typed in a row. Note that this session's own B5-0657 entry
+  appended to `00_BOOT.md` in the new shape on the same day the rule was adopted,
+  because a convention adopted mid-session applies to edits made after adoption, and
+  inventing an exception for the very edit that installs the rule would be the first
+  deviation the rule was written to prevent.
+* Scope: `AGENTS.md` and `guidelines/Guidelines.md` only. No existing document's
+  frontmatter was touched anywhere in the repository, so the migration plan's
+  "append-only history everywhere" constraint holds. Provenance appended to both
+  files per AGENTS.md section 1, `passes: 1`, since this is my first pass on each.
+  `compile.bat` green, `Build successful`, JDK 1.8.0_292, tree-health reading only;
+  no code is in scope.
+* Report: .agent/REPORTS/2026-09-27-opencode (space-bunny-free)-B5-0655.md.
+* Reusable lesson filed: .agent/PATTERNS/opencode (space-bunny-free)/2026-09-27-a-record-whose-only-content-is-its-own-length-is-not-a-history.md.## 2026-09-27 — Buffy (glm-5.3-flash): B5-0643 DOUBLE-RUN RACE — duplicate sweep disclosed, solar-pro4:free holds the row, concordant results recorded
+
+* Race, not a dispute: both agents independently claimed and ran the B5-0643 post-wave sweep within the same window. Buffy (glm-5.3-flash) verified claim-dir absence and row status OPEN at 06:06Z but missed the third liveness signal (solar-pro4:free's sweep report was already on disk at 06:00Z); solar-pro4:free's close landed first and their claim release removed the shared claim path. The duplicate ledger write was stopped by an assert-before-write in the close-out script; the row's authoritative close and verified cell are solar-pro4:free's, untouched.
+* Concordance of the two independent executions: both report RUN_TESTS=1 green with 542 conformance checks (matching 512 pre-chain + 9 ORD + 9 AMT3 + 12 MJR-AI), smoke PASS, and all seven probes exit 0. EASY pass-bias readings 0.48 (Buffy) and 0.457 (solar-pro4:free), both inside the approved 0.20-0.70 band. Two runs agreeing on every count is itself evidence the chain is healthy.
+* Buffy's sweep report is filed as independent corroboration, explicitly NOT the row's authoritative close: .agent/REPORTS/2026-09-27-Buffy-(glm-5.3-flash)-B5-0643.md. Pattern filed under .agent/PATTERNS/Buffy (glm-5.3-flash)/ (check all three liveness signals before working, not just the claim file).
+* Reusable lesson: the liveness triad (claim mtime, heartbeat, report mtime) exists because any one signal lies; a claim-dir check plus a row-status check is still a partial read, and short tasks are the likeliest to be double-run because their work window equals their race window.
+## 2026-09-27 — Buffy (glm-5.3-flash): B5-0645 DONE — playtest-guide part 26: victory story, ORD, coverage tool, re-sweep reconciled at 542
+
+* Docs-only refresh of docs/playtest-guide.md (one assessor entry, one dated part-26 update block in section 6, last_modified_by_llm updated): documents the four row subjects from the landed artifacts — B5-0629's Major Victory path and the Shadow War condition-1 guard fix (with the red-first probe and both logged interpretations), the B5-0631 ORD round-order section including its actual-code divergence and the B5-0652 collision trail, the B5-0633 coverage instrument, and the B5-0643 re-sweep outcome with the duplicate-run race disclosed.
+* Reconciliation arithmetic recorded as the row demanded: suite count updated from the 512 baseline to 542/542 with the named deltas (+9 ORD, +9 AMT3 from the B5-0637 seam, +12 MJR-AI) plus honesty notes (the tightened D12 fixture, the B5-0637 registry seam closure, EASY band 0.48 re-confirmed in the 0.20-0.70 band).
+* Part number verified before writing per the row instruction: section-6 history showed part 25 = B5-0605 as the latest entry, so 26 was correct.
+* Report: .agent/REPORTS/2026-09-27-Buffy-(glm-5.3-flash)-B5-0645.md.
+* Reusable lesson: a refresh part's primary duty is reconciliation arithmetic — the new total stated as baseline plus each named delta — because that line lets the next sweep detect a silently dropped check without re-deriving the history.

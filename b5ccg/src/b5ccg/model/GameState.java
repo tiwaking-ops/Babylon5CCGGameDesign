@@ -26,6 +26,10 @@ public class GameState {
     // immediately and discards the card, so nothing persists yet — the
     // registry exists so the persistent variant gets the one-named-per-target
     // guard the moment effects can attach; attachAftermath is authoritative.
+    // B5-0637: the registry is no longer append-only — advanceRound() clears
+    // it at the round boundary, so entries act as the D4 legality gate within
+    // their own round and free their name at the boundary. The D4
+    // one-named-per-target guard itself is unchanged.
     private final Map<Player, List<AftermathCard>> attachedAftermaths = new LinkedHashMap<Player, List<AftermathCard>>();
 
     private final List<String> log = new ArrayList<String>();
@@ -53,7 +57,7 @@ public class GameState {
 
     // ── Round ─────────────────────────────────────────────────────────────────
     public int       getRoundNumber() { return roundNumber; }
-    public void      advanceRound()   { roundNumber++; currentPlayerIndex = 0; conflictsInitiatedThisTurn.clear(); stationSourceFired = false; for (Player p : players) p.sweepBonusExpiries(roundNumber); }
+    public void      advanceRound()   { roundNumber++; currentPlayerIndex = 0; conflictsInitiatedThisTurn.clear(); stationSourceFired = false; clearAttachedAftermaths(); for (Player p : players) p.sweepBonusExpiries(roundNumber); }
 
     // ── Phase ─────────────────────────────────────────────────────────────────
     public GamePhase getPhase()          { return phase; }
@@ -134,6 +138,14 @@ public class GameState {
         l.add(a);
         return true;
     }
+
+    /**
+     * B5-0637: clears the aftermath registry (round-boundary hook, called
+     * from advanceRound). Engine aftermath effects resolve immediately, so
+     * entries persist only as the D4 legality gate within their round; the
+     * boundary frees every attached name. Direct calls are idempotent.
+     */
+    public void clearAttachedAftermaths() { attachedAftermaths.clear(); }
 
     // ── Contingencies in play (B5-0394) ─────────────────────────────────────
     /** Returns all face-down contingencies placed by the given player. */

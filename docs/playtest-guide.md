@@ -30,7 +30,8 @@ provenance:
     - {name: "Buffy", version: "glm-5.3-flash" — B5-0566 part 23 refresh: b2800373 committed-HEAD-green note, B5-0561 human-seat winner-check soft-gate}
     - {name: "Buffy", version: "glm-5.3-flash" — B5-0578 part 24 refresh: B5-0577 measured stall rate 50% at 120s (upper bound), B5-0575 pipe repairs, 0443-class window failures fully retired}
     - {name: "Buffy", version: "glm-5.3-flash" — B5-0605 part 25 refresh: B5-0604 frontmatter compaction governance note (33→7 entries, passes-count form)}
-  last_modified_by_llm: {name: "Buffy", version: "glm-5.3-flash"}
+    - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash" — B5-0645 part 26 refresh: B5-0629 Major Victory path + Shadow War condition-1 guard fix, B5-0631 ORD section, B5-0633 coverage tool, B5-0643 re-sweep outcome, suite counts 512→542 with honesty notes}
+  last_modified_by_llm: {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
 ---
 
 # Human playtest guide — B5 CCG prototype
@@ -747,6 +748,38 @@ the live list below.
 > content protection applies (B5-0202c, B5-0316).
 
 ## 8. How to record playtest findings
+
+> **Update (B5-0645, part 26, 2026-09-27):** the victory story changed this
+> wave. **Major Victory is now implemented** (B5-0629): rulebook :182 — at
+> least 20 Power and at least 10 more than each other non-forfeited player —
+> with the MJR suite section pinning the 10-vs-9 boundary, the major-agenda
+> holder's access, and the forfeited-player exclusion. The same task fixed a
+> real defect: **Standard Victory condition 1 had no Shadow War guard** (the
+> :178 suppression existed only on condition 2), so a 20+ strictly-leading
+> player could be crowned mid-War; the red-first probe is on record in the
+> B5-0629 report. Interpretations logged in DECISIONS: a met agenda condition
+> outranks Major Victory, and the 10-point lead counts only non-forfeited
+> players. The aftermath registry is no longer append-only (B5-0637):
+> `GameState.clearAttachedAftermaths()` is hooked into `advanceRound()`, so
+> attached aftermaths gate same-name plays within their own round and free
+> the name at the boundary (AMT3 section). The AI now sees the major path
+> (B5-0635): MEDIUM/HARD score influence-moving actions — builds and
+> uncontested race-target wars — toward the 10-point threshold
+> (MJR-AI section); EASY stays uniform (band re-verified 0.48, in the
+> 0.20–0.70 band). Round order is pinned per-substep by the ORD section
+> (B5-0631, solar-pro4:free), including the actual-code divergence that the
+> victory check fires after every action, not only at the round boundary.
+> Coverage measurement is now instrumented: `.agent/tools/suite-coverage.ps1`
+> (B5-0633) counts check sites across quoting styles and names unparsable
+> sites instead of silently zeroing. Suite count: 512 → **542/542**
+> (+9 ORD, +9 AMT3, +12 MJR-AI), RUN_TESTS=1 plus all seven standalone
+> probes green on the post-wave re-sweep (B5-0643, independently
+> corroborated). Honest notes: the B5-0631 round-order work had one
+> concurrent-edit collision, repaired and formally logged (B5-0652); one
+> sweep ran twice in a race (B5-0643) — both runs concordant, solar-pro4:free
+> holds the row's authoritative close; the MJR engine change legitimately
+> turned one stale D12 fixture red and it was tightened (21 vs 12), disclosed
+> in DECISIONS.
 
 > **Governance note (B5-0605, part 25, 2026-09-27):** the TASK_LEDGER
 > frontmatter `assessor_llm` list was compacted under B5-0604 using the

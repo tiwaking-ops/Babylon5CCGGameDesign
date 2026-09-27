@@ -8,12 +8,12 @@ provenance:
     - {name: "Solar Pro4", version: "solar-pro4:free"}
     - {name: "opencode (space-bunny-free)", version: "space-bunny-free" — heartbeat schema pointer added to step 3, human-approved 2026-09-27}
     - {name: "opencode (space-bunny-free)", version: "space-bunny-free" - claim row-status precondition (step 6) and post-write duplicate-ID census (step 9), human-approved 2026-09-27 (B5-0622)}
+    - {name: "muse-spark", version: "muse-spark-1.3-contributor-free" - pipe-integrity seeding rule in step 9 (B5-0621)}
+    - {name: "opencode (space-bunny-free)", version: "space-bunny-free", passes: 1, last_pass: "2026-09-27", note: "edit: claims-first census rule in steps 4 and 9, human-approved 2026-09-27 (B5-0657)"}
   last_modified_by_llm: {name: "opencode (space-bunny-free)", version: "space-bunny-free"}
   created_date: "2026-09-21"
   last_modified_date: "2026-09-27"
 ---
-
-# 00_BOOT — read this first, every session
 
 1. Read `AGENTS.md`, `guidelines/Guidelines.md`, `docs/DECISIONS.md`.
 2. Read `.agent/TASK_LEDGER.md` + list `.agent/CLAIMS/*.json` +
@@ -36,10 +36,26 @@ provenance:
    is the manual fallback if the shared tool is unavailable. A task ID mentioned in
    a narrative field (e.g. a heartbeat `last_completed`) is a mention, not a claim.
    An absent liveness signal is UNKNOWN — never treat it as live.
+
+   **Claims-first (B5-0657, human-approved 2026-09-27).** Both census tools read
+   `.agent/CLAIMS/` before reporting and mark any row whose claim is not provably
+   stale as `suppressed-live-claim` / "NOT A DEFECT REPORT". A row another agent is
+   mid-repair on reads as a *transient* state belonging to a **different defect
+   class** than its committed form — B5-0564/B5-0565 both read 6 pipes under live
+   claim B5-0592 while `git show d8216afa` confirms the committed form was 8 pipes
+   with a leading double pipe. **Re-census a suppressed row after its claim is
+   released, before reporting any defect on it.** Note that the `rg` manual fallback
+   above does **not** apply this rule: any structural finding it produces on a row
+   under a live claim is a candidate, not a defect report. Protocol:
+   `docs/proposals/live-repair-aware-ledger-census-protocol.md`.
 5. Pick the highest-priority `OPEN` task with no live claim.
 6. Claim it atomically: create `.agent/CLAIMS/<task-id>.json` (see
    `.agent/CLAIMS/README.md`). If the file already exists, abort and pick
    another. Never overwrite or delete another agent's claim.
+   `started_utc` must be the actual current UTC time at the moment of
+   claiming — never a placeholder, a default, or midnight-by-default: the
+   runner refuses to offer a task whose claim carries an implausible
+   `started_utc` (B5-0653).
    **Absence of the claim file is NECESSARY BUT NOT SUFFICIENT.** Re-read the
    candidate row immediately before writing and confirm it still reads `OPEN`.
    A claim against a `DONE`/`VOID`/`SUPERSEDED`/`BLOCKED` row is an orphan:
@@ -71,6 +87,26 @@ provenance:
    do **not** renumber into the slot the other writer just vacated — that
    deadlocks, because they will usually move there too. Diverge to a
    non-adjacent ID and leave their row byte-identical. (B5-0622; B5-0618.)
+
+   Pipe integrity rides with the same post-write check (B5-0621): every row
+   you write carries a single leading pipe and exactly 7 pipes, with no `|`
+    character inside any note cell (B5-0435). Prove it with the shipped
+    detector —
+    `powershell -NoProfile -ExecutionPolicy Bypass -File .agent/tools/ledger-query.ps1 -Status "*"`
+    — which prints `pipeCount` and `doubleLead` per row; your row must read
+    `7` / `no`. A `doubleLead yes` row is still parseable (the runner has
+    tolerated it since B5-0613) but it is still defective: repair the lead
+    pipe, classify any remaining excess by offset as structural or content
+    per B5-0568, preserve every content pipe byte-identically, and never
+    normalise-to-seven blindly.
+
+    **Claims-first applies here too (B5-0657).** The detector prints a
+    `defectReport` column and a `CLAIMS-FIRST` footer. If your row reads
+    `suppressed-live-claim`, its `7` / `no` reading was taken while another
+    agent held a live claim on that row, so it is **not a defect report** —
+    re-run the detector after the claim is released and judge the row then. Your
+    own row, the one you just wrote under your own claim, is the exception that
+    proves the rule: you know it is yours and complete, so judge it directly.
 10. Claims older than 30 min are stale: you may reap one ONLY after noting the
    reaping in `TASK_LEDGER.md`. Never touch live claims or heartbeats.
 11. Shared pattern store (standing convention, B5-0430): every close-out report

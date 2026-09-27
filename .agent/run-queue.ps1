@@ -24,6 +24,15 @@
   dated claims (clock skew - seen before, e.g. B5-0317) are treated as live.
   Stale claims are left for the agent to reap per protocol, not reaped here.
 
+  Claims-first census rule (B5-0657, human-approved 2026-09-27): the three
+  structural warnings Get-LedgerRows emits are DEFECT REPORTS, so they are
+  suppressed on any row whose claim is not provably stale and re-censused after
+  the claim releases. A row mid-repair reads as a transient state belonging to a
+  different defect class than its committed form - B5-0564/B5-0565 both read 6
+  pipes under live claim B5-0592 while the committed form was 8 pipes with a
+  leading double pipe. See Get-CensusSuppression and
+  docs/proposals/live-repair-aware-ledger-census-protocol.md.
+
 .EXAMPLE
   # Dry run: show what would be claimed, invoke nothing.
   powershell -NoProfile -ExecutionPolicy Bypass -File .agent/run-queue.ps1 -DryRun
@@ -50,6 +59,72 @@ $ClaimsDir = Join-Path $AgentDir 'CLAIMS'
 $hbDir     = Join-Path $AgentDir 'HEARTBEATS'
 
 $LedgerStatuses = @('OPEN','CLAIMED','DONE','BLOCKED','SUPERSEDED','VOID')
+
+function Get-CensusSuppression {
+  # Claims-first census suppression (B5-0657, human-approved 2026-09-27,
+  # docs/proposals/live-repair-aware-ledger-census-protocol.md).
+  # taskId -> owner for every claim that is NOT provably stale.
+  #
+  # Why this runner needs it: Get-LedgerRows below is a structural census of the
+  # ledger, and its three warnings ARE defect reports. Run while another agent holds
+  # a live claim on the very row being censused, they manufacture false defects,
+  # because a row mid-repair reads as a transient state belonging to a DIFFERENT
+  # defect class than its committed form. Recorded instance: B5-0564 and B5-0565 both
+  # read 6 pipes mid-repair under live claim B5-0592, which looks exactly like the
+  # missing-trailing-delimiter class, while git show d8216afa confirms the committed
+  # form was 8 pipes with a leading double pipe. This is the mirror image of the
+  # pre-write-grep lesson: a pre-write census is not a defect report either.
+  #
+  # Copied verbatim in semantics from Get-CensusSuppression in
+  # .agent/tools/ledger-query.ps1, for the same reason Get-NormName is copied there:
+  # the two census tools must agree about which rows are reportable, and a second
+  # hand-rolled variant is how they came to disagree in the first place. The
+  # shared-library leg of docs/proposals/tool-rule-convergence-proposal.md section 6
+  # is what retires this duplication; until it lands, the copy is the fix and
+  # .agent/tools/census-crosscheck.ps1 is what proves the copies still agree.
+  #
+  # "Provably stale" means every DETERMINABLE signal is older than the claim's own
+  # ttl_min. An absent owner heartbeat is absent information and is never read as
+  # staleness: that is the B5-0609 defect class, where a lookup matching nothing
+  # returned -1 and -1 compares as younger than any TTL, manufacturing LIVE out of
+  # an absent signal. Fail-safe direction is silence, because the protocol's remedy
+  # for a suppressed row is re-census after release, not a report.
+  $sup = @{}
+  if (-not (Test-Path -LiteralPath $ClaimsDir)) { return $sup }
+  $now = (Get-Date).ToUniversalTime()
+  $hb = Get-HeartbeatIndex
+  foreach ($f in (Get-ChildItem -LiteralPath $ClaimsDir -Filter 'B5-*.json' -ErrorAction SilentlyContinue)) {
+    $id = $f.BaseName
+    $owner = $null
+    $started = $null
+    $ttl = 30
+    try {
+      $j = Get-Content -LiteralPath $f.FullName -Raw | ConvertFrom-Json
+      $owner = [string]$j.agent_id
+      if ($j.ttl_min) { $ttl = [int]$j.ttl_min }
+      if ($j.started_utc) {
+        try {
+          $started = [System.DateTime]::Parse(
+            [string]$j.started_utc,
+            [System.Globalization.CultureInfo]::InvariantCulture,
+            [System.Globalization.DateTimeStyles]::RoundtripKind).ToUniversalTime()
+        } catch { $started = $null }
+      }
+    } catch {
+      $sup[$id] = '<unreadable claim file>'
+      continue
+    }
+    if (-not $started) { $started = $f.LastWriteTimeUtc }
+    if ($started -gt $now) { $sup[$id] = $owner; continue }   # future-dated clock skew: not a defect
+    $newest = $started
+    if ($owner) {
+      $k = Get-NormName $owner
+      if ($hb.ContainsKey($k) -and $hb[$k] -gt $newest) { $newest = $hb[$k] }
+    }
+    if (($now - $newest).TotalMinutes -lt $ttl) { $sup[$id] = $owner }
+  }
+  return $sup
+}
 
 function Get-LedgerRows {
   $rows = @()
@@ -81,6 +156,11 @@ function Get-LedgerRows {
       }
     }
   }
+  # Claims-first suppression set (B5-0657), computed once per call rather than per
+  # row. Read BEFORE any warning below is emitted, because those warnings are defect
+  # reports and a defect report on a row someone is mid-repair on is a false positive.
+  $sup = Get-CensusSuppression
+
   # Self-check. Compare against a DELIBERATELY PERMISSIVE pattern, not the pattern
   # under test: the previous check counted matches with the same regex that built
   # $rows, so it compared a set against itself and could never detect a row the
@@ -90,11 +170,24 @@ function Get-LedgerRows {
     if ($ln -match '^\|+\s*B5-[0-9]{4}[a-z]?\s*\|') { $permissive++ }
   }
   if ($permissive -ne $rows.Count) {
-    Write-Warning ("Get-LedgerRows: returned " + $rows.Count + " rows but a permissive scan found " + $permissive + " candidate row lines -- a row filter is silently hiding rows.")
+    # This check is an aggregate COUNT comparison, so the offending row cannot be
+    # named from it. When a live claim exists the honest reading is "this mismatch
+    # may be a row mid-repair", not "the ledger is broken" -- so it is reported as
+    # not-a-defect-report and the suppressed rows are named for re-census.
+    if ($sup.Count -gt 0) {
+      Write-Warning ("Get-LedgerRows: returned " + $rows.Count + " rows but a permissive scan found " + $permissive + " candidate row lines. NOT A DEFECT REPORT: " + $sup.Count + " row(s) hold a non-stale claim (" + (($sup.Keys | Sort-Object) -join ', ') + ") and a row mid-repair can move this count. Re-census those rows after the claim releases before treating this as a real defect.")
+    } else {
+      Write-Warning ("Get-LedgerRows: returned " + $rows.Count + " rows but a permissive scan found " + $permissive + " candidate row lines -- a row filter is silently hiding rows.")
+    }
   }
   $noStatus = @($rows | Where-Object { -not $_.Status })
-  if ($noStatus.Count -gt 0) {
-    Write-Warning ("Get-LedgerRows: " + $noStatus.Count + " row(s) parsed with no recognisable status: " + (($noStatus | ForEach-Object { $_.Id }) -join ', '))
+  $noStatusReported = @($noStatus | Where-Object { -not $sup.ContainsKey($_.Id) })
+  $noStatusSuppressed = @($noStatus | Where-Object { $sup.ContainsKey($_.Id) })
+  if ($noStatusReported.Count -gt 0) {
+    Write-Warning ("Get-LedgerRows: " + $noStatusReported.Count + " row(s) parsed with no recognisable status: " + (($noStatusReported | ForEach-Object { $_.Id }) -join ', '))
+  }
+  if ($noStatusSuppressed.Count -gt 0) {
+    Write-Warning ("Get-LedgerRows: " + $noStatusSuppressed.Count + " row(s) with no recognisable status are UNDER A LIVE CLAIM and are NOT a defect report: " + (($noStatusSuppressed | ForEach-Object { $_.Id }) -join ', ') + ". Re-census after the claim releases.")
   }
   # Distinct-ID assertion (B5-0622). The permissive check above compares two counts
   # of ROWS, so two well-formed rows sharing one task ID sail straight through it.
@@ -105,8 +198,19 @@ function Get-LedgerRows {
   # time. This MUST NOT change exit behaviour for a healthy ledger.
   $dupIds = @($rows | Group-Object Id | Where-Object { $_.Count -gt 1 })
   if ($dupIds.Count -gt 0) {
-    $dupText = (($dupIds | ForEach-Object { $_.Name + ' x' + $_.Count }) -join ', ')
-    Write-Warning ("DUPLICATE TASK ID: " + $dupText + " -- a duplicate ID silently drops a task from the queue, because status is keyed by ID and the last row wins. Exactly one writer should renumber, and MUST diverge to a NON-ADJACENT id: renumbering into the slot the other writer just vacated deadlocks, since they will usually move there too. Leave the other row byte-identical. See 00_BOOT.md step 9 and B5-0622.")
+    # A duplicate ID is only actionable if no live claim covers the row: under a live
+    # claim the second row is most likely a half-written row the owner is mid-repair
+    # on, and reporting it would manufacture a defect (B5-0657). Genuine collisions
+    # still print in full, with the same instruction as before.
+    $dupLive = @($dupIds | Where-Object { $sup.ContainsKey($_.Name) })
+    $dupReal = @($dupIds | Where-Object { -not $sup.ContainsKey($_.Name) })
+    if ($dupReal.Count -gt 0) {
+      $dupText = (($dupReal | ForEach-Object { $_.Name + ' x' + $_.Count }) -join ', ')
+      Write-Warning ("DUPLICATE TASK ID: " + $dupText + " -- a duplicate ID silently drops a task from the queue, because status is keyed by ID and the last row wins. Exactly one writer should renumber, and MUST diverge to a NON-ADJACENT id: renumbering into the slot the other writer just vacated deadlocks, since they will usually move there too. Leave the other row byte-identical. See 00_BOOT.md step 9 and B5-0622.")
+    }
+    if ($dupLive.Count -gt 0) {
+      Write-Warning ("DUPLICATE TASK ID, NOT A DEFECT REPORT: " + ((($dupLive | ForEach-Object { $_.Name + ' x' + $_.Count }) -join ', ')) + " -- these row(s) hold a non-stale claim, so the duplicate is most likely a half-written row being repaired. Re-census after the claim releases before renumbering anything.")
+    }
   }
   return $rows
 }
@@ -181,15 +285,42 @@ function Test-LiveClaim {
     $now = (Get-Date).ToUniversalTime()
 
     $started = $null
+    $startedParsed = $null
     if ($j.started_utc) {
       try {
         $started = [System.DateTime]::Parse(
           [string]$j.started_utc,
           [System.Globalization.CultureInfo]::InvariantCulture,
           [System.Globalization.DateTimeStyles]::RoundtripKind).ToUniversalTime()
+        $startedParsed = $started
       } catch { $started = $null }
     }
     if (-not $started) { $started = (Get-Item -LiteralPath $claimPath).LastWriteTimeUtc }
+
+    # B5-0653: an IMPLAUSIBLE started_utc is a data-quality refusal, not a
+    # liveness verdict. A value that parses but cannot be a just-now claim --
+    # exactly midnight UTC (the placeholder default) or at/before the Unix
+    # epoch -- must not be consumed as the claim's age, because a two-signal
+    # liveness check is only as good as its weaker signal. Direction rule:
+    # every ambiguity resolves toward NOT OFFERING, since wrongly calling a
+    # live claim stale costs a collision and destroyed work, while wrongly
+    # calling an implausible claim stale costs one blocked task a human
+    # clears in seconds. We decline to offer and warn loudly, naming the id,
+    # the owner and the value; we never repair or rewrite the claim file
+    # (editing another agent's claim is forbidden). Accepted cost: a genuine
+    # claim written in the exact second of midnight UTC, roughly 1 in 86400,
+    # is declined until the owner re-claims with a real timestamp.
+    if ($null -ne $startedParsed) {
+      $unixEpoch = [System.DateTime]::new(1970, 1, 1, 0, 0, 0, [System.DateTimeKind]::Utc)
+      if (($startedParsed.Hour -eq 0 -and $startedParsed.Minute -eq 0 -and $startedParsed.Second -eq 0) -or
+          ($startedParsed -le $unixEpoch)) {
+        Write-Warning (("[B5-0653] task " + $TaskId + " NOT OFFERED: claim started_utc '"
+          + [string]$j.started_utc + "' (owner " + [string]$j.agent_id
+          + ") parses but is IMPLAUSIBLE as a just-now claim (midnight/epoch placeholder)."
+          + " Re-claim with the actual current UTC time."))
+        return $false
+      }
+    }
     $newest = $started
 
     $owner = [string]$j.agent_id
