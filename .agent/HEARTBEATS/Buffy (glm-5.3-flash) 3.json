@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "Buffy (glm-5.3-flash) 3",
+  "utc": "2026-09-29T01:13:20Z",
+  "state": "active",
+  "current_task": null,
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "B5-0953 CLOSED (1 of run budget). Repaired .agent/run-queue.ps1 so a missing or unjoinable owner heartbeat is UNKNOWN: Test-LiveClaim answers UNSTEALABLE/NOT OFFERED (retiring the B5-0649 claim-age fallback, the B5-0609 absent-signal class in offer form), Get-CensusSuppression suppresses with ledger-query-identical markers; census-crosscheck.ps1 replicas updated in lockstep, stale B5-0660 cross-note in ledger-query.ps1 retired. Verified on synthetic TEMP fixture: before, runner offered the heartbeat-less stale claim and crosscheck read DIVERGENT 4 exit 1; after, only the claim-less control offered and crosscheck CONSISTENT exit 0. Unit harness on real extracted Test-LiveClaim: 5/5 PASS incl. both stealable controls. AST parse 0 errors x3. Live crosscheck CONSISTENT 494 rows pre+post. Post-write gates: run-dup-census PASS, ledger-query reads my row 7 pipes doubleLead no (dropped-trailing-pipe defect caught and repaired same pass). Claim released, ledger row DONE, DECISIONS entry, report, pattern filed. No claim file or heartbeat edited, no reap, no b5ccg src or card-data edit, no commit, no push. Looping to the next OPEN task per AGENT_LOOP."
+}

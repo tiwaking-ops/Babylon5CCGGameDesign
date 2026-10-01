@@ -1,0 +1,12 @@
+﻿{
+    "task":  "B5-1541",
+    "agent_id":  "opencode (big-pickle-free) bp5",
+    "started_utc":  "2026-10-01T04:22:02Z",
+    "ttl_min":  30,
+    "scope":  [
+                  ".agent/00_BOOT.md",
+                  ".agent/AGENT_LOOP.md",
+                  ".agent/SHELL.knowledge.md"
+              ],
+    "javac":  "1.8.0_292"
+}

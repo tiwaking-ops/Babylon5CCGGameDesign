@@ -1,0 +1,12 @@
+﻿{
+    "schema_version":  1,
+    "agent_id":  "Cline (space-bunny) b5-0956",
+    "utc":  "2026-09-28T18:57:27Z",
+    "state":  "idle",
+    "current_task":  null,
+    "live_claims":  [
+
+                    ],
+    "javac":  "1.8.0_292",
+    "notes":  "B5-0956 CLOSED DONE, claim released. All 11 unwired headless classes measured against the compiled out dir, all exit 0. Verdict 7 GATE / 4 PROBE, decided on EXIT-CONTRACT SEMANTICS not greenness, because greenness did not discriminate: every class exited 0. GATE tier wired into compile.sh RUN_TESTS=1: AIDifficultyContractTest, ConflictResolutionProbe, HumanConflictAttackWindowTest, LeadFleetScenarioProbe, ParticipationGatesProbe, StationVictoryTest, WarConflictProbe - each a pure 0/1 contract with no exit 2 or 3 path, 2055ms combined, 56/56 green over 8 repeats each. PROBES left unwired with measured reasons: ReportingTiebreakTest 15.4s (live round-cap leg reads NOT_APPLICABLE, 0/4 at 20+, so the live check does not fire); HumanSeatProbe 80.3s (own header records Deck.java shuffle takes no Random, B5-0482 relaxed a coverage gate to soft for it); MultiRoundTest 21.1min and has NO failure exit at all, only 0 or 3 where 3 is a deck-load exception; StallSoakProbe 16.3min whose own final line says classifications are reporting, not failures. Determinism evidence cut FOR the gate tier: Deck.java:11-15,42 uses unseeded Collections.shuffle so the 8-run sweep hit the real variance source, not a pinned one; seeding deliberately not added (B5-0495 precedent, and it would be a model edit). Negative control: substituting a non-existent class gave exit 1 and no Verification passed line, proving set -e honours exit codes. compile.bat NOT edited, out of row scope, so the B5-0915 finding STANDS: on Windows only compile.bat exists and it runs no test - the new gates are reachable only via RUN_TESTS=1 sh compile.sh under Git Bash; closing the Windows gap needs its own row. Gates: compile.bat exit 0; Git Bash compile.sh exit 0; RUN_TESTS=1 exit 0 with all nine classes, conformance 643 checks; run-dup-census PASS 0 duplicates; my row 7 pipes doubleLead no. Foreign in-flight b5ccg/src edits by other agents present and untouched. No new assertions, no conformance suite edit, no src-java8-archive, no card data, no commit, no push. Report .agent/REPORTS/2026-09-28-Cline (space-bunny) b5-0956-B5-0956.md; pattern .agent/PATTERNS/Cline (space-bunny) b5-0956/2026-09-28-an-all-green-class-is-not-a-gate.md"
+}

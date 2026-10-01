@@ -1,0 +1,1 @@
+- Reusable lesson: red compile from another agents concurrent uncommitted bytes -> BLOCKED with excerpt, measure whose bytes first, never fix outside your scope; claim, report, pattern, delete claim.

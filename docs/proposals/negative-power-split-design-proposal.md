@@ -1,19 +1,44 @@
 ---
 document:
   title: "Negative Power — power-versus-influence split, feasibility and design proposal"
-  status: "Proposal (never truth until merged + compiled)"
+  status: "APPROVED 2026-09-28 by human ruling as a DESIGN approval: the sizing and the two-piece seam shape in sections 3 and 5 are canonical, and the section 6 recommendation NOT to implement now is affirmed. This does NOT authorise authoring a Power-bearing card or any card-JSON change, which is the question section 4 reserved for a human and which remains open. Recorded in docs/DECISIONS.md B5-0787."
 provenance:
   author_llm: {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
-  assessor_llm: []
-  last_modified_by_llm: {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash"}
+  assessor_llm:
+    - {name: "opencode (space-bunny-free) 2", version: "space-bunny-free", passes: 1, last_pass: "2026-09-28", note: "assess: recorded the human approval of 2026-09-28 in the status field, scoped to design only, and added a status paragraph that states plainly what the approval does not authorise. No measurement, no section 2 premise check, and no section 4 census number was altered; the 0-of-829 Power-stat measurement is the author's and is left exactly as written (B5-0787). I am not the author, so this is an assessment rather than a self-assessment."}
+  last_modified_by_llm: {name: "opencode (space-bunny-free) 2", version: "space-bunny-free"}
   created_date: "2026-09-27"
-  last_modified_date: "2026-09-27"
+  last_modified_date: "2026-09-28"
 ---
 
 # Negative Power — feasibility and design proposal (B5-0639 remainder R15)
 
 Task: **B5-0667**. Report-only deliverable — this file plus a `docs/DECISIONS.md`
 entry. No model, engine, ai or ui code was touched and no Power field was added.
+
+**Status: APPROVED 2026-09-28 by human ruling, as a DESIGN approval.** What is now
+canonical is the *sizing*: §3's two-piece seam (a computed `getPower()` over the existing
+bonus channel, plus one target gate at the effect-application point) and §5's call-site
+audit as its checklist, with §4's equivalence record — influence-as-power under an empty
+distinction, rulebook-faithful until a card breaks it — as the accepted statement of
+current state.
+
+**The approval affirms §6's recommendation not to implement now**, and that is not a
+formality. §2 and §4 measure the rule's precondition as unreachable: "power" appears in
+**0** of 829 card texts, in **8** titles that are all flavour, and **no card in the pool
+carries any stat that could serve as a Power value**. A half-applied split — a Power read
+where the rulebook says influence — is worse than the status quo, and there is nothing to
+test it against. Approving the design is therefore the whole of what is approved.
+
+**What the approval does NOT authorise, stated explicitly because §4 reserved it.**
+Authoring a Power-bearing card, or any change to a card JSON. §4 is explicit that the
+data half "is not this wave's to unblock and requires a human IP-safe data decision
+before any text is authored". That decision has been given in the direction of *this
+design*, not in the direction of *new card content*: approving a sizing does not supply a
+card. The remaining question — whether a Power add-on card may be authored at all, and
+with what text — is still open and is recorded as such rather than answered here by
+invention. Consistent with B5-0385/B5-0396 paraphrase discipline and the B5-0388 ruling
+that the authored pool is the design layer.
 
 ## 1. The rule, verbatim
 

@@ -244,6 +244,9 @@ public class DeckLoader {
         Faction  faction = parseFaction(facStr);
         CardSet  cardSet = CardSet.valueOf(setStr.toUpperCase());
 
+        // B5-1055: validate that record carries only expected fields for its type
+        validateFields(m, type, id);
+
         switch (type) {
             case CHARACTER: {
                 int dip  = intVal(m, "diplomacy",  0);
@@ -264,8 +267,7 @@ public class DeckLoader {
                 return fleet;
             }
             case CONFLICT: {
-                ConflictType ct  = ConflictType.valueOf(
-                    getOrDefault(m, "conflictType", "DIPLOMACY").toUpperCase());
+                ConflictType ct = parseConflictType(m, id);
                 int reward = intVal(m, "influenceReward", 1);
                 return new ConflictCard(id, title, subtype, rarity, faction, cardSet,
                                         imgKey, text, ct, reward);
@@ -310,6 +312,163 @@ public class DeckLoader {
         }
     }
 
+    /**
+     * B5-1055: Validate that a record has all required fields and reports unknown fields.
+     * Per schema contract B5-1025:
+     * - Required fields: must be present, missing = reject (throw)
+     * - Optional fields: may be present or absent
+     * - Forbidden/unknown fields: present but not allowed = report (log to stderr)
+     * An "unknown field" is present but not in the expected set (required + optional).
+     */
+    private static void validateFields(Map<String, String> m, CardType type, String recordId) {
+        // Always required: id, title, type
+        String[] alwaysRequired = {"id", "title", "type"};
+        for (String field : alwaysRequired) {
+            if (!m.containsKey(field)) {
+                throw new IllegalArgumentException("Missing required field: " + field + " on card " + recordId);
+            }
+        }
+
+        // Build the set of all expected fields for this card type
+        // Always optional/common fields (per B5-1025 schema contract "Common to every type")
+        Set<String> expected = new java.util.HashSet<String>(java.util.Arrays.asList(
+            "subtype", "rarity", "faction", "set", "imageKey", "text", "cost", "mercenary"
+        ));
+
+        // Type-specific required and optional fields per schema contract B5-1025 table
+        switch (type) {
+            case CHARACTER:
+                // Required: diplomacy, intrigue, psi, leadership, isAmbassador
+                // Optional: cost
+                expected.add("diplomacy");
+                expected.add("intrigue");
+                expected.add("psi");
+                expected.add("leadership");
+                expected.add("isAmbassador");
+                // Forbidden: timing, participation, fleetClass, conflictType, etc.
+                break;
+            case FLEET:
+                // Required: military
+                // Optional: cost, fleetClass
+                expected.add("military");
+                expected.add("fleetClass");
+                break;
+            case CONFLICT:
+                // Required: conflictType, influenceReward
+                // Optional: cost, participation
+                expected.add("conflictType");
+                expected.add("influenceReward");
+                expected.add("participation");
+                break;
+            case AGENDA:
+                // Required: isMajorAgenda, winCondition
+                // Optional: cost
+                // Forbidden: cost, stats
+                break;
+            case AFTERMATH:
+                // Required: triggerCondition
+                // Optional: cost
+                break;
+            case EVENT:
+                // Required: none beyond common fields
+                // Optional: cost
+                // Forbidden: timing (one record has it, de_event_armistice - will be reported as unknown)
+                break;
+            case CONTINGENCY:
+                // Required: validTargetType, validTargetRace, triggerCondition
+                // Optional: cost
+                expected.add("validTargetType");
+                expected.add("validTargetRace");
+                expected.add("triggerCondition");
+                break;
+            case ENHANCEMENT:
+                // Required: diplomacyBonus, intrigueBonus, psiBonus, militaryBonus, leadershipBonus
+                // Optional: cost, participation
+                expected.add("diplomacyBonus");
+                expected.add("intrigueBonus");
+                expected.add("psiBonus");
+                expected.add("militaryBonus");
+                expected.add("leadershipBonus");
+                expected.add("participation");
+                break;
+            case GROUP:
+                // Required: none beyond common fields
+                // Optional: cost
+                break;
+            case LOCATION:
+                // Required: influencePerRound
+                // Optional: cost, military
+                expected.add("influencePerRound");
+                expected.add("military");
+                break;
+            default:
+                break;
+        }
+
+        // Check for missing required type-specific fields (per B5-1025 schema contract)
+        switch (type) {
+            case CHARACTER:
+                for (String field : new String[]{"diplomacy", "intrigue", "psi", "leadership", "isAmbassador"}) {
+                    if (!m.containsKey(field)) {
+                        throw new IllegalArgumentException("Missing required field: " + field + " on card " + recordId);
+                    }
+                }
+                break;
+            case FLEET:
+                if (!m.containsKey("military")) {
+                    throw new IllegalArgumentException("Missing required field: military on card " + recordId);
+                }
+                break;
+            case CONFLICT:
+                for (String field : new String[]{"conflictType", "influenceReward"}) {
+                    if (!m.containsKey(field)) {
+                        throw new IllegalArgumentException("Missing required field: " + field + " on card " + recordId);
+                    }
+                }
+                break;
+            case AGENDA:
+                for (String field : new String[]{"isMajorAgenda", "winCondition"}) {
+                    if (!m.containsKey(field)) {
+                        throw new IllegalArgumentException("Missing required field: " + field + " on card " + recordId);
+                    }
+                }
+                break;
+            case AFTERMATH:
+                if (!m.containsKey("triggerCondition")) {
+                    throw new IllegalArgumentException("Missing required field: triggerCondition on card " + recordId);
+                }
+                break;
+            case CONTINGENCY:
+                for (String field : new String[]{"validTargetType", "validTargetRace", "triggerCondition"}) {
+                    if (!m.containsKey(field)) {
+                        throw new IllegalArgumentException("Missing required field: " + field + " on card " + recordId);
+                    }
+                }
+                break;
+            case ENHANCEMENT:
+                for (String field : new String[]{"diplomacyBonus", "intrigueBonus", "psiBonus", "militaryBonus", "leadershipBonus"}) {
+                    if (!m.containsKey(field)) {
+                        throw new IllegalArgumentException("Missing required field: " + field + " on card " + recordId);
+                    }
+                }
+                break;
+            case LOCATION:
+                if (!m.containsKey("influencePerRound")) {
+                    throw new IllegalArgumentException("Missing required field: influencePerRound on card " + recordId);
+                }
+                break;
+            default:
+                break;
+        }
+
+        // Check for unknown fields (present but not in expected set)
+        for (String key : m.keySet()) {
+            if (!expected.contains(key)) {
+                System.err.println("UNKNOWN FIELD: " + key + " on card " + recordId);
+            }
+        }
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static String req(Map<String, String> m, String key) {
@@ -344,5 +503,24 @@ public class DeckLoader {
     private static Faction parseFaction(String s) {
         try { return Faction.valueOf(s.toUpperCase().replace("-", "_")); }
         catch (IllegalArgumentException e) { return Faction.ANY; }
+    }
+
+    /**
+     * B5-1047: validated ConflictType read — replaces the bare valueOf at the
+     * CONFLICT card-build site (line 270 pre-edit) that threw IllegalArgumentException
+     * on any unexpected value, dropping the card at load with only a stderr line.
+     * Logs loudly (stderr, names the record id and the bad value) and falls back to
+     * DIPLOMACY so the card stays reachable and playable. Legal mapping is unchanged.
+     */
+    private static ConflictType parseConflictType(Map<String, String> m, String id) {
+        String raw = getOrDefault(m, "conflictType", "DIPLOMACY");
+        String upper = raw.toUpperCase();
+        try {
+            return ConflictType.valueOf(upper);
+        } catch (IllegalArgumentException e) {
+            System.err.println("DECKLOADER-B5-1047: unknown conflictType '"
+                + raw + "' on record id '" + id + "', defaulting to DIPLOMACY");
+            return ConflictType.DIPLOMACY;
+        }
     }
 }

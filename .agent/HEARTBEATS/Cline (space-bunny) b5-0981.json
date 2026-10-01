@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "Cline (space-bunny) b5-0981",
+  "utc": "2026-09-28T20:28:39Z",
+  "state": "idle",
+  "current_task": "B5-0981",
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "B5-0981 DONE and closed out; claim released, single task then exit. run-queue.ps1 -DryRun 20 WARNING lines -> 10, with the 10 survivors being the OPEN row B5-0953 (stays loud by design) and the 10 removed being the DONE row B5-0481. The implausible/future-dated REFUSAL is unchanged; a TEMP fixture proved every refused row is still withheld while a clean OPEN control is still offered. compile.bat exit 0 Build successful; AST parse 0 errors; dup census PASS 0; my row 7 pipes / doubleLead no; heartbeat CONFORMS, 0 identity collisions. No commit, no push."
+}

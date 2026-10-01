@@ -6,10 +6,148 @@ b5ccg/out_model/
 b5ccg/out_test/
 b5ccg/out_ui/
 
-# Temp script
+# Temp script (root copy — promoted to tracked .agent/tools/verify_task.py per B5-0833, 2026-09-28; root copy kept ignored to avoid double-tracking)
 verify_task.py
 
 # Python cache
 __pycache__/
 *.pyc
 .aider*
+
+# Machine-local agent tooling state, repo root (B5-0835, 2026-09-28).
+# All four are per-machine tool state, never repo content. .mimocode already
+# self-ignores its own node_modules and manifests; these root entries are
+# belt-and-braces for a tool that rewrites or deletes that nested file, since
+# an untracked nested .gitignore is itself invisible to git.
+/.mimocode/
+
+# .qwen/ and .freebuff/ are ALREADY TRACKED (since 7f8f1e33 and 14a729ae), so
+# these entries change nothing on their own -- gitignore does not apply to
+# tracked paths. They are recorded here so the intent is unambiguous, and so
+# that IF a future commit untracks them the ignore is already in force. Making
+# them take effect requires `git rm --cached`, which is NOT done on B5-0835
+# (B5-0923 owns the tracked-root-litter untracking question).
+/.qwen/
+/.freebuff/
+
+# Pene/ is a stray empty Windows %APPDATA% tree (AppData/Local/hermes/cache/
+# scratch/b50765-fixtures) created by a tool run with a redirected APPDATA.
+# It contains ZERO files, so git cannot see it at all and it was never at risk
+# of being committed; the entry documents it and stops a future tool run that
+# writes into it from making it sweep-able.
+/Pene/
+
+# Ledger backup at repo root (B5-0835, 2026-09-28). NOT deleted, see
+# .agent/REPORTS/2026-09-28-Cline (space-bunny) b5-0835-B5-0835.md: measured
+# to be a DIVERGED stale copy holding 0 unique task ids (388 bak rows, all 388
+# present in the live ledger, and every one of the 17 differing lines is an
+# older revision of a row the live ledger has since advanced past). It is a
+# trap, not a recovery asset, but the row forbids deletion under either
+# reading, so it is left on disk and only kept out of git.
+/ledger.bak
+
+# Stale local copy of the agent loop prompt (B5-0835, 2026-09-28). Diverged
+# from .agent/AGENT_LOOP.md, which is the governed home: it still says "commit
+# hash" in the STOP paragraph that the governed copy corrected to say the loop
+# does not commit. Violates AGENTS.md section 6 (no new .md at repo root).
+# Superseded, not canonical, so it is ignored rather than tracked.
+/loop-prompt.md
+
+# Fullwidth-colon lookalike directories at repo root (B5-0837, 2026-09-28).
+# Two untracked trees whose names contain U+F03A (fullwidth colon, EF 80 BA):
+# a 3-codepoint dir "dot-c + U+F03A" (len 3) materialised by an agent that
+# resolved C:/temp/projects/Babylon5CCGGameDesign against the repo root, and
+# a 19-codepoint dir "C + U+F03A + tempb5ccg-harness" (len 19, mtime
+# 2026-09-27T10:30Z, empty). B5-0783 measured this hazard class: a fullwidth
+# colon passes every Windows filename constraint, renders ambiguously across
+# consoles, and normalises to the same key as ASCII. Contains (does not
+# delete): deletion is a separate human-ratified action. The dir "dot-c +
+# U+F03A" holds one displaced copy of the B5-0765 report (SHA256
+# 2636A1D0327570AACC9180EFF07682438ABA9D9A4E1188F4750C3FD13A09516B, 5930b,
+# mtime 2026-09-28T05:53:49Z) beside the canonical 5974b copy in
+# .agent/REPORTS/ (SHA256 17941EAD5DB9B692844F6960F01F3C42E958EBEAB8F08B382FE769ADA3EE06CD),
+# which is authoritative; the displaced copy is residue.
+# Lines use U+F03A literally below; git treats it as an ordinary byte, not
+# as a path separator (only ASCII 002F is a separator).
+/.c
+/Ctempb5ccg-harness
+
+# Ten measured sweepable scratch artefacts (B5-0955, 2026-09-28). Each is
+# untracked and un-ignored, so a plain `git add -A` checkpoint would absorb
+# it; the row's disposition decision is IGNORE for every one and DELETE for
+# none: the cited artefacts are measurement records other agents' reports
+# point at (ocr-card/ocr-batch are the B5-0935/B5-0939 OCR instrumentation;
+# tmp-0719-harness is cited by six files; TASK_LEDGER.md.bak is a diverged
+# stale ledger copy, 0 unique ids, cited 8x, kept-only-out-of-git exactly
+# like its already-ignored twin /ledger.bak at the root), the orb_*.py pair
+# embodies the non-reproducible digit-template tuning the B5-0935 report
+# recorded as a dead end, and deleting a 102-byte reproducible log
+# (compile-b5-0925.log) buys nothing an ignore line does not, while an
+# ignore line is reversible and a deletion of an untracked file is not.
+/b5ccg/out_mer_slice/
+/.agent/TASK_LEDGER.md.bak
+/.agent/orb_digits.py
+/.agent/orb_banner.py
+/.agent/ocr-card.ps1
+/.agent/ocr-batch.ps1
+/.agent/tmp-0719-harness.ps1
+/b5ccg/compile-b5-0925.log
+/b5ccg/compile-b5-0935.log
+
+# TRACKED files named by B5-0955 for completeness (belt-and-braces, same
+# precedent as /.qwen/ above): gitignore does not apply to tracked paths, so
+# these lines are INERT until the files are untracked (B5-0923/B5-0949 own
+# that question). They are recorded so the intent is unambiguous and the
+# ignore is already in force if untracking ever happens. A plain `git add -A`
+# does not sweep tracked files regardless.
+/b5ccg/compile-afterfix.txt
+/b5ccg/conformance-final.txt
+/b5ccg/conformance-afterfix.txt
+
+# b5ccg gate output that is not build output: per-task compile logs (B5-0957,
+# 2026-09-28). Named-scope, not /b5ccg/*.log: measured same-family logs that
+# the narrower rule WOULD miss are compile-b5-0951.log (cited as a gate
+# artifact by the DONE B5-0951 row note), compile-b5-0954.log and
+# compile-b5-0956.log, all materialised mid-session while the seeding rows
+# sat OPEN, so per-path lines rot exactly as fast as the queue generates
+# logs. No *.log exists anywhere in the tracked tree outside
+# .agent/SCOPE_RELEASES/ (run-queue dry-run captures, tracked deliberately),
+# which is a DIFFERENT directory this rule does not touch.
+/b5ccg/compile-*.log
+
+# node_modules disposition (B5-0972, 2026-09-28): DECIDED gitignore-and-keep.
+# This rule is the free half of the decision, taken without the human gate the
+# row places on removal: it touches no tracked entry (all 67258 stay in the
+# index until the human ratifies B5-0949's one-commit untrack), it is
+# reversible by deleting this line, and it closes the real hazard today — a
+# fresh `npm install` writing new files that a plain `git add -A` checkpoint
+# would sweep. Tracked entries are unaffected by ignore rules (the /.qwen/
+# precedent); once the ratified untrack lands, this rule becomes active
+# immediately and no follow-up edit is needed. Removal itself is recorded as
+# command-plus-rollback in .agent/REPORTS/2026-09-28-Buffy (glm-5.3-flash)-B5-0972.md
+# and is NOT run here: `git rm` in any form stays behind the human gate.
+/node_modules/
+
+# Clock-integrity audit instrument (opencode (space-bunny-free) 7, 2026-09-30).
+# Read-only PowerShell that scores every .agent/CLAIMS/*.json and
+# .agent/HEARTBEATS/*.json on payload-vs-mtime, after excluding files whose mtime
+# was bulk-assigned by one operation. It is the reproduction instrument cited by
+# docs/reports/clock-integrity-in-agent-coordination-files-2026-09-30.md, whose
+# §1 and §4.4 tables cannot be re-derived without it.
+#
+# IGNORE, do not delete -- the same disposition and the same reasoning as the
+# /.agent/tmp-0719-harness.ps1 entry above (B5-0955): a cited measurement record
+# is worth keeping on disk and worth keeping out of git, and an ignore line is
+# reversible where deleting an untracked file is not.
+#
+# It was untracked and un-ignored when first written, which is a real hazard: a
+# plain `git add -A` checkpoint absorbs it as though it were a deliverable, and
+# the sibling probe dirs .agent/tmp_b51043/, .agent/tmp_b51104/ and
+# .agent/tmp_b51113/ are untracked and un-ignored in exactly the same way at the
+# time of writing. Those three are NOT listed here: they belong to other agents'
+# closed tasks, so their disposition is theirs to record, not this line's to
+# assume. See also docs/proposals/scratch-disposition-tmp-scans-proposal.md,
+# which already owns part of that question.
+# Machine-local scratch scans (B5-1405, 2026-10-01).
+/tmp-scans/
+/.agent/tmp_*

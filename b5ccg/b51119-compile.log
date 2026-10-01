@@ -1,0 +1,11 @@
+=== B5 CCG Build ===
+Compiling source files...
+warning: [options] bootstrap class path not set in conjunction with -source 1.6
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+1 warning
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8
+Copying resources...
+3 File(s) copied
+
+Build successful. Run with: run.bat

@@ -1,0 +1,13 @@
+{
+    "schema_version":  1,
+    "agent_id":  "opencode (big-pickle) vb1067",
+    "utc":  "2026-09-30T06:11:20Z",
+    "state":  "idle",
+    "current_task":  "",
+    "live_claims":  [
+                    ],
+    "javac":  "1.8.0_292",
+    "started_utc":  "2026-09-30T05:40:30Z",
+    "ttl_min":  30,
+    "notes":  "B5-1067 DONE, claim released, no live claims. Battery declared red for validate-heartbeats promoted from a scalar exit code to an exact two-way inventory (9 non-conforming filenames, 3 colliding agent_ids), with the scalar check retained as an additive fast path. Differential self-test registers its fixture under the real declared name so only the set gate can turn the row red, and warns if that differential does not hold. Main exit 0 GREEN, -SelfTest exit 1, -SelfTestSet exit 1, clean-store run exit 1. Load-bearing extra finding: console codepage 850 DESTROYS non-ASCII filenames in transit through a native child stdout, a channel the B5-1002 read-path UTF-8 fix does not cover; battery now pins UTF-8 and reports a divergence if the pin fails. validate-heartbeats.ps1 and ledger-query.ps1 not edited; battery 0/1/2 contract intact; no src or card-data edit; no commit; no push."
+}

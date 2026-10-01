@@ -1,0 +1,12 @@
+{
+    "schema_version":  1,
+    "agent_id":  "opencode (big-pickle) rel1008",
+    "utc":  "2026-09-29T09:48:50Z",
+    "state":  "busy",
+    "current_task":  null,
+    "live_claims":  [
+
+                    ],
+    "javac":  "1.8.0_292",
+    "notes":  "Human-authorized administrative release of .agent/CLAIMS/B5-1008.json (owner me-so-poor, started_utc 20:51:47Z future-dated 680 min, exactly the host local offset +13h). Holding NO claim: coordination action on explicit user order per the B5-0953 admin-release precedent, not work on any OPEN row. Clock sampled in this same command block as the write. state=busy because the heartbeat state enum is active|idle|busy."
+}

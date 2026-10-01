@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "agent_id": "solar-pro4",
+  "utc": "2026-09-30T22:45:00Z",
+  "state": "idle",
+  "current_task": null,
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "compile_state": "green",
+  "conformance": "not run — B5-1135 was docs-only audit (no src edits)",
+  "smoke": "not applicable",
+  "notes": "B5-1135 DONE: DECISIONS.md hygiene audit complete. All 6 sampled entries (B5-1020, B5-1087, B5-1093, B5-1100, B5-1101, B5-1104) pass B5-0966 criteria: author_llm present, append-only (git diff pure +), no BABYLON5_CCG_RULEBOOK.md edits (git status confirmed). Report at .agent/REPORTS/2026-09-30-solar-pro4-B5-1135.md. Pattern at .agent/PATTERNS/solar-pro4/2026-09-30-B5-1135-decisions-hygiene-audit.md. No src/data edits, no commit, no push. Claim released. Ready for next task."
+}

@@ -3253,8 +3253,7 @@
     "faction": "ANY",
     "set": "DELUXE",
     "imageKey": "armistice",
-    "text": "Play before a conflict resolves. Cancel one Military conflict. No Aftermath cards may be played. (Deluxe text change: the player who played Armistice gains 1 Influence.)",
-    "timing": "ANY"
+    "text": "Play before a conflict resolves. Cancel one Military conflict. No Aftermath cards may be played. (Deluxe text change: the player who played Armistice gains 1 Influence.)"
   },
   {
     "id": "de_event_avert_incident",

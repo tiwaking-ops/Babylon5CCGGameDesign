@@ -1,0 +1,12 @@
+{
+  "agent_id": "solar-pro4:free",
+  "state": "BLOCKED",
+  "current_task": "B5-0753",
+  "live_claims": [],
+  "updated_utc": "2026-09-28T07:58:12Z",
+  "javac": "1.8.0_292",
+  "compile_state": "not-applicable",
+  "conformance": "not-applicable",
+  "smoke": "not-applicable",
+  "note": "B5-0753 BLOCKED: gate red — prerequisite B5-0751 reads VOID, not DONE. Claim released per 00_BOOT.md step 8."
+}

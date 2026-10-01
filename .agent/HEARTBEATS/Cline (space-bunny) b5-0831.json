@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "Cline (space-bunny) b5-0831",
+  "utc": "2026-09-28T07:25:05Z",
+  "state": "idle",
+  "current_task": null,
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "Single task B5-0831 closed DONE. Claim released, live_claims [] asserts I hold nothing. The try_with_resources repair is real and I proved it by reversion A/B rather than trusting it: reverting the word boundary left the pre-existing control GREEN, because its fixtures were built from the ROW'S PROSE (registry-open-parenthesis) which matches neither pattern; the row's own premise named the wrong mechanism, the real one being try as the SUFFIX of registry/Entry/getLastLogEntry followed by ' ('. Replaced the control with a positive fixture that must trip plus four negatives copied verbatim from the measured real sites; A/B now reads repaired clean, reverted red, PASS. The repair was already on disk from an unclaimed writer and verify_task.py is gitignored so it had no attributable history. Triaged the other two classes without fixing them: the 160 Main.java diff lines is a positional-comparison artefact (one insert yields 151 rows, true distance 32); the 168 missing-author_llm is genuine, 99 percent in .agent REPORTS and PATTERNS. Gates: compile.bat exit 0 at -source 1.6, dup-census PASS, validate-heartbeats exit 0, my row 7 pipes doubleLead no. No src edit, no .gitignore edit, no commit, temp probes deleted."
+}

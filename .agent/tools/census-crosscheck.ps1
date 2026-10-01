@@ -20,18 +20,24 @@
                    owner heartbeat mtime, per-claim ttl_min, corrupt claim = do
                    not steal = live, future-dated = live) vs ledger-query
                    verdict (same newest-of-two-ages rule, fixed TtlMinutes,
-                   corrupt claim = ignored = unclaimed, no matching heartbeat =
-                   UNKNOWN). Every one of those parentheticals is a live
-                   divergence surface, including one DELIBERATE divergence
-                   documented on the B5-0649 ledger row: an owner with no
-                   heartbeat file reads UNKNOWN here and falls back to claim age
-                   there. This tool reports it like any other disagreement; the
-                   operator decides, the checker does not silently forgive.
+                   corrupt claim = UNKNOWN never LIVE per B5-0953, no matching
+                   heartbeat = UNKNOWN). Every one of those parentheticals is a
+                   live divergence surface. History: until B5-0953 an owner with
+                   no heartbeat file read UNKNOWN here and fell back to claim age
+                   in run-queue -- the DELIBERATE B5-0649 divergence, reported
+                   by this tool like any other disagreement, the operator
+                   deciding. B5-0953 retired it: both tools now answer UNKNOWN
+                   for a missing or unjoinable owner signal, and the claim is
+                   unstealable, so this surface is closed rather than
+                   forgiven.
     suppression    (B5-0658) each tool's own Get-CensusSuppression replicated
-                   verbatim: run-queue two-signal (claim+heartbeat, falls back to
-                   claim age when no heartbeat for owner) vs ledger-query three-
-                   signal (claim+heartbeat+report, suppresses on missing heartbeat).
-                   Diffs suppression verdict per row id; disagreement = divergence.
+                   verbatim: both THREE-signal (claim+heartbeat+report) since
+                   B5-0660/B5-0771/B5-0775, and both suppress on a missing or
+                   unjoinable owner heartbeat since B5-0953 (previously
+                   run-queue fell back to claim age there and read reportable
+                   where ledger-query suppressed -- the B5-0481 divergence
+                   B5-0953 exists to reconcile). Diffs suppression verdict per
+                   row id; disagreement = divergence.
 
   Output: one line per disagreement as
     ID | rule | run-queue: value | ledger-query: value
@@ -56,6 +62,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$FutureTimestampToleranceMinutes = 60
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 if ($LedgerPath -eq "") { $LedgerPath = Join-Path $repoRoot ".agent/TASK_LEDGER.md" }
 if ($ClaimsDir -eq "") { $ClaimsDir = Join-Path $repoRoot ".agent/CLAIMS" }
@@ -88,7 +95,10 @@ function Get-NormName-L([string]$name) {
   return $sb.ToString()
 }
 
-$lines = [System.IO.File]::ReadAllLines($LedgerPath)
+# B5-1002: encoding pinned to explicit UTF-8 (see the same note in
+# ledger-query.ps1: a naive read reports 1600 C1 marks on docs/DECISIONS.md
+# where an explicit UTF-8 read reports 0 on the same bytes).
+$lines = [System.IO.File]::ReadAllLines($LedgerPath, [System.Text.Encoding]::UTF8)
 
 # --- Tool R rows: run-queue Get-LedgerRows logic (run-queue.ps1 lines 54-82) ---
 $rowsR = @{}
@@ -132,7 +142,7 @@ function Get-Verdict-R([string]$taskId) {
   $claimPath = Join-Path $ClaimsDir ($taskId + ".json")
   if (-not (Test-Path -LiteralPath $claimPath)) { return "unclaimed" }
   try {
-    $j = Get-Content -LiteralPath $claimPath -Raw | ConvertFrom-Json
+    $j = Get-Content -LiteralPath $claimPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $ttl = 30
     if ($j.ttl_min) { $ttl = [int]$j.ttl_min }
     $started = $null
@@ -147,36 +157,54 @@ function Get-Verdict-R([string]$taskId) {
     if (-not $started) { $started = (Get-Item -LiteralPath $claimPath).LastWriteTimeUtc }
     $newest = $started
     $owner = [string]$j.agent_id
+    $ownerSignal = $null
     if ($owner) {
       if (Test-Path -LiteralPath $HbDir) {
         $key = Get-NormName-R $owner
-        $best = $newest
-        $found = $false
+        $best = [DateTime]::MinValue
         Get-ChildItem -LiteralPath $HbDir -Filter "*.json" -ErrorAction SilentlyContinue | ForEach-Object {
           if ((Get-NormName-R $_.BaseName) -eq $key) {
-            $found = $true
             if ($_.LastWriteTimeUtc -gt $best) { $best = $_.LastWriteTimeUtc }
           }
         }
-        if ($found) { $newest = $best }
+        if ($best -ne [DateTime]::MinValue) { $ownerSignal = $best }
       }
     }
+    # B5-0953: mirror the repaired Test-LiveClaim. The owner heartbeat is a
+    # REQUIRED signal, so its absence (or an agent_id that cannot be joined to
+    # one) is UNKNOWN -- never a claim-age fallback, which is the B5-0609
+    # defect class in offer form. Verdict strings match ledger-query.ps1's
+    # per-row verdicts so the diff below compares like with like; the report
+    # scan is reached only when the required signal exists, because a report
+    # is contributing-only and cannot rescue a missing required one.
+    if ($null -eq $ownerSignal) {
+      if ($owner) { return "unknown:no-heartbeat" }
+      return "unknown:agent_id-unreadable"
+    }
+    if ($ownerSignal -gt $newest) { $newest = $ownerSignal }
     # B5-0660 reconcile: run-queue Test-LiveClaim is now THREE-signal (claim,
     # owner heartbeat, and the newest report matching the task id). Mirror the
     # report signal here so the two tools compare the same triad.
-    $reportsDir = Join-Path $repoRoot 'REPORTS'
+    # B5-0771: this was Join-Path $repoRoot 'REPORTS', the repo root rather than
+    # .agent/REPORTS, so the guard below skipped the signal and this tool agreed
+    # with a wrong run-queue instead of exposing the disagreement. Same correct
+    # form as $ReportsDir at line 239 of this file.
+    $reportsDir = Join-Path $repoRoot ".agent/REPORTS"
     if (Test-Path -LiteralPath $reportsDir) {
       $pattern = '*' + $taskId + '*.md'
       Get-ChildItem -LiteralPath $reportsDir -Filter $pattern -File -ErrorAction SilentlyContinue | ForEach-Object {
         if ($_.LastWriteTimeUtc -gt $newest) { $newest = $_.LastWriteTimeUtc }
       }
     }
+    if (($started - $now).TotalMinutes -gt $FutureTimestampToleranceMinutes) {
+      return ("unknown:started_utc-future-skew-over-" + $FutureTimestampToleranceMinutes + "-minutes")
+    }
     if ($started -gt $now) { return ("live(started-future,ttl " + $ttl + ")") }
     $ageMin = [math]::Round(($now - $newest).TotalMinutes, 1)
     if ($ageMin -lt $ttl) { return ("live(age " + $ageMin + ",ttl " + $ttl + ")") }
     return ("stale(age " + $ageMin + ",ttl " + $ttl + ")")
   } catch {
-    return "live(unreadable-claim)"
+    return "unknown:unreadable-claim"
   }
 }
 
@@ -185,7 +213,7 @@ $claimsL = @{}
 if (Test-Path -LiteralPath $ClaimsDir) {
   Get-ChildItem -LiteralPath $ClaimsDir -Filter "B5-*.json" | ForEach-Object {
     try {
-      $c = Get-Content -Raw -LiteralPath $_.FullName | ConvertFrom-Json
+      $c = Get-Content -Raw -Encoding UTF8 -LiteralPath $_.FullName | ConvertFrom-Json
       $started = $null
       if ($c.started_utc) {
         try { $started = [DateTime]::Parse($c.started_utc).ToUniversalTime() } catch { $started = $null }
@@ -215,9 +243,28 @@ function Get-Verdict-L([string]$taskId) {
   if (-not $owner) { return "unknown:agent_id-unreadable" }
   $normOwner = Get-NormName-L $owner
   if (-not $hbL.ContainsKey($normOwner)) { return "unknown:no-heartbeat" }
+  if (($claim.Started - $now).TotalMinutes -gt $FutureTimestampToleranceMinutes) {
+    return ("unknown:started_utc-future-skew-over-" + $FutureTimestampToleranceMinutes + "-minutes")
+  }
   $claimAge = [math]::Round(($now - $claim.Started).TotalMinutes, 1)
   $hbAge = [math]::Round(($now - $hbL[$normOwner]).TotalMinutes, 1)
   $newestMin = [math]::Min([double]$claimAge, [double]$hbAge)
+  # B5-0775: the THIRD signal, replicated verbatim from ledger-query.ps1 lines
+  # 263-268. Until this line, Get-Verdict-L folded only claim age and heartbeat
+  # age into newestMin while the rule it claims to replicate folds the newest
+  # report mtime for this task id in as well, so the cross-check compared a
+  # two-signal verdict against a three-signal one: on a task whose claim and owner
+  # heartbeat are both outside the TTL while a same-id report is fresh, ledger-query
+  # reads LIVE and this copy read STALE, and the tool reported a DIVERGENT that was
+  # an artefact of the replica rather than a real disagreement. The report index is
+  # the same $reportsL this file already builds for Get-Suppression-L, so this is
+  # the identical signal, not a paraphrase of it. Report is contributing-only: its
+  # absence mid-task is the normal case, so the guard is a ContainsKey test and
+  # never an absent-signal-as-fresh inversion.
+  if ($reportsL.ContainsKey($taskId)) {
+    $rptAge = [math]::Round(($now - $reportsL[$taskId]).TotalMinutes, 1)
+    $newestMin = [math]::Min($newestMin, [double]$rptAge)
+  }
   if ($newestMin -lt $TtlMinutes) { return ("live(claim " + $claimAge + ",hb " + $hbAge + ")") }
   return ("stale(claim " + $claimAge + ",hb " + $hbAge + ")")
 }
@@ -264,13 +311,16 @@ if (Test-Path -LiteralPath $HbDir) {
 }
 
 function Get-Suppression-R {
-  # Replicates run-queue.ps1 Get-CensusSuppression (lines 73-137): two-signal,
-  # falls back to claim age when no heartbeat for the owner exists.
+  # Replicates run-queue.ps1 Get-CensusSuppression (B5-0953 form): THREE-signal
+  # (claim + heartbeat + report, per B5-0660/B5-0771), with the owner heartbeat
+  # REQUIRED: a missing or unjoinable owner signal SUPPRESSES, never falls
+  # back to claim age. Marker strings match Get-Suppression-L below exactly so
+  # the diff compares like with like.
   param([string]$taskId)
   $claimPath = Join-Path $ClaimsDir ($taskId + ".json")
   if (-not (Test-Path -LiteralPath $claimPath)) { return $null }
   try {
-    $j = Get-Content -LiteralPath $claimPath -Raw | ConvertFrom-Json
+    $j = Get-Content -LiteralPath $claimPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $ttl = 30
     if ($j.ttl_min) { $ttl = [int]$j.ttl_min }
     $started = $null
@@ -284,13 +334,22 @@ function Get-Suppression-R {
     }
     if (-not $started) { $started = (Get-Item -LiteralPath $claimPath).LastWriteTimeUtc }
     if ($started -gt $now) { return "suppressed(future-dated)" }
-    $newest = $started
     $owner = [string]$j.agent_id
-    if ($owner) {
-      $k = Get-NormName-R $owner
-      if ($hbR.ContainsKey($k) -and $hbR[$k] -gt $newest) { $newest = $hbR[$k] }
+    if (-not $owner) { return "suppressed(unreadable-agent_id)" }
+    $k = Get-NormName-R $owner
+    if (-not $hbR.ContainsKey($k)) { return "suppressed(no-heartbeat)" }
+    $newest = $started
+    if ($hbR[$k] -gt $newest) { $newest = $hbR[$k] }
+    # Signal (c): the NEWEST report matching this task id. A close-out report
+    # is liveness evidence exactly like a heartbeat: report-only tasks (no
+    # compile, quick execution) finish in a burst and their claim+heartbeat
+    # can both lag while the work is genuinely done or in flight.
+    if (Test-Path -LiteralPath $ReportsDir) {
+      $pattern = '*' + $taskId + '*.md'
+      Get-ChildItem -LiteralPath $ReportsDir -Filter $pattern -File -ErrorAction SilentlyContinue | ForEach-Object {
+        if ($_.LastWriteTimeUtc -gt $newest) { $newest = $_.LastWriteTimeUtc }
+      }
     }
-    # run-queue: no heartbeat -> fall back to claim age (do NOT suppress)
     if (($now - $newest).TotalMinutes -lt $ttl) { return "suppressed($owner)" }
     return "reportable"
   } catch {
@@ -305,7 +364,7 @@ function Get-Suppression-L {
   $claimPath = Join-Path $ClaimsDir ($taskId + ".json")
   if (-not (Test-Path -LiteralPath $claimPath)) { return $null }
   try {
-    $c = Get-Content -Raw -LiteralPath $claimPath | ConvertFrom-Json
+    $c = Get-Content -Raw -Encoding UTF8 -LiteralPath $claimPath | ConvertFrom-Json
     $owner = $c.agent_id
     $ttl = $TtlMinutes
     if ($c.ttl_min) { $ttl = [int]$c.ttl_min }
@@ -389,7 +448,7 @@ foreach ($id in $allIds) {
 $names = @()
 foreach ($f in (Get-ChildItem -LiteralPath $ClaimsDir -Filter "B5-*.json" -ErrorAction SilentlyContinue)) {
   try {
-    $o = (Get-Content -Raw -LiteralPath $f.FullName | ConvertFrom-Json).agent_id
+    $o = (Get-Content -Raw -Encoding UTF8 -LiteralPath $f.FullName | ConvertFrom-Json).agent_id
     if ($o -and ($names -notcontains $o)) { $names += $o }
   } catch { }
 }
@@ -406,8 +465,12 @@ foreach ($n in $names) {
 
 if ($divs.Count -eq 0) {
   Write-Output ("census-crosscheck: CONSISTENT -- {0} row(s), run-queue and ledger-query agree." -f $allIds.Count)
+  # B5-1002: encoding receipt -- both replicated logics read explicit UTF-8.
+  Write-Output "-- ENCODING: UTF-8 (explicit; ReadAllLines(path, UTF8) + Get-Content -Encoding UTF8) --"
   exit 0
 }
 foreach ($d in ($divs | Sort-Object)) { Write-Output $d }
 Write-Output ("census-crosscheck: DIVERGENT -- {0} disagreement(s) across {1} row(s)." -f $divs.Count, $allIds.Count)
+# B5-1002: encoding receipt -- both replicated logics read explicit UTF-8.
+Write-Output "-- ENCODING: UTF-8 (explicit; ReadAllLines(path, UTF8) + Get-Content -Encoding UTF8) --"
 exit 1

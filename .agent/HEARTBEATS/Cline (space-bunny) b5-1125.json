@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "Cline (space-bunny) b5-1125",
+  "utc": "2026-09-30T07:04:00Z",
+  "state": "idle",
+  "current_task": null,
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "B5-1125 closed DONE at 2026-09-30T06:49:30Z. The effect-coverage backlog is now a ranked work order with a stated reproducible criterion (Score = R x S x P); dominant factor P, the existing-dispatch-seam factor. Work order: CONFLICT 27, EVENT 18, AFTERMATH 18, AGENDA 18, CHARACTER 9, FLEET 9, ENHANCEMENT 3, LOCATION 3, GROUP 3. First slice for B5-0983 is CONFLICT, 12 residual clauses over 13 in-play cards, not 13 rows. Docs only: report, pattern, ledger row (7 pipes, no double lead, duplicate-ID census PASS), DECISIONS entry. Build gate GREEN. Claim released. No src or card-data edit, no commit, no push."
+}

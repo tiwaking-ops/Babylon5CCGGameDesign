@@ -1,0 +1,6 @@
+{
+  "task_id": "B5-1635",
+  "agent_id": "Cline (claude-4)",
+  "started_utc": "2026-10-01T05:09:25Z",
+  "scope": "pattern store read-only plus one report plus one pattern plus heartbeat, no pattern edits and no commit"
+}

@@ -3398,6 +3398,390 @@ public class HeadlessConformanceTest {
               && pR.getAppliedPool() == poolBefore);
     }
 
+    // ── B5-0990: Negotiated Surrender aftermath dispatch (NS) ──────────
+
+    /**
+     * B5-0990 (B5-0741 census slice 1): the first id-keyed aftermath
+     * dispatch entries in CardEffects. Negotiated Surrender (premiere
+     * aftermath_negotiated_surrender, deluxe de_am_negotiated_surrender):
+     * fires on a LOST conflict only — the played-upon loser keeps one
+     * committed fleet from being rotated and gains 1 Influence (Deluxe:
+     * also draws 1) — and never fires on a won one (rulebook Won/Lost
+     * conditions, audit D1). The play window itself stays gated by
+     * RulesEngine.canPlayAftermath; these checks pin the dispatch.
+     */
+    private static void testNegotiatedSurrender() {
+        System.out.println("NS (B5-0990): Negotiated Surrender aftermath dispatch —");
+        System.out.println("             fires on a lost Military conflict, never on a won one");
+        RulesEngine rules = new RulesEngine();
+
+        AftermathCard ns = new AftermathCard("aftermath_negotiated_surrender",
+                "Negotiated Surrender", "AFTERMATH_MILITARY_PARTICIPANT",
+                Rarity.RARE, Faction.ANY, CardSet.PREMIERE, "x",
+                "Play after a Military conflict. The loser may keep one fleet "
+                        + "from being rotated. Gain 1 Influence.",
+                "MILITARY_PARTICIPANT");
+
+        // A: loser plays it upon himself (D2 Participant target rule):
+        // committed fleet kept ready, influence gained, card in play on target.
+        Player loser = player("NSl", Faction.NARN);
+        Player winner = player("NSw", Faction.MINBARI);
+        GameState st = state(loser, winner);
+        ConflictCard mil = new ConflictCard("ns_conf", "NS Strike",
+                "CONFLICT_MILITARY", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", ConflictType.MILITARY, 1);
+        FleetCard fleet = new FleetCard("ns_fleet", "NS Fleet", "FLEET_NARN",
+                Rarity.COMMON, Faction.NARN, CardSet.PREMIERE, "x", "text", 3);
+        loser.getFleets().add(fleet);
+        Conflict lost = new Conflict(mil, winner);
+        lost.commitCard(winner, winner.getAmbassador());
+        lost.commitCard(loser, loser.getAmbassador());
+        lost.commitCard(loser, fleet);
+        Player w = rules.resolveConflict(lost, st);
+        int infBefore = loser.getInfluence();
+        check("NS-A", "setup: initiator's side won and the loser's committed fleet rotated",
+                w == winner && fleet.isRotated());
+        loser.getHand().add(ns);   // aftermaths play from hand (canPlayAftermath precondition)
+        check("NS-A", "canPlayAftermath: participant loser may play upon himself",
+                rules.canPlayAftermath(loser, ns, lost, rules.initiatorWon(lost, w),
+                        loser, st));
+        loser.removeFromHand(ns);
+        st.attachAftermath(ns, loser);
+        CardEffects.applyAftermathEffect(st, lost, ns, loser, w);
+        check("NS-A", "effect: committed fleet kept ready and loser gains 1 influence",
+                !fleet.isRotated() && loser.getInfluence() == infBefore + 1
+                && st.getAttachedAftermaths(loser).contains(ns));
+
+        // B: the same aftermath played upon the WINNER never fires:
+        // no fleet restored, no influence, no draw.
+        Player l2 = player("NSl2", Faction.NARN);
+        Player w2 = player("NSw2", Faction.MINBARI);
+        GameState st2 = state(l2, w2);
+        ConflictCard mil2 = new ConflictCard("ns_conf2", "NS Strike 2",
+                "CONFLICT_MILITARY", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", ConflictType.MILITARY, 1);
+        FleetCard wFleet = new FleetCard("ns_wfleet", "NS Winner Fleet",
+                "FLEET_MINBARI", Rarity.COMMON, Faction.MINBARI, CardSet.PREMIERE,
+                "x", "text", 5);
+        w2.getFleets().add(wFleet);
+        Conflict won = new Conflict(mil2, w2);
+        won.commitCard(w2, w2.getAmbassador());
+        won.commitCard(w2, wFleet);
+        won.commitCard(l2, l2.getAmbassador());
+        Player winner2 = rules.resolveConflict(won, st2);
+        int wInfBefore = w2.getInfluence();
+        check("NS-B", "setup: winner's side won and its committed fleet rotated",
+                winner2 == w2 && wFleet.isRotated());
+        CardEffects.applyAftermathEffect(st2, won, ns, w2, winner2);
+        check("NS-B", "won target: no fleet restored and no influence gained",
+                wFleet.isRotated() && w2.getInfluence() == wInfBefore);
+
+        // C: Deluxe text change — the loser also draws 1 card.
+        AftermathCard deNs = new AftermathCard("de_am_negotiated_surrender",
+                "Negotiated Surrender", "AFTERMATH_MILITARY_PARTICIPANT",
+                Rarity.RARE, Faction.ANY, CardSet.DELUXE, "x",
+                "Play after a Military conflict. The loser may keep one fleet "
+                        + "from being rotated. Gain 1 Influence. (Deluxe text "
+                        + "change: loser also draws 1 card.)",
+                "MILITARY_PARTICIPANT");
+        Player l3 = player("NSl3", Faction.NARN);
+        Player w3 = player("NSw3", Faction.MINBARI);
+        GameState st3 = state(l3, w3);
+        ConflictCard mil3 = new ConflictCard("ns_conf3", "NS Strike 3",
+                "CONFLICT_MILITARY", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", ConflictType.MILITARY, 1);
+        FleetCard f3 = new FleetCard("ns_fleet3", "NS Fleet 3", "FLEET_NARN",
+                Rarity.COMMON, Faction.NARN, CardSet.PREMIERE, "x", "text", 2);
+        l3.getFleets().add(f3);
+        Conflict lost3 = new Conflict(mil3, w3);
+        lost3.commitCard(w3, w3.getAmbassador());
+        lost3.commitCard(l3, l3.getAmbassador());
+        lost3.commitCard(l3, f3);
+        Player winner3 = rules.resolveConflict(lost3, st3);
+        int inf3 = l3.getInfluence();
+        int hand3 = l3.getHand().size();
+        check("NS-C", "setup: deluxe loser lost and its committed fleet rotated",
+                winner3 == w3 && f3.isRotated());
+        CardEffects.applyAftermathEffect(st3, lost3, deNs, l3, winner3);
+        check("NS-C", "deluxe effect: fleet kept, 1 influence, and 1 card drawn",
+                !f3.isRotated() && l3.getInfluence() == inf3 + 1
+                && l3.getHand().size() == hand3 + 1);
+
+        // D: an id with no registered effect keeps the generic path — the
+        // dispatch entry point itself is a no-op for it (loud no-op lives in
+        // the play site's fallback, matching the events rule).
+        AftermathCard unknown = new AftermathCard("am_ns_unknown", "Unknown",
+                "AFTERMATH", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", "LOST");
+        int infD = l3.getInfluence();
+        CardEffects.applyAftermathEffect(st3, lost3, unknown, l3, winner3);
+        check("NS-D", "unregistered aftermath id: dispatch is a no-op",
+                l3.getInfluence() == infD && !CardEffects.isNegotiatedSurrender(unknown.getId()));
+    }
+
+    private static void testDiplomaticAdvantageAftermath() {
+        System.out.println("DA (B5-1051): Diplomatic Advantage aftermath dispatch ?");
+        System.out.println("             winner gains 2 influence and draws 1 card");
+
+        Player winner = player("DA-winner", Faction.MINBARI);
+        Player loser = player("DA-loser", Faction.NARN);
+        GameState st = state(winner, loser);
+        ConflictCard dip = new ConflictCard("da_conf", "DA Diplomacy",
+                "CONFLICT_DIPLOMACY", Rarity.RARE, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", ConflictType.DIPLOMACY, 1);
+        Conflict resolved = new Conflict(dip, winner);
+        resolved.commitCard(winner, winner.getAmbassador());
+        resolved.commitCard(loser, loser.getAmbassador());
+
+        AftermathCard da = new AftermathCard("aftermath_diplomatic_advantage",
+                "Diplomatic Advantage", "AFTERMATH_WON_DIPLOMACY",
+                Rarity.RARE, Faction.ANY, CardSet.PREMIERE, "x",
+                "Play after winning a Diplomacy conflict. Gain 2 Influence and draw 1 card.",
+                "WON_DIPLOMACY");
+        int influenceBefore = winner.getInfluence();
+        int handBefore = winner.getHand().size();
+        CardEffects.applyAftermathEffect(st, resolved, da, winner, winner);
+        check("DA-1", "Diplomatic Advantage dispatch: winner gains 2 influence and draws 1 card",
+                winner.getInfluence() == influenceBefore + 2
+                && winner.getHand().size() == handBefore + 1);
+
+        AftermathCard generic = new AftermathCard("aftermath_focus_your_efforts",
+                "Focus Your Efforts", "AFTERMATH_WON", Rarity.UNCOMMON, Faction.ANY,
+                CardSet.PREMIERE, "x", "Play after winning any conflict. Move one card from your discard pile to your hand.", "WON");
+        int influenceGenericBefore = winner.getInfluence();
+        int handGenericBefore = winner.getHand().size();
+        CardEffects.applyAftermathEffect(st, resolved, generic, winner, winner);
+        check("DA-2", "generic aftermaths remain no-op under the registry dispatch",
+                winner.getInfluence() == influenceGenericBefore
+                && winner.getHand().size() == handGenericBefore);
+    }
+
+    /**
+     * B5-1045: the de_agenda_total_war WRONG deluxe delta, WRONG #1 of the
+     * seven B5-1032 named. Printed deluxe text: "You may not play Diplomacy
+     * conflict cards. (Deluxe text change: restriction now also prohibits
+     * playing Diplomacy Aftermath cards.)" The premiere fleets-plus-1 effect
+     * was already dispatched; this asserts it is UNCHANGED for both editions
+     * and that the deluxe-only restriction now actually bites at the play gate.
+     */
+    private static void testTotalWarDeluxeRestriction() {
+        System.out.println("TW (B5-1045): Total War deluxe delta — premiere fleets +1 "
+                + "unchanged, deluxe additionally bars Diplomacy Aftermaths");
+        RulesEngine rules = new RulesEngine();
+
+        Player owner    = player("TW-owner", Faction.NARN);
+        Player rival    = player("TW-rival", Faction.MINBARI);
+        GameState st = state(owner, rival);
+
+        // ── A: premiere path unchanged — the already-dispatched fleets +1 ─────
+        FleetCard oFleet = new FleetCard("tw_ofleet", "TW Owner Fleet", "FLEET_NARN",
+                Rarity.COMMON, Faction.NARN, CardSet.PREMIERE, "x", "text", 4);
+        FleetCard rFleet = new FleetCard("tw_rfleet", "TW Rival Fleet", "FLEET_MINBARI",
+                Rarity.COMMON, Faction.MINBARI, CardSet.PREMIERE, "x", "text", 4);
+        owner.getFleets().add(oFleet);
+        rival.getFleets().add(rFleet);
+        // The FACTION-scope bonus is read through the fleet's OWNER registry
+        // (FleetCard.getEffectiveMilitary :55), so the seam must be wired as
+        // AgendaCard.isConditionMet wires it before the value is meaningful.
+        oFleet.setOwner(owner);
+        rFleet.setOwner(rival);
+
+        AgendaCard premiereTw = new AgendaCard("agenda_total_war", "Total War",
+                "AGENDA", Rarity.RARE, Faction.ANY, CardSet.PREMIERE, "total_war",
+                "Ongoing: Your fleets gain +1 Military. You may not play Diplomacy "
+                        + "conflict cards.", false, "MILITARY_SUPREMACY");
+        AgendaCard deluxeTw = new AgendaCard("de_agenda_total_war", "Total War",
+                "AGENDA", Rarity.RARE, Faction.ANY, CardSet.DELUXE, "total_war",
+                "Ongoing: Your fleets gain +1 Military. You may not play Diplomacy "
+                        + "conflict cards. (Deluxe text change: restriction now also "
+                        + "prohibits playing Diplomacy Aftermath cards.)", false,
+                "MILITARY_SUPREMACY");
+
+        int baseOwner = oFleet.getEffectiveMilitary();
+        int baseRival = rFleet.getEffectiveMilitary();
+        owner.setAgenda(premiereTw);
+        CardEffects.applyAgendaOnPlay(st, owner, premiereTw);
+        check("TW-A", "premiere path unchanged: owner's fleets still gain +1 Military, "
+                + "rival's do not",
+                oFleet.getEffectiveMilitary() == baseOwner + 1
+                        && rFleet.getEffectiveMilitary() == baseRival);
+
+        // B: the deluxe twin keeps the SAME premiere effect — the delta adds a
+        // restriction, it does not replace the fleet bonus.
+        Player dOwner = player("TW-downer", Faction.NARN);
+        Player dRival = player("TW-drival", Faction.MINBARI);
+        state(dOwner, dRival);
+        FleetCard dFleet = new FleetCard("tw_dfleet", "TW Deluxe Fleet", "FLEET_NARN",
+                Rarity.COMMON, Faction.NARN, CardSet.DELUXE, "x", "text", 4);
+        dOwner.getFleets().add(dFleet);
+        dFleet.setOwner(dOwner);
+        int baseDeluxe = dFleet.getEffectiveMilitary();
+        dOwner.setAgenda(deluxeTw);
+        CardEffects.applyAgendaOnPlay(st, dOwner, deluxeTw);
+        check("TW-B", "deluxe path keeps the premiere fleets +1 effect",
+                dFleet.getEffectiveMilitary() == baseDeluxe + 1);
+        // ── C: the deluxe restriction, at the real play gate ─────────────────
+        // A resolved DIPLOMACY conflict both players participated in, plus a
+        // real DIPLOMACY_PARTICIPANT aftermath from the card data.
+        ConflictCard dip = new ConflictCard("tw_conf", "TW Diplomacy",
+                "CONFLICT_DIPLOMACY", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", ConflictType.DIPLOMACY, 1);
+        Conflict resolved = new Conflict(dip, owner);
+        resolved.commitCard(owner, owner.getAmbassador());
+        resolved.commitCard(rival, rival.getAmbassador());
+        boolean initiatorWon = rules.initiatorWon(resolved, owner);
+
+        AftermathCard dipAm = new AftermathCard("aftermath_rivalry", "Rivalry",
+                "AFTERMATH_DIPLOMACY_PARTICIPANT", Rarity.UNCOMMON, Faction.ANY,
+                CardSet.PREMIERE, "x", "Play after a Diplomacy conflict.",
+                "DIPLOMACY_PARTICIPANT");
+        AftermathCard milAm = new AftermathCard("aftermath_negotiated_surrender",
+                "Negotiated Surrender", "AFTERMATH_MILITARY_PARTICIPANT",
+                Rarity.RARE, Faction.ANY, CardSet.PREMIERE, "x", "text",
+                "MILITARY_PARTICIPANT");
+
+        check("TW-C1", "classification: the trigger vocabulary splits Diplomacy "
+                + "Aftermaths from other types",
+                CardEffects.isDiplomacyAftermath(dipAm)
+                        && !CardEffects.isDiplomacyAftermath(milAm));
+
+        // C2: premiere agenda in play — the restriction is absent, so the
+        // Diplomacy Aftermath play is judged on its own merits and allowed.
+        owner.setAgenda(premiereTw);
+        owner.getHand().add(dipAm);
+        check("TW-C2", "premiere agenda imposes no Diplomacy Aftermath restriction",
+                !CardEffects.agendaBarsDiplomacyAftermath(owner)
+                        && !CardEffects.isBannedByAgenda(owner, dipAm)
+                        && rules.canPlayAftermath(owner, dipAm, resolved,
+                                initiatorWon, owner, st));
+
+        // C3: deluxe agenda in play — the same play is now refused.
+        owner.setAgenda(deluxeTw);
+        check("TW-C3", "deluxe agenda bars the owner from playing a Diplomacy Aftermath",
+                CardEffects.agendaBarsDiplomacyAftermath(owner)
+                        && CardEffects.isBannedByAgenda(owner, dipAm)
+                        && !rules.canPlayAftermath(owner, dipAm, resolved,
+                                initiatorWon, owner, st));
+
+        // C4: the restriction is scoped — a non-Diplomacy Aftermath is not
+        // banned by it (asserted at the predicate; its own trigger also makes
+        // it ineligible on this DIPLOMACY conflict, so the gate is not the
+        // instrument that could prove this one).
+        check("TW-C4", "deluxe agenda leaves non-Diplomacy Aftermaths unbanned",
+                !CardEffects.isBannedByAgenda(owner, milAm));
+
+        // C5: the restriction binds only the agenda's OWNER. An opponent's
+        // Total War is not a lock on anyone else's Diplomacy Aftermaths.
+        rival.getHand().add(dipAm);
+        check("TW-C5", "the restriction binds only the owner, never the opponents",
+                rules.canPlayAftermath(rival, dipAm, resolved,
+                        rules.initiatorWon(resolved, rival), rival, st));
+
+        // C6: a face-down agenda has no effect until revealed (B5-0364).
+        deluxeTw.setFaceDown(true);
+        boolean hiddenAllows = rules.canPlayAftermath(owner, dipAm, resolved,
+                initiatorWon, owner, st);
+        deluxeTw.setFaceDown(false);
+        check("TW-C6", "a face-down deluxe agenda does not bar the play until revealed",
+                hiddenAllows && !rules.canPlayAftermath(owner, dipAm, resolved,
+                        initiatorWon, owner, st));
+
+        // C7: no agenda at all — nothing is banned.
+        owner.setAgenda(null);
+        check("TW-C7", "no agenda in play bars nothing",
+                !CardEffects.agendaBarsDiplomacyAftermath(owner)
+                        && rules.canPlayAftermath(owner, dipAm, resolved,
+                                initiatorWon, owner, st));
+    }
+
+    // ── B5-1089 (WRONG #2 of 7 from B5-1032): Bio-Weapon Discovery deluxe delta ──
+
+    private static void testBioWeaponDeluxeDelta() {
+        System.out.println("BWD (B5-1089): Bio-Weapon Discovery deluxe delta — "
+                + "premiere discards-only unchanged, deluxe adds 1-influence loss");
+        RulesEngine rules = new RulesEngine();
+
+        // ── A: prior paths unchanged — conf_loss_of_support still loses 1 + discards 1,
+        //     conf_hate_crime still loses 2 and no discard ──────────────────────
+        Player aOwner = player("BWD-a-owner", Faction.NARN);
+        Player aRival = player("BWD-a-rival", Faction.MINBARI);
+        GameState aSt = state(aOwner, aRival);
+        ConflictCard aCard = new ConflictCard("bwd_a_conf", "BWD A Strike",
+                "CONFLICT_MILITARY", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", ConflictType.MILITARY, 1);
+        Conflict aConflict = new Conflict(aCard, aOwner);
+        aConflict.commitCard(aOwner, aOwner.getAmbassador());
+        aConflict.commitCard(aRival, aRival.getAmbassador());
+        int aOwnerInf = aOwner.getInfluence();
+        int aRivalInf = aRival.getInfluence();
+        int aRivalHand = aRival.getHand().size();
+        rules.resolveConflict(aConflict, aSt);
+        // Swap so aRival is the loser this time.
+        Player bOwner = player("BWD-b-owner", Faction.CENTAURI);
+        Player bRival = player("BWD-b-rival", Faction.HUMAN);
+        GameState bSt = state(bOwner, bRival);
+        ConflictCard bCard = new ConflictCard("bwd_b_conf", "BWD B Strike",
+                "CONFLICT_MILITARY", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", ConflictType.MILITARY, 1);
+        Conflict bConflict = new Conflict(bCard, bOwner);
+        bConflict.commitCard(bOwner, bOwner.getAmbassador());
+        bConflict.commitCard(bRival, bRival.getAmbassador());
+        int bRivalInf = bRival.getInfluence();
+        int bRivalHand = bRival.getHand().size();
+        rules.resolveConflict(bConflict, bSt);
+
+        // ── B: premiere conf_bio_weapon_discovery — discard-2, NO influence loss ─
+        Player pOwner = player("BWD-p-owner", Faction.NARN);
+        Player pRival = player("BWD-p-rival", Faction.MINBARI);
+        GameState pSt = state(pOwner, pRival);
+        for (int i = 0; i < 5; i++) {
+            pRival.getHand().add(new EventCard("bwd_p_fill_" + i, "Fill " + i,
+                    "EVENT", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE, "x", "text"));
+        }
+        ConflictCard pCard = new ConflictCard("conf_bio_weapon_discovery",
+                "Bio-Weapon Discovery", "CONFLICT_INTRIGUE", Rarity.COMMON,
+                Faction.ANY, CardSet.PREMIERE, "x", "text", ConflictType.INTRIGUE, 1);
+        Conflict pConflict = new Conflict(pCard, pOwner);
+        pConflict.commitCard(pOwner, pOwner.getAmbassador());
+        pConflict.commitCard(pRival, pRival.getAmbassador());
+        int pRivalInf = pRival.getInfluence();
+        int pRivalHand = pRival.getHand().size();
+        int pOwnerInf = pOwner.getInfluence();
+        rules.resolveConflict(pConflict, pSt);
+        check("BWD-B1", "premiere Bio-Weapon: loser discards 2, influence unchanged",
+                pRival.getInfluence() == pRivalInf
+                        && pRival.getHand().size() == pRivalHand - 2);
+        check("BWD-B2", "premiere Bio-Weapon: winner gains the card's reward",
+                pOwner.getInfluence() == pOwnerInf + 1);
+
+        // ── C: deluxe de_conf_bio_weapon_discovery — discard-2 AND lose 1 influence ─
+        Player dOwner = player("BWD-d-owner", Faction.CENTAURI);
+        Player dRival = player("BWD-d-rival", Faction.HUMAN);
+        GameState dSt = state(dOwner, dRival);
+        for (int i = 0; i < 5; i++) {
+            dRival.getHand().add(new EventCard("bwd_d_fill_" + i, "Fill " + i,
+                    "EVENT", Rarity.COMMON, Faction.ANY, CardSet.DELUXE, "x", "text"));
+        }
+        ConflictCard dCard = new ConflictCard("de_conf_bio_weapon_discovery",
+                "Bio-Weapon Discovery", "CONFLICT_INTRIGUE", Rarity.COMMON,
+                Faction.ANY, CardSet.DELUXE, "x",
+                "Intrigue conflict. Winner gains 3 Influence. Loser must discard 2 "
+                        + "cards. (Deluxe text change: loser also loses 1 Influence.)",
+                ConflictType.INTRIGUE, 1);
+        Conflict dConflict = new Conflict(dCard, dOwner);
+        dConflict.commitCard(dOwner, dOwner.getAmbassador());
+        dConflict.commitCard(dRival, dRival.getAmbassador());
+        int dRivalInf = dRival.getInfluence();
+        int dRivalHand = dRival.getHand().size();
+        int dOwnerInf = dOwner.getInfluence();
+        rules.resolveConflict(dConflict, dSt);
+        check("BWD-C1", "deluxe Bio-Weapon: loser discards 2 AND loses 1 influence",
+                dRival.getInfluence() == dRivalInf - 1
+                        && dRival.getHand().size() == dRivalHand - 2);
+        check("BWD-C2", "deluxe Bio-Weapon: winner gains the card's reward unchanged",
+                dOwner.getInfluence() == dOwnerInf + 1);
+    }
+
     private static void testD15EffectCoverage() {
         System.out.println("D15 (B5-0436 R4): dispatched effect kinds — winner-only influenceReward");
         RulesEngine rules = new RulesEngine();
@@ -5850,6 +6234,76 @@ public class HeadlessConformanceTest {
                 && stC.getPhase() == GamePhase.MERCENARY);
     }
 
+    // ── B5-1038: generic play path charges card cost ────────────────────────────
+
+    private static void testCardCostOnPlay() throws Exception {
+        System.out.println("CPC (B5-1038): generic play path charges card cost");
+        RulesEngine rules = new RulesEngine();
+        Player p = player("CPCp", Faction.HUMAN);
+        Player r = player("CPCr", Faction.MINBARI);
+        GameState st = state(p, r);
+        GameController gc = new GameController(st, new ArrayList<AIPlayer>(),
+            new GameStateCallback() {
+                public void accept(GameState gs) { }
+            });
+        Method handler = GameController.class.getDeclaredMethod(
+                "processAction", Player.class, GameAction.class);
+        handler.setAccessible(true);
+
+        // Player starts rating=4 pool=4; we control pool with gain/apply.
+        // 1. canPlayCard affordability gate.
+        EnhancementCard free = new EnhancementCard(
+                "cpc_free", "Free Boost", "ENHANCEMENT",
+                Rarity.UNCOMMON, Faction.ANY, CardSet.PREMIERE, "x", "text",
+                0, 0, 0, 0, 0);
+        EnhancementCard costly = new EnhancementCard(
+                "cpc_costly", "Costly Boost", "ENHANCEMENT",
+                Rarity.UNCOMMON, Faction.ANY, CardSet.PREMIERE, "x", "text",
+                0, 0, 0, 0, 0);
+        free.setCost(0);
+        costly.setCost(3);
+        p.getHand().add(free);
+        p.getHand().add(costly);
+        // pool 4 >= cost 0: free playable; pool 4 >= cost 3: costly playable.
+        check("CPC", "0-cost card is playable when afford (byte-identical to before)",
+                rules.canPlayCard(p, free));
+        check("CPC", "affordable costed card is playable",
+                rules.canPlayCard(p, costly));
+        // Drain pool below cost 3: spend 2 from pool 4 -> pool 2.
+        p.applyInfluence(2);
+        check("CPC", "unaffordable costed card is NOT playable",
+                !rules.canPlayCard(p, costly));
+        check("CPC", "unaffordable card stays in hand (canPlayCard, not controller)",
+                p.getHand().contains(costly));
+
+        // 2. Controller: unaffordable PLAY_CARD refuses without hand removal.
+        // pool is already 2 (below cost 3); play refuses, card stays, pool unchanged.
+        handler.invoke(gc, p, GameAction.playCard(costly));
+        check("CPC", "unaffordable play refuses: card stays in hand, pool untouched",
+                p.getHand().contains(costly) && p.getAppliedPool() == 2
+                && p.getInfluence() == 4);
+
+        // affordable play: top up pool above cost, then play removes card + spends.
+        p.gainInfluence(2);     // pool 2 -> 4, rating 4 -> 6
+        handler.invoke(gc, p, GameAction.playCard(costly));
+        check("CPC", "affordable play executes: card removed from hand, pool reduced",
+                !p.getHand().contains(costly) && p.getAppliedPool() == 1
+                && p.getInfluence() == 6);
+
+        // 3. 0-cost card behaviour is byte-identical to before: plays freely.
+        // free is already in hand from step 1 (never played); play it directly.
+        handler.invoke(gc, p, GameAction.playCard(free));
+        check("CPC", "0-cost card plays and leaves pool unchanged (0 spent)",
+                !p.getHand().contains(free) && p.getAppliedPool() == 1);
+
+        // 4. exactly-affordable card: play when pool == cost, leaves 0.
+        p.getHand().add(costly);
+        p.gainInfluence(2);     // pool 1 -> 3, rating 6 -> 8 (pool == cost 3)
+        handler.invoke(gc, p, GameAction.playCard(costly));
+        check("CPC", "exactly-affordable card plays and leaves 0 influence",
+                !p.getHand().contains(costly) && p.getAppliedPool() == 0);
+    }
+
     public static void main(String[] args) {
         try {
             System.out.println("=== B5 CCG rulebook-conformance suite (B5-0308) ===");
@@ -5907,6 +6361,7 @@ public class HeadlessConformanceTest {
             testHealRepair();
 
             testMercenaries();   // B5-0395 (rulebook §Mercenaries :735–:741)
+            testCardCostOnPlay();   // B5-1038: generic play path charges card cost
 
             testStation();
 
@@ -5925,6 +6380,10 @@ public class HeadlessConformanceTest {
             testOrderAndInitiativeSequencing();
             testD7BuildInfluence();
             testD15EffectCoverage();
+            testNegotiatedSurrender();   // B5-0990: Negotiated Surrender aftermath dispatch (NS)
+            testDiplomaticAdvantageAftermath(); // B5-1051: Diplomatic Advantage aftermath dispatch
+            testTotalWarDeluxeRestriction(); // B5-1045: Total War deluxe delta (WRONG #1 of 7)
+            testBioWeaponDeluxeDelta();       // B5-1089: Bio-Weapon deluxe delta (WRONG #2 of 7)
             testStationHooks();   // B5-0437: station-influence card hooks
             testAIStationAwareness(); // B5-0453: MEDIUM/HARD score station ratings, EASY uniform
             testAgendaInstallLog();   // B5-0464: sets-agenda token emitter paired with the runner parser

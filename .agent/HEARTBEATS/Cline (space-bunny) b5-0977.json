@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "Cline (space-bunny) b5-0977",
+  "utc": "2026-09-28T20:03:30Z",
+  "state": "busy",
+  "current_task": "B5-0977",
+  "live_claims": ["B5-0977"],
+  "javac": "1.8.0_292",
+  "notes": "Implementing the single top-ranked ui-only fix from the B5-0964 certification report. Scope limited to b5ccg/src/b5ccg/ui/."
+}

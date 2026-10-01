@@ -1,0 +1,10 @@
+﻿{
+    "task":  "B5-1515",
+    "agent_id":  "Buffy (glm-5.3-flash) 14",
+    "started_utc":  "2026-10-01T05:03:05Z",
+    "ttl_min":  30,
+    "scope":  [
+                  "suite read-only plus grep plus one report plus one pattern plus heartbeat; no suite or src edits, no commit"
+              ],
+    "javac":  "1.8.0_292"
+}

@@ -1,0 +1,1 @@
+{"task": "B5-1625", "agent_id": "Buffy (glm-5.3-flash) 16", "started_utc": "2026-10-01T05:08:00Z", "ttl_min": 30, "scope": ["read-only census of agenda winCondition keys in both card data files + b5ccg/src grep; writes limited to report, pattern, ledger row, DECISIONS entry, claim, heartbeat"], "javac": "1.8.0_292"}

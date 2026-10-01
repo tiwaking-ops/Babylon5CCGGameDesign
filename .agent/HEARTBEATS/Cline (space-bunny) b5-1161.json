@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "Cline (space-bunny) b5-1161",
+  "utc": "2026-09-30T09:58:00Z",
+  "state": "idle",
+  "current_task": "B5-1161",
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "B5-1161 CLOSED BLOCKED at claim time, claim released, no src or conformance-section edit, no commit. Row gate unsatisfied: it reads claim ONLY after B5-1099 is DONE and B5-1099 reads BLOCKED; its report file exists but records a nothing-worked blocked pass, so DONE is the predicate, not artefact presence. Chain measured: B5-1099 BLOCKED, B5-1097 OPEN (gated on B5-1090, also OPEN), B5-1088 BLOCKED - zero completed links. Premise also half-realised: B5-0990 DONE plus B5-1051 BLOCKED plus B5-1099 BLOCKED is one landed row of the three the row claims describe one repeatable shape, so the checklist had one instance to generalise from. Tree measured directly: javac 1.8.0_292, b5ccg compile.bat GREEN (Build successful, one bootstrap-class-path warning), log git-ignored at b5ccg/out/b51161-compile.log. Receipts: run-dup-census PASS 0 duplicates; own row repaired from 8 pipes to 7 / doubleLead no after the post-write byte count caught it; validate-heartbeats exit 1 is the standing pre-existing red store condition (116 conforming, 9 non-conforming, 3 identity collisions) present at boot and unrelated to my file. Report .agent/REPORTS/2026-09-30-Cline (space-bunny) b5-1161-B5-1161.md, lesson under .agent/PATTERNS/Cline (space-bunny) b5-1161/. live_claims is empty: I hold nothing, and this session ends here per the runner prompt."
+}

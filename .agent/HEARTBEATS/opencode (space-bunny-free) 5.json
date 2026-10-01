@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "opencode (space-bunny-free) 5",
+  "utc": "2026-09-29T19:20:00Z",
+  "state": "active",
+  "current_task": null,
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "New session instance, distinct from opencode (space-bunny-free) 4 which closed its seeding pass and went idle. Boot verification at wall clock 2026-09-29T19:05:42Z: javac 1.8.0_292; compile.bat Build successful exit 0; run-dup-census exit 0 zero duplicates and now printing an explicit UTF-8 encoding receipt, confirming the B5-1002 close-out; ledger-query 17 OPEN, 471 DONE, 17 BLOCKED, 4 VOID, 6 SUPERSEDED; validate-heartbeats 88 files 87 conforming 1 non-conforming 0 identity collisions, the one non-conforming being the pre-existing foreign b5-0941 tombstone. Two live claims at read time, both Buffy (glm-5.3-flash) 4 on B5-1003 and B5-1004, ages 13 and 8 minutes. Seeding wave 2 B5-1020..B5-1037 in flight, 18 rows, grounded in card-data twin and schema censuses measured this pass. Holding no claim."
+}

@@ -1,0 +1,184 @@
+=== B5 CCG Build ===
+Source: /c/temp/projects/Babylon5CCGGameDesign/b5ccg/src
+Output: /c/temp/projects/Babylon5CCGGameDesign/b5ccg/out
+Compiling 64 source files…
+warning: [options] bootstrap class path not set in conjunction with -source 1.6
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+1 warning
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8
+Copying resources…
+
+✓ Build successful. Run with: ./run.sh
+
+=== Verification (RUN_TESTS=1) ===
+=== B5 CCG rulebook-conformance suite (B5-0308) ===
+D1: aftermath Won/Lost from the initiator's perspective
+  [D1] initiatorWon=false when the opposer wins: PASS
+  [D1] losing initiator cannot play WON aftermath: PASS
+  [D1] losing initiator can play LOST aftermath: PASS
+  [D1] winning opposer still evaluates vs initiator (no WON): PASS
+  [D1] winning opposer may play LOST aftermath (on the initiator): PASS
+  [D1] initiatorWon=true when the initiator wins: PASS
+  [D1] winning initiator can play WON aftermath: PASS
+  [D1] winning initiator cannot play LOST aftermath: PASS
+D3: aftermath conflict-type gating (PSI branch)
+  [D3] PSI aftermath illegal on MILITARY conflict: PASS
+  [D3] PSI aftermath illegal on DIPLOMACY conflict: PASS
+  [D3] PSI aftermath illegal on INTRIGUE conflict: PASS
+  [D3] PSI aftermath legal on PSI conflict: PASS
+  [D3] MILITARY_PARTICIPANT legal on MILITARY when participated: PASS
+  [D3] MILITARY_PARTICIPANT illegal without participation: PASS
+  [D3] MILITARY_PARTICIPANT illegal on INTRIGUE conflict: PASS
+  [D3] engine path: WON_PSI rejected on a MILITARY conflict via canPlayAftermath: PASS
+D8: deck-out penalty (no reshuffle; IC discard; forfeit)
+  [D8] deck-out discards the non-ambassador IC character: PASS
+  [D8] deck-out with only the ambassador left flags forfeit: PASS
+  [D8] empty deck from the start: forfeit, ambassador never discarded: PASS
+  [D8] checkVictory returns the last standing player: PASS
+  [D8] checkVictory returns null while no one has forfeited: PASS
+D12: standard victory = 20+ power, strictly greatest;
+     major agendas block the standard path
+  [D12] 20-20 tie yields no standard winner: PASS
+  [D12] 20 vs 19: strictly-greater player wins: PASS
+  [D12] major agenda holder at 21 power does not standard-win: PASS
+  [D12] major agenda holder wins via the agenda condition: PASS
+  [D12] non-major agenda holder standard-wins with strictly-greatest power: PASS
+D13: NON_ALIGNED as a normal race; NEUTRAL universal
+  [D13] NON_ALIGNED card not playable by HUMAN: PASS
+  [D13] NON_ALIGNED card playable by NON_ALIGNED: PASS
+  [D13] NEUTRAL still playable by every faction: PASS
+  [D13] ANY playable by every faction: PASS
+  [D13] loyal HUMAN card not playable by NARN: PASS
+  [D13] loyal card playable by its own race: PASS
+CPT (B5-0302): one conflict per faction per turn
+  [CPT] first initiation this turn is legal: PASS
+  [CPT] second initiation by the same player is illegal: PASS
+  [CPT] another player can still initiate this turn: PASS
+  [CPT] the marker clears at the round boundary: PASS
+  [CPT] p2 is blocked after their own initiation: PASS
+CSD (B5-0309): initiator wins iff support > opposition
+  [CSD] support side recorded for the initiator: PASS
+  [CSD] support 3 vs opposition 0: initiator wins: PASS
+  [CSD] support 3 vs opposition 3: initiator loses (opposer wins): PASS
+  [CSD] tie loss damages nobody (gap below 3): PASS
+  [CSD] support 3 vs opposition 5: leading opposer wins: PASS
+  [CSD] support 3 vs opposition 8: opposer wins, loser damaged: PASS
+  [CSD] damaged (face-down) character contributes 0: PASS
+  [CSD] legacy commitCard/addParticipant default to support side: PASS
+WAR (B5-0376): war conflict initiation, participation, card commitment
+  [WAR] cannot declare war conflict when races are at peace: PASS
+  [WAR] can declare war conflict when at war with another race: PASS
+  [WAR] minbari can also declare war conflict: PASS
+  [WAR] war conflict created with null card and race target: PASS
+  [WAR] war conflict type is MILITARY: PASS
+  [WAR] initiator can join own war conflict: PASS
+  [WAR] target at war with initiator can join: PASS
+  [WAR] third party not at war cannot join: PASS
+  [WAR] third party now at war with initiator can join: PASS
+  [WAR] event card can commit to war conflict: PASS
+  [WAR] fleet card can commit to war conflict: PASS
+  [WAR] character card can commit to war conflict: PASS
+  [WAR] cannot initiate war conflict against race not at war (after peace): PASS
+  [WAR] war conflict carries zero influence reward: PASS
+  [WAR] uncontested race war: target loses 1 influence: PASS
+  [WAR] uncontested race war: winner gains 1 influence: PASS
+  [WAR] location-target war conflict declared: PASS
+  [WAR] location captured by winning initiator: PASS
+  [WAR] captured location income is suppressed to 0: PASS
+  [WAR] captured location military is suppressed to 0: PASS
+  [WAR] tension incremented for location-target war outcome: PASS
+  [WAR] location-target recapture war conflict declared: PASS
+  [WAR] recaptured location cleared of capture marker: PASS
+  [WAR] recaptured location income restored: PASS
+  [WAR] recaptured location military restored: PASS
+  [WAR] attacked war conflict declared: PASS
+  [WAR] narn commits support fleet to war conflict: PASS
+  [WAR] minbari commits opposing fleet to war conflict: PASS
+  [WAR] attack action resolves against a committed participant: PASS
+  [WAR] attack marks war conflict contested: PASS
+  [WAR] attacked race war does not swing influence (contested): PASS
+PRM (B5-0321): Promote Character to the Inner Circle
+  [PRM] no IC member to rotate: cannot promote: PASS
+  [PRM] IC-size cost term is live (0-cost char + 1 member = 1): PASS
+  [PRM] affordable + leader available: can promote: PASS
+  [PRM] rotated supporting character cannot be promoted: PASS
+  [PRM] damaged (face-down) supporting character cannot be promoted: PASS
+  [PRM] invalid leader: no-op (candidate still supporting): PASS
+  [PRM] promotion moves the character into the Inner Circle: PASS
+  [PRM] leader rotated, promoted character ready: PASS
+  [PRM] promotion applies 1 from pool and preserves Rating: PASS
+  [PRM] cost recomputes with the new IC size (2 members = 2): PASS
+  [PRM] influence below the cost: cannot promote: PASS
+  [PRM] Build Influence reachable with an IC member present: PASS
+  [PRM] promoted-then-damaged character contributes 0: PASS
+  [PRM] promotion state resets for a fresh round: PASS
+  [PRM] second promotion: leader rotates, IC grows to 3: PASS
+  [PRM] second promotion applies cost 2 without eroding Rating: PASS
+E3 (B5-0374): free-participant effect and join path
+  [E3] Non-Aligned Support is registered as a participant waiver: PASS
+  [E3] registered waiver enters through the ordinary join gate: PASS
+  [E3] free participant joins without pool spend or fleet rotation: PASS
+D9 (B5-0369): Rating versus applied influence pool
+  [D9] pool starts at the Influence Rating: PASS
+  [D9] applying the full pool leaves Rating unchanged: PASS
+  [D9] start-round restoration resets pool to Rating: PASS
+  [D9] permanent gain raises Rating and spendable pool: PASS
+  [D9] permanent loss lowers Rating and clamps current pool: PASS
+  [D9] Build Influence requires three applied points: PASS
+  [D9] Build Influence applies 3 and permanently raises Rating by 1: PASS
+  [D9] Rating 10 blocks another Build Influence action: PASS
+  [D9] victory reads Rating when applied pool is empty: PASS
+AIS (B5-0324): cost-aware AI scoring
+  [AIS] MEDIUM: zero costs keep the agenda-first ordering: PASS
+  [AIS] MEDIUM: cost subtracts — picks the cheaper location: PASS
+  [AIS] MEDIUM: scores floor at 0; PASS wins when all equal: PASS
+  [AIS] HARD: zero cost keeps positional order: PASS
+  [AIS] HARD: cost subtracts — picks the cheaper location: PASS
+  [AIS] MEDIUM: prefers the cheaper recruit (5 vs 2): PASS
+  [AIS] MEDIUM: after the cost flip picks the now-cheaper recruit: PASS
+AES (B5-0344): agenda/aftermath/event AI scoring
+  [AES] MEDIUM plays a win-on-play agenda: PASS
+  [AES] MEDIUM declines a far agenda and recruits instead: PASS
+  [AES] trailing player prefers the event (catch-up bonus): PASS
+  [AES] leading player keeps the old event ordering (no bonus): PASS
+  [AES] MEDIUM passes instead of discarding a lone aftermath: PASS
+  [AES] MEDIUM plays the event instead of the aftermath: PASS
+  [AES] HARD initiates the losing matchup when 6 aftermaths anticipate the win: PASS
+  [AES] same conflict without live aftermaths: pass (no anticipation): PASS
+  [AES] EASY also holds the aftermath (offer-level rule, 20 runs): PASS
+PAR (B5-0336): conflict participation restrictions
+B5-0336: unknown participation key skipped: unknownKey
+  [PAR] parser reads players/requiresTarget/cardTypes/quota/leaders: PASS
+  [PAR] empty participation object is not restricted (open): PASS
+  [PAR] open conflict: any player may join and commit: PASS
+  [PAR] players gate admits the declared target: PASS
+  [PAR] players gate rejects an outsider's join and commit: PASS
+  [PAR] allowed fleet class commits: PASS
+  [PAR] disallowed fleet class is refused: PASS
+  [PAR] fleet without a fleetClass is refused under the filter: PASS
+  [PAR] non-fleet card kinds are refused by cardTypes: PASS
+  [PAR] quota admits the first fleet and refuses the second: PASS
+  [PAR] leadersIncluded refuses a character with no allowed fleet: PASS
+  [PAR] leadersIncluded admits a character alongside an allowed fleet: PASS
+  [PAR] requiresTarget conflict is illegal without a target: PASS
+  [PAR] requiresTarget conflict is legal with a declared target: PASS
+  [PAR] open conflict stays legal in both initiation forms: PASS
+  [PAR] mustCommitAmbassador compels the other faction in: PASS
+  [PAR] mustCommitAmbassador commits both ambassadors: PASS
+  [PAR] allPlayersMustCommit pulls everyone in and commits ambassadors: PASS
+  [PAR] mustTakeSide compels every other player to a side: PASS
+UNKNOWN FIELD: id on card par_c1
+UNKNOWN FIELD: title on card par_c1
+UNKNOWN FIELD: type on card par_c1
+Skipping card, parse error: Missing required field: influenceReward on card par_c2 | data=par_c2
+UNKNOWN FIELD: id on card par_f5
+UNKNOWN FIELD: title on card par_f5
+UNKNOWN FIELD: type on card par_f5
+  [PAR] loader hydrates the participation object: PASS
+
+CONFORMANCE SUITE FAILED - unexpected exception:
+java.lang.ClassCastException: b5ccg.model.FleetCard cannot be cast to b5ccg.model.ConflictCard
+	at b5ccg.engine.HeadlessConformanceTest.testParticipation(HeadlessConformanceTest.java:507)
+	at b5ccg.engine.HeadlessConformanceTest.main(HeadlessConformanceTest.java:6245)
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8

@@ -1,5 +1,6 @@
 package b5ccg.ui;
 
+import b5ccg.model.CivilWarState;
 import b5ccg.model.*;
 import b5ccg.model.enums.ConflictType;
 import b5ccg.model.enums.TensionMatrix;
@@ -435,6 +436,69 @@ public class GameBoardPanel extends JPanel {
         g.setColor(new Color(200, 200, 120));
         g.drawString("Influence: " + p.getInfluence(), x + 8, y + 33);
         g.drawString(p.getFaction().toString(), x + 8, y + 47);
+        // B5-0701: computed Power beside Influence (B5-0677 seam). Power is
+        // DERIVED, never stored: getPower() == getInfluence() + POWER-tagged
+        // bonus total. Shown only when the two actually differ, so a board with
+        // no Power-bearing card in play is not cluttered with a redundant
+        // number -- and so the reader is never asked which of two equal numbers
+        // is the real one. Placed on the RIGHT of the name row: the left column
+        // below y+58 belongs to the ambassador mini-card, and drawing there
+        // would overlap it.
+        int power = p.getPower();
+        if (power != p.getInfluence()) {
+            g.setColor(new Color(240, 190, 90));
+            g.setFont(new Font("SansSerif", Font.PLAIN, 11));
+            g.drawString("Power: " + power + " (inf "
+                + p.getInfluence() + " "
+                + (p.getPowerBonusTotal() >= 0 ? "+ " : "- ")
+                + Math.abs(p.getPowerBonusTotal()) + ")",
+                x + w - 108, y + 33);
+        }
+
+        // B5-0977: the Unrest and Civil War readouts both drew at the SAME
+        // origin as the faction string on this row (x + 8, y + 47), so the
+        // faction name was painted over by "Unrest: N" whenever unrest > 1 --
+        // and "Unrest: N" was itself painted over by the "CIVIL WAR" badge when
+        // both conditions held. Three signals, one pixel. Chain them to the
+        // RIGHT of the faction string instead, each measuring the label before
+        // it, so every readout on this row stays legible at the same font size.
+        // This is a paint-order change only: no state is read here that was not
+        // already readable, nothing is derived, and no engine call changes.
+        g.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        int statusX = x + 8
+            + g.getFontMetrics().stringWidth(p.getFaction().toString()) + 10;
+        // Unrest readout (B5-0691 / B5-0715)
+        int unrest = p.getUnrest();
+        if (unrest > 1) {
+            g.setColor(new Color(255, 180, 80));
+            g.setFont(new Font("SansSerif", Font.PLAIN, 11));
+            String unrestLabel = "Unrest: " + unrest;
+            g.drawString(unrestLabel, statusX, y + 47);
+            statusX += g.getFontMetrics().stringWidth(unrestLabel) + 10;
+        }
+        // Civil War state readout (B5-0691 / B5-0715)
+        CivilWarState cws = state.civilWarOfRace(p.getFaction());
+        if (cws != null && cws.getPhase() == CivilWarState.Phase.CIVIL_WAR) {
+            g.setColor(new Color(255, 120, 120));
+            g.setFont(new Font("SansSerif", Font.BOLD, 11));
+            String badge = "CIVIL WAR";
+            int badgeW = g.getFontMetrics().stringWidth(badge);
+            if (statusX + badgeW <= x + w - 4) {
+                g.drawString(badge, statusX, y + 47);
+            } else if (x + w - 4 - badgeW > x + 68) {
+                // Too narrow to chain on the header row: the rulebook allows
+                // "more" players under the alternate faction rules, and at 7+
+                // the chain runs past the zone border. Drop the badge to the
+                // row below, right-aligned, which is clear of the 60px
+                // ambassador mini-card that occupies the left of that row.
+                g.drawString(badge, x + w - 4 - badgeW, y + 61);
+            } else {
+                // Narrower still: keep it on the header row and let the zone
+                // border clip it. A clipped badge beats a badge painted over
+                // the faction name, which is the defect this row removed.
+                g.drawString(badge, statusX, y + 47);
+            }
+        }
 
         // Phase indicator
         if (state.getActivePlayer() == p) {

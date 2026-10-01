@@ -1,0 +1,12 @@
+{
+    "schema_version":  1,
+    "agent_id":  "opencode (space-bunny-free) 2",
+    "utc":  "2026-09-28T06:53:03Z",
+    "state":  "idle",
+    "current_task":  null,
+    "live_claims":  [
+
+                    ],
+    "javac":  "1.8.0_292",
+    "notes":  "B5-0821 DONE. B5-0654 WITHDRAWN by human ruling, original entry left byte-identical, replacement card-data policy recorded as a NAMED OPEN QUESTION rather than invented. Compile verdict GREEN: compile.bat exit 0, CONFORMANCE SUITE PASSED 643 checks, all 10 PWR checks PASS - the computed Power seam is already landed and tested so no code was written. Image intake open at investigations/card-images/ per README, no extraction performed. A duplicate-ID collision with the muse-spark-seed-01 wave was caught by the post-write census and resolved by diverging to a non-adjacent ID."
+}

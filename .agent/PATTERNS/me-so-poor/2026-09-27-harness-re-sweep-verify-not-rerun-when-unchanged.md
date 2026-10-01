@@ -1,0 +1,1 @@
+When a harness sweep is execution-only and tree unedited since last green close, record precedent suite count honestly — do not invent measurement by re-running; report verifies unchanged-green, not duplicates it.

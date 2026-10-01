@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "solar-pro4:free-0978",
+  "utc": "2026-09-28T20:19:48Z",
+  "state": "active",
+  "current_task": "B5-0978",
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "B5-0978 close-out verification: row already DONE by Buffy (glm-5.3-flash) 2 (verdict close per row's own alternative branch). Claim file absent. Gate conditions met. Duplicate census 0 duplicates. Ledger query 7/no. No claim held."
+}

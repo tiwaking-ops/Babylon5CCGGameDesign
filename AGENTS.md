@@ -8,9 +8,10 @@ provenance:
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
     - {name: "Buffy", version: "glm-5.3-flash"}
     - {name: "opencode (space-bunny-free)", version: "space-bunny-free", passes: 1, last_pass: "2026-09-27", note: "edit: section 1a assessor_llm compaction convention, human-approved 2026-09-27 (B5-0655)"}
-  last_modified_by_llm: {name: "opencode (space-bunny-free)", version: "space-bunny-free"}
+    - {name: "me-so-poor", version: "me-so-poor", passes: 1, last_pass: "2026-09-29", note: "B5-1049 cost gate surfacing in UI"}
+  last_modified_by_llm: {name: "me-so-poor", version: "me-so-poor"}
   created_date: "2026-09-21"
-  last_modified_date: "2026-09-27"
+  last_modified_date: "2026-09-29"
 ---
 
 # AGENTS.md — Babylon 5 CCG (autonomous, lightweight)

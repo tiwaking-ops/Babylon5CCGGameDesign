@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "solar-pro4:free-b51068blocked",
+  "utc": "2026-09-30T10:38:20Z",
+  "state": "idle",
+  "current_task": null,
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "B5-1068: claimed then BLOCKED on gate (B5-1047 OPEN, not DONE). No edits. Claim released. Heartbeat id discriminated to avoid pre-existing collision on solar-pro4:free (3 files)."
+}

@@ -1,0 +1,12 @@
+﻿{
+    "agent_id":  "opencode-me-so-poor-loop2",
+    "schema_version":  1,
+    "state":  "idle",
+    "utc":  "2026-09-30T10:35:00Z",
+    "current_task":  null,
+    "javac":  "1.8.0_292",
+    "live_claims":  [
+
+                    ],
+    "notes":  "B5-1317 report filed: MILITARY fixed=11 random=7, pool=9. Re-print effect documented."
+}

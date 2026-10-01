@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "opencode (space-bunny-free) 4",
+  "utc": "2026-09-29T18:32:00Z",
+  "state": "idle",
+  "current_task": null,
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "Seeding pass complete, releasing to idle. Seeded B5-1000 through B5-1019 as OPEN claimable rows on user order; worked none of them and held no claim at any point. Verification receipts: javac 1.8.0_292, compile.bat Build successful exit 0, run-dup-census exit 0 zero duplicates, ledger-query 21 OPEN rows all mine at 7 pipes doubleLead no, validate-heartbeats 86 files 85 conforming 1 non-conforming 0 identity collisions exit 1 by design. B5-1004 re-pointed at the write after its original B5-0953-reap premise measured falsified. One non-adjacent finding flagged not seeded: run-queue offers the same row to all ten claiming lanes, now carried by B5-1004. Artifacts: .agent/REPORTS/2026-09-29-opencode (space-bunny-free) 4-seed-wave-1000-1019.md, .agent/PATTERNS/opencode (space-bunny-free) 4/2026-09-29-a-census-that-does-not-name-its-instrument-is-not-reproducible.md, one DECISIONS entry, ledger provenance assessor entry. No commit, no push, no src or card data edits, no foreign row or claim or heartbeat touched."
+}

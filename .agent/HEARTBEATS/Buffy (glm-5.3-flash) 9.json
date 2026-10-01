@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "Buffy (glm-5.3-flash) 9",
+  "utc": "2026-09-30T10:35:00Z",
+  "state": "idle",
+  "current_task": null,
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "User-ordered seeding pass complete: 8 verification-first rows B5-1341..B5-1355 landed OPEN in TASK_LEDGER (4 claimable now: 1341 CharacterCard path census, 1345 fixed-50 cost histogram, 1347 independent trigger-census re-derivation, 1353 fleet clock-offset table; 4 gated: 1343 on B5-1211, 1349 on B5-1347, 1351 on B5-1068, 1355 on B5-1097). Wave first landed 1261..1275 and was renumbered under the B5-0618 rule when seed-06 announced an overlapping B5-1251..1289 band; their 20 rows later landed 1301..1339, fully disjoint. Self-inflicted whole-file LF churn during row deletion was fully repaired same session (1283 lines all CRLF). Proofs: run-dup-census PASS exit 0, all 8 rows 7/no by shipped detector, census shows 28 claimable OPEN. DECISIONS entry appended, QUEUE note on ledger, no foreign file touched, no claim held, no commit, no push."
+}

@@ -1,21 +1,41 @@
 ---
 document:
   title: "Tool-rule convergence proposal — one implementation per shared rule, and a cross-check that detects divergence"
-  status: "Proposal (advisory, no authority until merged)"
+  status: "REJECTED 2026-09-28 by human ruling, scoped to section 2.1 (the four-key claim conjunction and prefix heartbeat matching); the three-signal claim rule is KEPT as canonical per B5-0659. Recorded in docs/DECISIONS.md B5-0787. Sections 1-9 and Appendix A are retained unedited as the rejected argument."
 provenance:
   author_llm: {name: "opencode (space-bunny-free)", version: "space-bunny-free"}
-  assessor_llm: []
-  last_modified_by_llm: {name: "opencode (space-bunny-free)", version: "space-bunny-free"}
+  assessor_llm:
+    - {name: "opencode (space-bunny-free) 2", version: "space-bunny-free", passes: 1, last_pass: "2026-09-28", note: "assess: recorded the human rejection of 2026-09-28 in the status field and replaced the body's status paragraph, after verifying on the live tree that the four-key conjunction and prefix matching were never implemented, so the ruling reverses no landed behaviour. No argument text was altered (B5-0787). I am not the author, so this is an assessment rather than a self-assessment."}
+    - {name: "Buffy (glm-5.3-flash) 2", version: "glm-5.3-flash", passes: 1, last_pass: "2026-09-28", note: "assess: B5-0994 anchor-only repair — the run-queue.ps1 prefix-comment line anchor updated from the stale 252 to the measured 319, substance verified matching at the new location; REJECTED status and all argument text byte-identical. Assessment, not self-assessment: the author is opencode (space-bunny-free)."}
   created_date: "2026-09-27"
-  last_modified_date: "2026-09-27"
+  last_modified_date: "2026-09-28"
 ---
 
 # Proposal: tool-rule convergence
 
-**Status: proposal.** Advisory, same tier as `investigations/` and the rest of the
-proposal store. This document confers no authority. It does not change
-`.agent/00_BOOT.md`, `AGENTS.md`, or any tool. Promotion requires a human decision
-and then implementation through the normal cycle per AGENTS.md §4.
+**Status: REJECTED 2026-09-28 by human ruling, in the scope of §2.1 only.** The ruling:
+reject this proposal, and **keep the three-signal claim rule**. The normative text stays
+where it already lives — `.agent/HEARTBEATS/README.md` § *Liveness: three signals, never
+one*, adopted by human ruling 2026-09-27 as B5-0659, which had already rejected this same
+proposal's *fourth key*. What §2.1 adds beyond that is **prefix** matching of a heartbeat
+across all spellings of an id, which is also rejected: the shipped join normalises names
+with `Get-NormName` and matches exactly, and a prefix match is strictly weaker — it would
+reintroduce precisely the class of ambiguity the validator's identity-collision check
+exists to catch.
+
+**Nothing was reverted, and nothing needed to be.** Verified on the live tree before this
+status was written, not assumed: the four-key conjunction and prefix matching appear
+nowhere in `.agent/tools/ledger-query.ps1` or `.agent/run-queue.ps1` — the single
+"prefix" hit in `run-queue.ps1` line 319 (verified fresh 2026-09-28 by B5-0994;
+the file has grown since the B5-0787 audit found it at 252, so the anchor was
+re-measured rather than trusted) is an unrelated regex comment about anchoring a
+task-id match. §2.1 was never implemented, so rejecting it is a record, not a reversal.
+
+**One part of this proposal HAS landed and was deliberately left alone.** Task 1, the
+divergence-detecting cross-check, exists as `.agent/tools/census-crosscheck.ps1` and is in
+daily use (B5-0771, B5-0775). The ruling was scoped to the claim rule, so no tool was
+edited, reverted or deleted. Flagging it explicitly because "the proposal was rejected" is
+the kind of sentence that later gets over-applied.
 
 **Origin.** A human question, 2026-09-27: *can I test hermes now?* Answering it
 required reading the queue runner, and reading the queue runner beside the other

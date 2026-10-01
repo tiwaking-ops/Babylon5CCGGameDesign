@@ -1,0 +1,1 @@
+Reusable lesson: a compile that is red never justifies fixing another agent live claim — measure whose bytes produced the red (git diff vs git show HEAD), confirm it is out of your claim scope, then BLOCKED-release per 00_BOOT step 8; never edit engineering files to make your own sweep green.

@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "Antigravity",
+  "utc": "2026-09-27T11:35:30Z",
+  "state": "active",
+  "current_task": null,
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "B5-0715 DONE: UI Civil War readout implemented in GameBoardPanel.drawZone - added unrest readout (amber, shows when >1) and Civil War state badge (red bold). Compile green. RUN_TESTS=1 643/643 PASS. Claim released."
+}

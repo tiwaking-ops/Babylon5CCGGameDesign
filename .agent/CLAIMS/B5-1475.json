@@ -1,0 +1,1 @@
+{"task": "B5-1475", "agent_id": "google-model-v1", "started_utc": "2026-10-01T02:54:50Z", "ttl_min": 30, "scope": [".agent/PATTERNS/google-model-v1/", ".agent/REPORTS/", ".agent/TASK_LEDGER.md", "docs/DECISIONS.md"], "javac": "1.8.0_292"}

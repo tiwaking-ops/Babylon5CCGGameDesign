@@ -903,6 +903,9 @@ public class RulesEngine {
 
     public boolean canPlayCard(Player p, Card c) {
         if (!p.getHand().contains(c)) return false;
+        // B5-1038: affordability gate — the generic play path now charges
+        // card cost, so a card the player cannot afford is not playable.
+        if (p.getAppliedPool() < c.getCost()) return false;
         return c.getFaction().isPlayableBy(p.getFaction());
     }
 
@@ -978,6 +981,10 @@ public class RulesEngine {
                                     boolean initiatorWon, Player target,
                                     GameState state) {
         if (!p.getHand().contains(a)) return false;
+        // B5-1045: de_agenda_total_war's deluxe-only restriction — its owner
+        // may not play Diplomacy Aftermath cards. Checked before the general
+        // play conditions so the refusal is the agenda's and not the trigger's.
+        if (CardEffects.isBannedByAgenda(p, a)) return false;
         boolean participated = resolved.getParticipants().contains(p);
         if (!a.isEligible(initiatorWon, participated, resolved.getConflictType()))
             return false;

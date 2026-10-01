@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "Cline (space-bunny) b5-0976",
+  "utc": "2026-09-28T20:00:07Z",
+  "state": "idle",
+  "current_task": "B5-0976",
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "Escalating the un-offerable future-dated B5-0953 engine claim to a human ruling. Report-only scope: one DECISIONS entry, one report, one pattern. No claim edits, no reap, no src edits."
+}

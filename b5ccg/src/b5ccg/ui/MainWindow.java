@@ -35,6 +35,17 @@ public class MainWindow extends JFrame {
     private JComboBox<String> contingencySelector;
     private JButton revealContingencyButton;
 
+    // B5-0701: unconditional-surrender availability readout (B5-0661 landed the
+    // engine law; nothing in the UI surfaced it). READOUT ONLY in the sense that
+    // the engine remains the sole authority: this panel never re-derives
+    // legality, it calls RulesEngine.canSurrender and renders the answer. The
+    // +3 influence consequence shown here is the rulebook :817 grant, which
+    // goes to the TARGET, not to the surrendering player.
+    private JComboBox<String> surrenderTargetSelector;
+    private JButton          surrenderButton;
+    private JLabel           surrenderHintLabel;
+    private boolean          surrenderSelectorPopulating = false;
+
     // B5-0326 F5: cost preview readout
     private JLabel  costLabel;
 
@@ -331,6 +342,46 @@ public class MainWindow extends JFrame {
             }
         });
         buildInfluenceButton.setEnabled(false);
+
+        // B5-0701: surrender availability. Target-first, then commit: surrender
+        // needs a TARGET player, so a single button with no selector would have
+        // nothing legal to submit. The selector lists only players the engine
+        // currently accepts, so an empty list IS the "not available" signal.
+        surrenderTargetSelector = new JComboBox<String>();
+        surrenderTargetSelector.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (surrenderSelectorPopulating) return;
+                refreshSurrenderButton();
+            }
+        });
+        surrenderTargetSelector.setEnabled(false);
+
+        surrenderButton = makeButton("Surrender", new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Player hp = humanPlayer();
+                Player target = selectedSurrenderTarget();
+                if (hp == null || target == null) return;
+                // Engine is the authority: re-check at the commit point, exactly
+                // as the sponsor/promote/build-influence handlers do, so a stale
+                // enabled button can never submit an illegal action.
+                if (rules.canSurrender(hp, target,
+                        MainWindow.this.controller.getState())) {
+                    MainWindow.this.controller.submitHumanAction(
+                        GameAction.surrender(target));
+                }
+            }
+        });
+        surrenderButton.setEnabled(false);
+        surrenderButton.setToolTipText(
+            "Unconditionally surrender (rulebook :815). You go out of the game; "
+            + "the target gains 3 influence and receives your ambassador as an "
+            + "asylum character.");
+
+        surrenderHintLabel = new JLabel(" ");
+        // NOTE: added to the toolbar in the assembly block below, beside the
+        // other B5-0407-style target+button pairs, not here.
 
         discardAgendaButton = makeButton("Discard Agenda", new ActionListener() {
             @Override public void actionPerformed(ActionEvent e) {
@@ -926,6 +977,15 @@ public class MainWindow extends JFrame {
         toolbar.add(Box.createHorizontalStrut(8));
         toolbar.add(warStatusLabel);
         toolbar.add(Box.createHorizontalStrut(12));
+        // B5-0701: surrender availability readout. Sits with the other
+        // target+button pairs; the hint label carries the +3-influence
+        // consequence readout the row asks for.
+        toolbar.add(surrenderTargetSelector);
+        toolbar.add(Box.createHorizontalStrut(4));
+        toolbar.add(surrenderButton);
+        toolbar.add(Box.createHorizontalStrut(4));
+        toolbar.add(surrenderHintLabel);
+        toolbar.add(Box.createHorizontalStrut(12));
         toolbar.add(initiativeLabel);
         toolbar.add(Box.createHorizontalStrut(12));
         toolbar.add(statusLabel);
@@ -1229,10 +1289,8 @@ public class MainWindow extends JFrame {
 
     /** B5-0326 F5: show preview of the cost for the currently selected card. */
     private void refreshCostPreview() {
-        CharacterCard ch = (selectedCard instanceof CharacterCard)
-            ? (CharacterCard) selectedCard : null;
         Player hp = humanPlayer();
-        if (ch == null || hp == null) {
+        if (hp == null) {
             costLabel.setText("  ");
             return;
         }
@@ -1242,17 +1300,46 @@ public class MainWindow extends JFrame {
             return;
         }
         StringBuilder sb = new StringBuilder();
+        // B5-1049: surface the generic-play cost gate in the UI
+        // Show unaffordable cards (non-character cards with cost that player cannot afford)
+        java.util.List<String> unaffordableCards = new java.util.ArrayList<String>();
+        for (Card c : hp.getHand()) {
+            // Skip characters - they have sponsor/promote costs handled in B5-0326 section
+            if (c instanceof CharacterCard) continue;
+            if (!c.getFaction().isPlayableBy(hp.getFaction())) continue;
+            int cost = c.getCost();
+            if (cost > 0 && hp.getAppliedPool() < cost) {
+                // B5-1038: affordability precheck - card is in hand but cannot afford the cost
+                unaffordableCards.add(c.getTitle() + " (" + cost + " INF need)");
+            }
+        }
+        if (!unaffordableCards.isEmpty()) {
+            sb.append("UNAFFORDABLE: ");
+            for (int i = 0; i < unaffordableCards.size(); i++) {
+                if (i > 0) sb.append(", ");
+                sb.append(unaffordableCards.get(i));
+            }
+            sb.append("  |  ");
+        }
+        // B5-0326 F5: show preview of the cost for the currently selected character card
+        CharacterCard ch = (selectedCard instanceof CharacterCard)
+            ? (CharacterCard) selectedCard : null;
+        if (ch == null && sb.length() == 0) {
+            // No character selected AND no unaffordable cards - clear display
+            costLabel.setText("  ");
+            return;
+        }
         // Sponsor (RECRUIT) cost
-        if (hp.getHand().contains(ch) && !ch.isRotated() && !ch.isFaceDown()) {
+        if (ch != null && hp.getHand().contains(ch) && !ch.isRotated() && !ch.isFaceDown()) {
             int rc = rules.recruitCost(hp, ch);
             sb.append("Sponsor cost: " + rc + "  |  ");
         }
         // Promote cost
-        if (hp.getSupportingRole().contains(ch) && !ch.isRotated() && !ch.isFaceDown()) {
+        if (ch != null && hp.getSupportingRole().contains(ch) && !ch.isRotated() && !ch.isFaceDown()) {
             int pc = rules.promotionCost(hp, ch);
             sb.append("Promote cost: " + pc + "  |  ");
         }
-        // Build Influence Ã¢â‚¬â€ not card-specific, but show if available
+        // Build Influence not card-specific, but show if available
         if (rules.canBuildInfluence(hp)) {
             sb.append("Build Inf: -3 (+1 rating)  |  ");
         }
@@ -1381,6 +1468,9 @@ public class MainWindow extends JFrame {
         // Build Influence: ACTION phase, my turn, has unrotated IC, influence <= 9
         buildInfluenceButton.setEnabled(actionPhase && myTurn
             && rules.canBuildInfluence(human));
+
+        // B5-0701: surrender availability. The engine decides; this only renders.
+        refreshSurrenderControl(human);
 
         // B5-0402: Attack - enabled only for a selected legal pair in the live conflict window
         Card selCard = selectedCard;
@@ -1604,6 +1694,107 @@ public class MainWindow extends JFrame {
             ? (CharacterCard) selectedCard : null;
         leadFleetButton.setEnabled(actionTurn && hasFleet && leader != null && hp != null
             && rules.canLeadFleet(hp, leader, selectedFleet));
+    }
+
+    // ── B5-0701: unconditional surrender availability (ui/, readout only) ──────
+
+    /**
+     * B5-0701: refresh the surrender control from the engine's own verdict.
+     *
+     * Design note — the engine is the ONLY authority here. This method does not
+     * re-derive any part of the legality rule (phase, surrender/forfeit flags,
+     * self-target, at-war, ambassador-in-play). It asks
+     * {@link RulesEngine#canSurrender} once per candidate and renders the
+     * answer, for the same reason the B5-0423 heal/repair controls were changed:
+     * a hand-rolled partial predicate here is what let those two drift and
+     * disable a legal move.
+     *
+     * An empty candidate list IS the "not available" signal, which is why the
+     * readout is honest by construction — it cannot show a stale "available"
+     * for a state the engine has since rejected.
+     */
+    private void refreshSurrenderControl(Player human) {
+        if (surrenderTargetSelector == null || surrenderButton == null) return;
+        GameState state = controller.getState();
+
+        java.util.List<Player> legal = new java.util.ArrayList<Player>();
+        if (human != null && !human.hasSurrendered() && !human.hasForfeited()) {
+            for (Player p : state.getPlayers()) {
+                if (rules.canSurrender(human, p, state)) legal.add(p);
+            }
+        }
+
+        // Repopulate under the B5-0452 guard: a JComboBox auto-selects its
+        // first item and fires the listener, which would otherwise set a
+        // selection with no user action.
+        surrenderSelectorPopulating = true;
+        try {
+            surrenderTargetSelector.removeAllItems();
+            for (Player p : legal) {
+                surrenderTargetSelector.addItem(p.getName() + " (+3)");
+            }
+            if (legal.isEmpty()) {
+                surrenderTargetSelector.addItem("(surrender unavailable)");
+                surrenderTargetSelector.setSelectedIndex(0);
+                surrenderTargetSelector.setEnabled(false);
+            } else {
+                surrenderTargetSelector.setSelectedIndex(0);
+                surrenderTargetSelector.setEnabled(true);
+            }
+        } finally {
+            surrenderSelectorPopulating = false;
+        }
+
+        surrenderButton.setEnabled(!legal.isEmpty());
+        refreshSurrenderHint(legal);
+    }
+
+    /**
+     * B5-0701: the +3-influence consequence readout. The grant goes to the
+     * TARGET (rulebook :817), so the label states the direction explicitly —
+     * "you gain 3" would be a lie, and this is exactly the kind of detail a
+     * readout exists to get right.
+     */
+    private void refreshSurrenderHint(java.util.List<Player> legal) {
+        if (surrenderHintLabel == null) return;
+        if (legal.isEmpty()) {
+            surrenderHintLabel.setText(" ");
+            surrenderHintLabel.setToolTipText(
+                "Surrender is offered only during the draw round, to a race you "
+                + "are at war with, and requires an ambassador in play "
+                + "(rulebook :815-:819).");
+            return;
+        }
+        Player t = legal.get(0);
+        surrenderHintLabel.setText(t.getName() + " gains +3 inf");
+        surrenderHintLabel.setToolTipText(
+            "Surrendering ends YOUR game. " + t.getName() + " gains 3 influence "
+            + "(" + t.getInfluence() + " -> " + (t.getInfluence() + 3) + ") and "
+            + "receives your ambassador as an asylum character.");
+    }
+
+    /** B5-0701: enable/disable the commit button from the current selection. */
+    private void refreshSurrenderButton() {
+        if (surrenderButton == null) return;
+        Player hp = humanPlayer();
+        Player target = selectedSurrenderTarget();
+        surrenderButton.setEnabled(hp != null && target != null
+            && rules.canSurrender(hp, target, controller.getState()));
+    }
+
+    /** B5-0701: resolve the selected combo entry back to its Player. */
+    private Player selectedSurrenderTarget() {
+        if (surrenderTargetSelector == null) return null;
+        Object sel = surrenderTargetSelector.getSelectedItem();
+        if (sel == null) return null;
+        String label = sel.toString();
+        int plus = label.indexOf(" (+3)");
+        String name = (plus >= 0) ? label.substring(0, plus) : label;
+        if (name.startsWith("(")) return null;   // placeholder entry
+        for (Player p : controller.getState().getPlayers()) {
+            if (p.getName().equals(name)) return p;
+        }
+        return null;
     }
 
     /** B5-0487: refresh the Censure opponent-fleet target picker from current state. */
@@ -1932,7 +2123,15 @@ public class MainWindow extends JFrame {
             && humanPlayer() != null
             && humanPlayer().getHand().contains(selectedCard);
         boolean canPlay = myTurn && inHand && !conflictSelected
-            && !agendaNeedsLifecycleAction && phaseAllowsAction;
+            && !agendaNeedsLifecycleAction && phaseAllowsAction
+            // B5-1171: the generic Play gate reads no cost and no type route;
+            // a lit Play on a character can only reach the corrupting generic
+            // dispatch, so characters never light it.
+            && !(selectedCard instanceof CharacterCard)
+            // B5-1177: affordability precheck for non-conflict cards; the
+            // B5-1038 generic play path charges raw cost so unaffordable
+            // cards must be excluded at the button, not after click.
+            && rules.canPlayCard(humanPlayer(), selectedCard);
         playCardOnlyButton.setEnabled(canPlay);
         initiateConflictButton.setEnabled(canInitiate && targetReady);
         refreshAgendaControls(humanPlayer(), myTurn && phase == GamePhase.ACTION);
@@ -1940,7 +2139,13 @@ public class MainWindow extends JFrame {
 
     /** B5-0328 F4: dispatch for the "Play Card" button (never initiates). */
     private void playOnly() {
-        if (selectedCard == null || selectedCard instanceof ConflictCard) return;
+        // B5-1171: refuse characters the way ConflictCard is refused. B5-1109
+        // measured that a dispatched CharacterCard reaching
+        // applyGenericCardPlay is charged raw cost and discarded without ever
+        // entering the supporting role; characters belong to the sponsor and
+        // promote buttons, which gate on canRecruit/canPromote.
+        if (selectedCard == null || selectedCard instanceof ConflictCard
+                || selectedCard instanceof CharacterCard) return;
         // B5-0487: if the selected card is a Censure-class enhancement with an
         // explicit opponent target seam, the censure play button is the dedicated
         // path; the generic Play Card button stays for non-targeted plays.

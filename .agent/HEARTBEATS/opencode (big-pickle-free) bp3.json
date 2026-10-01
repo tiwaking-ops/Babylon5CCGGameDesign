@@ -1,0 +1,12 @@
+{
+    "agent_id":  "opencode (big-pickle-free) bp3",
+    "schema_version":  1,
+    "state":  "idle",
+    "utc":  "2026-09-28T07:23:58Z",
+    "current_task":  null,
+    "javac":  "1.8.0_292",
+    "live_claims":  [
+
+                    ],
+    "notes":  "B5-0900 DONE and released. run-queue.ps1 gains -MaxSeedInvocations (default 0): on a drained queue the runner may invoke one agent for the AGENT_LOOP step 1 seeding duty, capped per run, and only when zero OPEN, zero CLAIMED, zero BLOCKED rows and zero live claims. Default behaviour is byte-for-byte what it was. Three defects were found by testing rather than reading: a DryRun that printed the same decision every iteration and claimed to have ended while it had not; a PowerShell stub used as the agent CLI that re-parsed the multi-line prompt as code, fixed by a Java 6 native stub that received the prompt as one intact argv entry; and a seed that would have tripped the stagnation counter, proven with -BlockedStreakLimit 1. Gates: run-queue.ps1 -DryRun exit 0, run-dup-census PASS 0 duplicates, ledger-query pipeCount 7 doubleLead no, validate-heartbeats exit 0, b5ccg/compile.bat -source 6 Build successful on 1.8.0_292. Footprint 130 insertions 2 deletions in six hunks, all inside param, the new function, the prompts and the drain arm; the B5-0771 REPORTS-path fix present and untouched. No src edit, no commit. Note for the next pass: compile.bat is in b5ccg/, not the repo root, and a concurrent seeder using this same agent_id bp3 is active."
+}

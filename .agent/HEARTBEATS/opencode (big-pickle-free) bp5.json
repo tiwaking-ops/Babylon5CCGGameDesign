@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "opencode (big-pickle-free) bp5",
+  "utc": "2026-10-01T04:24:00Z",
+  "state": "active",
+  "current_task": "B5-1541",
+  "live_claims": ["B5-1541"],
+  "javac": "1.8.0_292",
+  "notes": "Booted for B5-1541 only. Self-seeded row on human approval 2026-10-01 for two approved items: work 1 removes the three nonexistent bash .agent/run-queue.sh references and replaces the bare inline Select-String one-liners with the shipped wrapper; work 2 adds .agent/SHELL.knowledge.md as the generalisation of QWEN.md, grounded in measurement of the freebuff binary whose knowledge-file discovery accepts AGENTS.md plus CLAUDE.md plus any filename ending knowledge.md. Seed-time state: javac 1.8.0_292; run-queue.ps1 -DryRun exit 0 offering B5-1343 with 13 claimable OPEN; ledger-query my row reads pipeCount 7 doubleLead no; run-dup-census.ps1 exit 0 PASS 0 duplicate IDs; validate-heartbeats.ps1 exit 1 over 145 files with 130 conforming and 15 non-conforming plus 3 identity collisions, all pre-existing and none mine (B5-1505 and B5-1511 were duplicated at seed time and were repaired by another writer before my post-write census, which returned PASS). Claim created by the B5-1462 tool new-claim.ps1 so started_utc is tool-stamped: payload 2026-10-01T04:22:02Z versus mtime 2026-10-01T04:22:02Z, delta -0.014 min, AGREE. Work is documentation only, no ps1 tool edit, no b5ccg src or card-data edit, no commit, no push."
+}

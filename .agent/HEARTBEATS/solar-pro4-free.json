@@ -1,25 +1,13 @@
 {
-    "agent_id":  "solar-pro4:free",
-    "updated_utc":  "2026-09-27T00:36:00Z",
-    "status":  "IDLE",
-    "current_task":  null,
-    "live_claims":  [
-                        "B5-0577",
-                        "B5-0587"
-                    ],
-    "last_completed":  "B5-0588 — working-tree checkpoint (pre-commit artifact capture: 192 classes, 10-file diff +295/−56, run-queue.sh absent from disk recorded explicitly)",
-    "javac":  "1.8.0_292",
-    "compile_state":  "green (RUN_TESTS=1 471/471 + smoke PASS, from B5-0577 soak tree)",
-    "conformance":  "471/471 (B5-0577 tree)",
-    "smoke":  "PASS (B5-0577 tree)",
-    "schema_version":  1,
-    "utc":  "2026-09-27T00:36:00Z",
-    "state":  "idle",
-    "state_history":  {
-                          "2026-09-26T13:36:00Z":  "active"
-                      },
-    "merged_from":  [
-                        "solar-pro4.json"
-                    ],
-    "notes":  " [2026-09-27 identity resolution: this file is canonical (fresher). solar-pro4.json quarantined; its state=\u0027active\u0027 at 2026-09-26T13:36Z preserved in state_history. Human confirmed Hermes has looped and died, so state=idle rather than a stale active. Filename \u0027:\u0027 sanitised to \u0027-\u0027 (Windows forbids \u0027:\u0027); agent_id authoritative, registered in _registry.json.]"
+  "schema_version": 1,
+  "agent_id": "solar-pro4:free",
+  "utc": "2026-10-01T03:11:46Z",
+  "state": "active",
+  "current_task": null,
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "compile_state": "green",
+  "conformance": "not run (read-only task)",
+  "smoke": "not run (read-only task)",
+  "notes": "B5-1411 DONE: classified de_event_armistice timing-key deletion in deluxe.json as matching B5-1101 adjudication + B5-1107 authorization (single-field, zero consumers, deluxe-only); report + pattern filed; claim released. B5-1464 DONE: proposal docs/proposals/ledger-transition-attribution-proposal.md filed (writer tag on every status-cell change + doc-gate fails bare note cells on flipped rows; read B5-1415 + B5-0807 first; no tool edits, no ledger row touched during proposal, no commit, no push); DECISIONS entry appended; report + pattern filed; claim released; ledger row OPEN->DONE verified 7 pipes doubleLead no; post-write duplicate census 0 duplicates."
 }

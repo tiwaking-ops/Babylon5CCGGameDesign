@@ -118,6 +118,13 @@ public class AIPlayer {
     private int mediumJoinSide(GameState state, Player p, Conflict conflict) {
         int myTotal  = p.conflictTotal(conflict.getConflictType());
         int oppTotal = conflict.getInitiator().conflictTotal(conflict.getConflictType());
+        // B5-0727: in a race's Civil War (:994) a same-race rival's conflict is
+        // never supported — feed no brother-war; outweigh to win, else abstain.
+        if (raceInCivilWar(state, p)
+                && conflict.getInitiator().getFaction() == p.getFaction()
+                && conflict.getInitiator() != p) {
+            return myTotal > oppTotal ? -1 : 0;
+        }
         if (myTotal > oppTotal) return -1;   // outweigh: oppose and win (ties included)
         if (myTotal * 2 < oppTotal) return 1; // free-ride: support a sure winner
         return 0;
@@ -135,6 +142,15 @@ public class AIPlayer {
         if (initiator == leader) {
             if (myTotal > oppTotal) return -1;
             return 0;
+        }
+
+        // B5-0727: in a race's Civil War (:994) a same-race rival's conflict is
+        // never supported (feed no brother-war); the pre-existing leading-player
+        // rule above already refuses to strengthen a leader's conflict.
+        if (raceInCivilWar(state, p)
+                && initiator.getFaction() == p.getFaction()
+                && initiator != p) {
+            return myTotal > oppTotal ? -1 : 0;
         }
 
         // Military loss rule (B5-0309): a loser whose total trails by >= 3
@@ -572,6 +588,68 @@ public class AIPlayer {
         return 0.25;
     }
 
+    // ── B5-0727: Civil War context (rulebook :990–:1009; B5-0691 engine law) ──
+    //
+    // Zero-cost invariance: every band returns 0 on today's pool (no card
+    // invokes unrest or any Civil War axis — the B5-0669 card census), so no
+    // ordering moves on the standard board and EASY stays uniform through
+    // easyChoose (difficulty contract, B5-0351). MEDIUM and HARD share these
+    // helpers; EASY's paths are never touched.
+
+    /** Unrest pressure (:888/:278/:280 band 1..5): 0 at 1..3, 1 at 4, 2 at 5. */
+    public static int unrestPressure(Player p) {
+        int u = p.getUnrest();
+        if (u >= 5) return 2;
+        if (u == 4) return 1;
+        return 0;
+    }
+
+    /** True when the player's race currently stands in Civil War. */
+    public static boolean raceInCivilWar(GameState state, Player p) {
+        CivilWarState cws = state.civilWarOfRace(p.getFaction());
+        return cws != null && cws.getPhase() == CivilWarState.Phase.CIVIL_WAR;
+    }
+
+    /** :992 end-of-turn entry risk — some other faction of the player's race
+     *  holds same-race tension 5 toward a rival faction of the same race
+     *  (a UNIFIED dual race only; a race already at war returns false). */
+    public static boolean civilWarEntryRisk(GameState state, Player p) {
+        CivilWarState cws = state.civilWarOfRace(p.getFaction());
+        if (cws != null && cws.getPhase() == CivilWarState.Phase.CIVIL_WAR) return false;
+        List<Player> racePlayers = state.playersOfRace(p.getFaction());
+        if (racePlayers.size() < 2) return false;
+        for (Player a : racePlayers) {
+            for (Player b : racePlayers) {
+                if (a != b && state.getSameRaceTension(a, b) >= 5) return true;
+            }
+        }
+        return false;
+    }
+
+    /** :1000 merge exposure for this faction of a war-split race — how far
+     *  its split tensions could swing the race's exit tension toward one
+     *  target race (worst case, max row − min row). */
+    public static int mergeExposure(CivilWarState cws, Player factionOfRace) {
+        Map<Faction, Integer> row = cws.getSplitTensions(factionOfRace);
+        int low  = Integer.MAX_VALUE;
+        int high = Integer.MIN_VALUE;
+        for (Integer v : row.values()) {
+            if (v == null) continue;
+            if (v.intValue() < low)  low  = v.intValue();
+            if (v.intValue() > high) high = v.intValue();
+        }
+        if (low == Integer.MAX_VALUE) return 0;
+        return high - low;
+    }
+
+    /** Combined merge-exposure scorer term: the :1000 swing only exists while
+     *  the race is mid-war; 0 otherwise (zero-cost invariance). */
+    public static int civilWarMergeExposureTerm(GameState state, Player p) {
+        CivilWarState cws = state.civilWarOfRace(p.getFaction());
+        if (cws == null || cws.getPhase() != CivilWarState.Phase.CIVIL_WAR) return 0;
+        return mergeExposure(cws, p);
+    }
+
     // ── EASY ──────────────────────────────────────────────────────────────────
 
     private GameAction easyChoose(List<GameAction> legal, Player p) {
@@ -603,6 +681,12 @@ public class AIPlayer {
                     int score = myTotal > oppTotal
                         ? cc.getInfluenceReward() * 10 + (myTotal - oppTotal)
                         : -5;
+                    // B5-0727: Civil War context (:990–:1009) — unrest pressure
+                    // adds urgency to any offer; a race already at war steers
+                    // toward ENDING it (a win advances the :998 exit), and the
+                    // :1000 rounded-up-average merge exposure discounts.
+                    score += unrestPressure(p) - civilWarMergeExposureTerm(state, p);
+                    if (raceInCivilWar(state, p)) score += 2;
                     // B5-0453 station-context is on DECLARE_WAR_CONFLICT (the path
                     // that raises station influence via capture source), not here.
                     return score;
@@ -730,6 +814,13 @@ public class AIPlayer {
                 // BOTH sides (+1 own, -1 target) — the one influence-mover
                 // offered above the build cap — so it carries the major
                 // urgency term; location captures do not move influence.
+                // B5-0727: :992 second sentence — declaring war on a UNIFIED
+                // dual race of the SAME race can force its Civil War entry;
+                // weigh unrest against the :1000 merge exposure. The leading-
+                // rival branch above is left byte-identical.
+                if (a.getTarget() != null && a.getTarget().getFaction() == p.getFaction()) {
+                    return 4 + unrestPressure(p) - civilWarMergeExposureTerm(state, p);
+                }
                 return 4 + majorProximityMedium(state, p);
             case ATTACK_CONFLICT_PARTICIPANT:
                 return (int) Math.round(damageAttackScore(a, state, p, false));
@@ -767,8 +858,18 @@ public class AIPlayer {
                 // B5-0679: offered only from a losing position (trailing the
                 // leader by >= 6 influence). Value the exit from a certain
                 // loss, penalized when the +3 swing feeds the leader.
+                // B5-0727: unrest pressure adds urgency; a :1006 civil surrender
+                // (an active race Civil War and a same-race target) takes a hard
+                // discount — never leave your faction leaderless in a race at
+                // war with itself.
                 if (a.getTarget() != null) {
-                    return scoreSurrenderMedium(state, p, a.getTarget());
+                    int cwScore = scoreSurrenderMedium(state, p, a.getTarget());
+                    cwScore += unrestPressure(p);
+                    if (raceInCivilWar(state, p)
+                            && a.getTarget().getFaction() == p.getFaction()) {
+                        cwScore -= 8;
+                    }
+                    return cwScore;
                 }
                 return -10;
             default:
@@ -816,6 +917,12 @@ public class AIPlayer {
                 // worth more (the controller auto-plays eligible aftermaths
                 // right after resolution). Rewards on the initiator's side.
                 base += aftermathAnticipationBonus(state, p, cc);
+                // B5-0727: Civil War context (:990–:1009) — unrest pressure adds
+                // urgency to any offer; a race already at war steers toward
+                // ENDING it (a win advances the :998 exit), and the :1000
+                // rounded-up-average merge exposure discounts.
+                base += unrestPressure(p) - civilWarMergeExposureTerm(state, p);
+                if (raceInCivilWar(state, p)) base += 2.0;
                 return base + leaderPenalty + lossPenalty;
             }
             case RECRUIT_CHARACTER: {
@@ -843,8 +950,12 @@ public class AIPlayer {
                 // B5-0324: capped value — HARD avoids over-tinging the score table.
                 // Still positive since pushing toward the Influence cap is useful.
                 // B5-0635: plus the HARD major-victory urgency term.
+                // B5-0727: in a race Civil War (:994) an unopposed brother faction
+                // seizes the race-major seat; staying out of the fight is a strong
+                // negative (+8 swing over the incumbent MEDIUM/HARD join posture).
                 int depr = Math.max(0, 10 - p.getInfluence());
-                return 0.25 * depr + majorProximityHard(state, p); // 0..2.25 + term
+                return 0.25 * depr + majorProximityHard(state, p)
+                        + (raceInCivilWar(state, p) ? 8.0 : 0.0);
             case PROMOTE_CHARACTER: {
                 // B5-0321: value the new member's best stat, discounted by the
                 // influence spent (raw promotion cost).
@@ -909,7 +1020,10 @@ public class AIPlayer {
                 // modest event (the reveal is player-chosen timing, not automatic).
                 return 2.0;
             case PASS:
-                return -0.5;
+                // B5-0727: the Civil War mirror of the BUILD_INFLUENCE guard —
+                // abstaining from a race at war with itself forfeits the race-
+                // major seat to the unopposed brother faction (same +8 swing).
+                return -0.5 + (raceInCivilWar(state, p) ? 8.0 : 0.0);
             case DECLARE_WAR_CONFLICT:
                 // B5-0376: HARD weighs the war payoff — location income when
                 // capturing a location, plus a preference to hit the leading
@@ -929,6 +1043,13 @@ public class AIPlayer {
                 if (a.getTarget() != null
                         && leader != null && a.getTarget().getFaction() == leader.getFaction()) {
                     return 5.0 + majorProximityHard(state, p);
+                }
+                // B5-0727: :992 second sentence — declaring war on a UNIFIED
+                // dual race of the SAME race can force its Civil War entry;
+                // weigh unrest against the :1000 merge exposure. The leading-
+                // rival branch above is left byte-identical.
+                if (a.getTarget() != null && a.getTarget().getFaction() == p.getFaction()) {
+                    return 4.0 + unrestPressure(p) - civilWarMergeExposureTerm(state, p);
                 }
                 return 4.0 + majorProximityHard(state, p);
             case ATTACK_CONFLICT_PARTICIPANT:
@@ -966,8 +1087,18 @@ public class AIPlayer {
                 // B5-0679: HARD surrenders only from a losing position,
                 // preferring to surrender to a non-leader war opponent (don't
                 // feed the leader +3 influence).
+                // B5-0727: unrest pressure adds urgency; a :1006 civil surrender
+                // (an active race Civil War and a same-race target) takes a hard
+                // discount — never leave your faction leaderless in a race at
+                // war with itself.
                 if (a.getTarget() != null) {
-                    return scoreSurrenderHard(state, p, a.getTarget());
+                    double cwScoreHard = scoreSurrenderHard(state, p, a.getTarget());
+                    cwScoreHard += unrestPressure(p);
+                    if (raceInCivilWar(state, p)
+                            && a.getTarget().getFaction() == p.getFaction()) {
+                        cwScoreHard -= 8.0;
+                    }
+                    return cwScoreHard;
                 }
                 return -5.0;
             default:
@@ -1041,7 +1172,7 @@ public class AIPlayer {
             if (mySize > best) return 9;
             return Math.min(8, mySize * 8 / (best + 1));
         }
-        return Math.min(9, p.getInfluence() / 2);
+        return Math.min(9, p.getPower() / 2);
     }
 
     /**
@@ -1070,13 +1201,23 @@ public class AIPlayer {
      * faction). Leading players score no bonus.
      */
     private int eventCatchUpBonus(GameState state, Player p) {
-        int bestOther = -1;
-        for (Player q : state.getPlayers()) {
-            if (q == p) continue;
-            if (q.getInfluence() > bestOther) bestOther = q.getInfluence();
-        }
-        if (bestOther < 0 || p.getInfluence() >= bestOther) return 0;
-        return Math.min(3, bestOther - p.getInfluence());
+                // B5-0703: MEDIUM now reads Power (influence + POWER-tagged bonus
+                // total) through getPower() so a player carrying a POWER bonus is
+                // scored as stronger than his raw influence, and a player whose
+                // POWER bonus has gone negative is scored as weaker. Zero-cost
+                // invariance is preserved — today's all-zero POWER total keeps the
+                // pre-0703 ordering byte-identical (getPower == getInfluence when
+                // no bonus is present). EASY stays uniform through easyChoose
+                // (difficulty contract, B5-0351) and is not touched here.
+                int myPower = p.getPower();
+                int bestOther = -1;
+                for (Player q : state.getPlayers()) {
+                    if (q == p) continue;
+                    int qPower = q.getPower();
+                    if (qPower > bestOther) bestOther = qPower;
+                }
+                if (bestOther < 0 || myPower >= bestOther) return 0;
+                return Math.min(3, bestOther - myPower);
     }
 
     private Player leadingPlayer(GameState state, Player self) {
@@ -1084,7 +1225,7 @@ public class AIPlayer {
         int bestInf = -1;
         for (Player p : state.getPlayers()) {
             if (p == self) continue;
-            int inf = p.getInfluence();
+            int inf = p.getPower();
             if (inf > bestInf) { bestInf = inf; leader = p; }
         }
         return leader;

@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "Cline (space-bunny) b5-0985",
+  "utc": "2026-09-28T20:47:09Z",
+  "state": "idle",
+  "current_task": null,
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "B5-0985 DONE and released. Report-only row: re-censused the six seeded claim-gated rows (B5-0961, B5-0969, B5-0972, B5-0978, B5-0979, B5-0983) against the live ledger and claims dir. Three gates CLEARED (B5-0972, B5-0978, B5-0979 both conjuncts), three STILL SHUT (B5-0961 on B5-0947 BLOCKED; B5-0969 and B5-0983 on the future-dated B5-0953 claim that reads LIVE at -618.6 min and never ages out). All six rows are terminal, so a cleared gate is not a waiting task. B5-0481 names DECISIONS.md in its claim scope but is DONE and STALE, so scope wording is a declaration and liveness is the three-signal verdict. Row reads DONE pipeCount 7 doubleLead no; run-dup-census PASS 0 duplicates; compile.bat true exit 0 Build successful 63 files -source 6. No row edited but my own, no claim reaped, no src or card-data edit, no commit, no push. live_claims is [] because the claim file was deleted on close-out."
+}

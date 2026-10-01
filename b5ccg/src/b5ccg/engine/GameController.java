@@ -604,7 +604,20 @@ public class GameController {
                         state.log(p.getName() + " plays aftermath: " + am.getTitle()
                                   + " on " + target.getName() + ".");
                         state.attachAftermath(am, target);   // D4: in play on the target
-                        applySimpleAftermathEffect(target, am, winner, state);
+                        // B5-0990: id-keyed dispatch first; the generic
+                        // text-sniffing effect stays as fallback for ids with
+                        // no registered effect (unknown ids keep the old
+                        // behaviour, matching the events rule).
+                        String amId = am.getId();
+                        boolean dispatched = amId != null
+                                && (CardEffects.isNegotiatedSurrender(amId)
+                                    || CardEffects.isDiplomaticAdvantage(amId));
+                        if (dispatched) {
+                            CardEffects.applyAftermathEffect(state, conflict,
+                                    am, target, winner);
+                        } else {
+                            applySimpleAftermathEffect(target, am, winner, state);
+                        }
                         break;
                     }
                 }
@@ -616,6 +629,16 @@ public class GameController {
 
     private void applyGenericCardPlay(Player p, Card card, boolean hidden) {
         if (card == null) return;
+        // B5-1038: charge card cost BEFORE hand removal, following the
+        // RECRUIT_CHARACTER affordance pattern (applyInfluence, log, break
+        // without removing the card when unaffordable). Cost-0 cards behave
+        // byte-identically to before (applyInfluence(0) is always successful).
+        int cost = card.getCost();
+        if (cost > 0 && !p.applyInfluence(cost)) {
+            state.log(p.getName() + " cannot apply enough influence to play "
+                      + card.getTitle() + ".");
+            return;
+        }
         // B5-0364: sponsor-agenda one-major legality (:520 — a faction may
         // sponsor an agenda only while it has NONE in play; with one installed
         // the action is REPLACE_AGENDA). Refused BEFORE the hand removal below,

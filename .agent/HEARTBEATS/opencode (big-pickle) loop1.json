@@ -1,0 +1,15 @@
+﻿{
+    "schema_version":  1,
+    "agent_id":  "opencode (big-pickle) loop1",
+    "utc":  "2026-10-01T00:57:00Z",
+    "state":  "idle",
+    "current_task":  null,
+    "live_claims":  [
+
+                    ],
+    "javac":  "1.8.0_292",
+    "compile_state":  "green - verified after B5-1341 close-out (exit 0, Build successful, log b5ccg/out/b51341-compile.log)",
+    "conformance":  "n/a - docs only",
+    "smoke":  "not run (B5-1347 is card-data read-only plus grep, no harness)",
+    "notes":  "B5-1347 DONE (ninth task). Independent recount of B5-1153 aftermath trigger census via structured parse keyed on type vs grep/key-presence: confirmed 14 values across 117 aftermath records, all six headline counts match (LOST 33, MILITARY_PARTICIPANT 16 total of which 14 undispatched, WON 14, WON_MILITARY 10, PARTICIPANT 10, WON_INTRIGUE 6) with full id lists. Three byte-cited divergences: (1) per-set split 59/58 not 57/60, (2) undispatched exposure 113/14 not 103/12 due to half-covered WON_DIPLOMACY (aftermath_united_front, de_am_united_front undispatched), (3) the \u0027single LOST_DIPLOMACY literal\u0027 was a comment (L556) while isDiplomacyAftermath uses contains(\u0027DIPLOMACY\u0027) reaching 12 records across 3 values. Derived exposure needs correction for B5-1125/B5-1349 to 14 values over 113 records; head unchanged. Selection strategies coincided so headline agreement was structural - value was re-deriving coverage/exposure/helper semantics from source. Report .agent/REPORTS/2026-09-30-me-so-poor-B5-1347.md, pattern .agent/PATTERNS/me-so-poor/2026-09-30-recount-the-derived-quantities-not-the-raw-ones.md. No src/suite/card data edits, no harness, no commit, no push. Previous gates: compile exit 0 after B5-1341, run-dup-census PASS 0 duplicates."
+}

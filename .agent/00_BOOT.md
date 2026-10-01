@@ -12,9 +12,11 @@ provenance:
     - {name: "opencode (space-bunny-free)", version: "space-bunny-free", passes: 1, last_pass: "2026-09-27", note: "edit: claims-first census rule in steps 4 and 9, human-approved 2026-09-27 (B5-0657)"}
     - {name: "Buffy (glm-5.3-flash)", version: "glm-5.3-flash", passes: 2, last_pass: "2026-09-27", note: "edit: step 6 started_utc guidance line (B5-0653); step 10 three-signal restatement (B5-0660)"}
     - {name: "opencode (big-pickle-free)", version: "big-pickle-free", passes: 1, last_pass: "2026-09-27", note: "edit: qualified the three bare .agent/TASK_LEDGER.md references in steps 4, 9 and 10, where step 4 already carried the qualified form two lines below the bare one (B5-0693)"}
-  last_modified_by_llm: {name: "opencode (big-pickle-free)", version: "big-pickle-free"}
+    - {name: "opencode (big-pickle-free)", version: "big-pickle-free", passes: 2, last_pass: "2026-09-28", note: "edit: step 9 now points at the repaired run-dup-census.ps1 wrapper ahead of the inline bash one-liner and records its 0/1/2 exit contract (B5-0777)"}
+    - {name: "opencode (space-bunny-free) 2", version: "space-bunny-free", passes: 1, last_pass: "2026-09-28", note: "edit: step 3 gained the agent_id-names-your-session line carrying R1-R6 by reference, human ruling 2026-09-28 (B5-0785)"}
+  last_modified_by_llm: {name: "opencode (space-bunny-free) 2", version: "space-bunny-free"}
   created_date: "2026-09-21"
-  last_modified_date: "2026-09-27"
+  last_modified_date: "2026-09-28"
 ---
 
 # 00_BOOT — read this first, every session
@@ -31,9 +33,25 @@ provenance:
    `notes` is prose and is never parsed. Check the store with
    `powershell -NoProfile -ExecutionPolicy Bypass -File .agent/tools/validate-heartbeats.ps1`;
    it is read-only and exits non-zero on any non-conforming or unparseable file.
+   **Your `agent_id` names your session, not your model** (human ruling 2026-09-28,
+   R1–R6 in `.agent/HEARTBEATS/README.md`): `client (model)` + a discriminator no
+   running instance is using, carrying **at least one letter or digit** because
+   `Get-NormName` strips everything else and a punctuation-only discriminator is no
+   discriminator at all. Never reuse or retro-rename an existing id, and never edit
+   another agent's heartbeat — not even a colliding one. If
+   `validate-heartbeats.ps1` reports an IDENTITY COLLISION, the two files are
+   reported, not merged: log it and leave both byte-identical.
 4. Obtain the OPEN-task census ONLY by running the shared census tool:
    `powershell -NoProfile -ExecutionPolicy Bypass -File .agent/run-queue.ps1 -DryRun`
-   (or its bash equivalent `bash .agent/run-queue.sh -DryRun`). Do NOT read or
+   There is **no bash equivalent** — `.agent/run-queue.sh` has never existed in
+   any commit and is not planned (B5-1541). The command above is
+   **shell-agnostic**: it names the `powershell` executable by path-independent
+   name and a `-File` script, so it runs unchanged from PowerShell, from Git
+   Bash, and from `cmd.exe`. Invoke it that way rather than pasting PowerShell
+   *cmdlets* into a bash prompt, which is the B5-1541 failure:
+   `Select-String: command not found`. If your tool hands you a bash shell,
+   that is a property of your tool, not of this repo — read
+   `.agent/SHELL.knowledge.md`. Do NOT read or
    grep `.agent/TASK_LEDGER.md` directly to find OPEN tasks — hand-rolled censuses miss
    double-pipe rows and other structural defects, silently hiding claimable work.
    The one-liner `rg -o '^\|+(?:\s*)(B5-\d+)(?:\s*\|)\s*\|/{0,1}OPEN' .agent/TASK_LEDGER.md`
@@ -81,9 +99,26 @@ provenance:
    it races is another reader, not a stale file):
 
    ```powershell
-   (Select-String -Path .agent/TASK_LEDGER.md -Pattern '^\|+\s*(B5-[0-9]{4}[a-z]?)\s*\|' -AllMatches).Matches |
-     ForEach-Object { $_.Groups[1].Value } | Group-Object | Where-Object Count -gt 1
+   powershell -NoProfile -ExecutionPolicy Bypass -File .agent/tools/run-dup-census.ps1
    ```
+
+   **Prefer the shipped wrapper over the inline one-liner** (B5-0777). The
+   one-liner below is a *bash* regex: dropped into PowerShell its single-quoted
+   string terminates at the first `|`, so the wrapper files that carried it
+   failed to **parse** rather than to run, and this gate had no working
+   implementation. The wrapper keeps the identical rule and adds an exit code —
+   `0` clean, `1` duplicate found, `2` ledger missing or unreadable. Exit `2` is
+   deliberately distinct from `0`: a census that could not read the ledger must
+   never report as a clean ledger.
+
+   **The wrapper is now the only documented form, inline or otherwise** (B5-1541).
+   The inline one-liner was withdrawn as a documented fallback, not because the
+   rule was wrong but because the *delivery* was: it is PowerShell syntax with no
+   `powershell` prefix, so an agent whose only shell is bash — which is what the
+   default `freebuff` CLI gives every command on this host — copy-pastes it and
+   gets `Select-String: command not found`. A gate an agent cannot execute is
+   not a gate. If `run-dup-census.ps1` is genuinely unavailable, report that; do
+   not hand-roll a replacement census (see step 4 on hand-rolled censuses).
 
    Empty output is the pass condition. A duplicate ID is **not cosmetic**: the
    queue keys task status by ID, so the second row silently overwrites the first

@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "Cline (space-bunny) b5-0833",
+  "utc": "2026-09-28T07:30:12Z",
+  "state": "idle",
+  "current_task": null,
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "Booted for B5-0833 only. Aborted at boot step 6: .agent/CLAIMS/B5-0833.json appeared 2026-09-28T07:28:40Z, agent_id me-so-poor, 24s before my second check, so the row is LIVE by the three-signal rule and taken. The runner's pre-check read absent; the row itself still reads OPEN, so this is the classic pre-write race (AGENT_LOOP 'three ways this loop has lied to itself' #1), not an orphan claim. I did not create a claim, did not touch the claim, row, or another agent's heartbeat, and did not work the task. No report filed for B5-0833 because I did not close it. One pattern filed under my own namespace recording the race."
+}

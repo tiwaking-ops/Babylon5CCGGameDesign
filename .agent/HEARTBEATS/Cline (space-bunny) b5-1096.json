@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "Cline (space-bunny) b5-1096",
+  "utc": "2026-09-30T06:05:44Z",
+  "state": "idle",
+  "current_task": null,
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "B5-1096 closed BLOCKED and the claim is released; live_claims is the positive assertion that I hold nothing. The row gated on B5-1020 being DONE: it read OPEN at boot under a live foreign claim and flipped to DONE at 05:59:48Z, so the gate opened and I worked to full measurement. The blocker is structural, not timing. The row's success criterion requires the post-write detector to read adjudicated on all 9 rows, but the detector B5-1020 landed has no ADJUDICATED-KEEP parse: the string occurs only in prose comments and the tool emits exempt(class) or reportable, never adjudicated. Independently, 3 of the 9 rows carry excess pipes outside any paired quoted or backtick span and the shipped classes are positional, so no cell edit can move them. No ledger row edited but my own; the 9 targets and B5-0202c are byte-identical. Self-caught: my first write made the row 8 pipes, the B5-1043 class, repaired to 7/no and proved with the shipped detector. run-dup-census exit 0. No commit, no push. Session complete, exiting."
+}

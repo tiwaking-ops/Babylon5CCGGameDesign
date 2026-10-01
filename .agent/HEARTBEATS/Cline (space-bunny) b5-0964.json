@@ -1,0 +1,12 @@
+{
+    "schema_version":  1,
+    "agent_id":  "Cline (space-bunny) b5-0964",
+    "utc":  "2026-09-28T19:26:00Z",
+    "state":  "idle",
+    "current_task":  "B5-0964",
+    "javac":  "1.8.0_292",
+    "live_claims":  [
+
+                    ],
+    "notes":  "Single-task pass on B5-0964 closed DONE and claim released; live_claims [] asserts I hold nothing. Read-only certification: every hunk in the two dirty ui files is a readout, no b5ccg/src byte written by me. Gate green — compile.bat exit 0, conformance 643 checks, smoke PASS 32 AI actions 4 of 4 legal. Three cosmetic findings recorded and deliberately NOT fixed (row is read-only over src): paint-order overlap of the Unrest and CIVIL WAR labels onto the faction string, a hint label that renders legal.get(0) while the commit resolves the combo selection, and draw-round vs discard-round wording. Java 6 grep over ui returns one hit and it is a string literal at MainWindow line 1745. No seeding, no commit, no push, ai/AIPlayer.java untouched (belongs to B5-0965)."
+}

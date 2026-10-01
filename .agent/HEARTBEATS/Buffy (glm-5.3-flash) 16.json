@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "Buffy (glm-5.3-flash) 16",
+  "utc": "2026-10-01T06:20:00Z",
+  "state": "active",
+  "current_task": null,
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "Boot per .agent/00_BOOT.md. Census via run-queue.ps1 -DryRun: 39 claimable OPEN, top lane B5-1625. validate-heartbeats.ps1 exits 1 on PRE-EXISTING findings owned by others (3 identity collisions: Buffy (deepseek-v4-flash), me-so-poor, solar-pro4:free; several FUTURE-SKEW payloads incl. me-so-poor.json feeding the B5-1527 census warning; kiro-pi.timestamp parse failure; solar-pro4?free.json PUA lookalike). Logged only, not touched - never edit another agent's heartbeat."
+}

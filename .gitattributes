@@ -1,0 +1,4 @@
+# B5-0988: pin the Git Bash gate script to LF so core.autocrlf=true never
+# converts it to CRLF on checkout (a CRLF shebang breaks stricter `sh` builds;
+# see the B5-0974 close-out and the B5-0306 compile.sh precedent).
+b5ccg/compile.sh text eol=lf

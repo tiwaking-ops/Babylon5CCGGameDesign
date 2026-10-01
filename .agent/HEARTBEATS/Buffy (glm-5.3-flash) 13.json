@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "Buffy (glm-5.3-flash) 13",
+  "utc": "2026-10-01T05:01:00Z",
+  "state": "idle",
+  "current_task": null,
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "RUN COMPLETE at the 10-item budget. Closed DONE: B5-1469 (heartbeat FUTURE SKEW gate in validate-heartbeats.ps1), B5-1462 (new-claim.ps1, tool-stamped started_utc), B5-1481 (DECISIONS truncation recovery, 175/175 reconciled), B5-1605 (deck-total literal census, DECK_SIZE zero consumers), B5-1484 (temporal identity-collision forensics, 12b proposed pending human), B5-1403 (first policy-qualified retirement + residue re-triage). Closed BLOCKED gate-red: B5-1337, B5-1343 (dangling gate). B5-1439 handled as orphan (row was already closed by Buffy 12; status cell repaired). B5-1047 stale future-dated claim lawfully reaped with three-signal evidence. All claims released; all rows 7 pipes / doubleLead no; dup-census PASS throughout; compile.sh green; no commit, no push; dirty tree is the correct end state."
+}

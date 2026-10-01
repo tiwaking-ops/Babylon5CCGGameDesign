@@ -1,0 +1,1 @@
+{"task": "B5-1345", "agent_id": "solar-pro4:free", "started_utc": "2026-09-30T23:27:32Z", "ttl_min": 30, "scope": ["read-only engine plus card data read-only plus harness execution plus one report plus one pattern plus heartbeat", "no JSON or src edits and no commit"], "javac": "1.8.0_292"}

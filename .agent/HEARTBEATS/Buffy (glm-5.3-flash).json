@@ -1,20 +1,10 @@
 {
-    "agent_id":  "Buffy (glm-5.3-flash)",
-    "thread_id":  "freebuff-buffy-loop11",
-    "session_start_utc":  "2026-09-27T00:43:00Z",
-    "updated_utc":  "2026-09-27T02:22:00Z",
-    "status":  "IDLE",
-    "current_task":  "none -- queue TERMINAL: zero OPEN rows in TASK_LEDGER.md (census 305 DONE / 6 SUPERSEDED / 2 VOID); stop condition 1 fired",
-    "live_claims":  [
-
-                    ],
-    "javac":  "1.8.0_292",
-    "last_compile":  "GREEN at 02:13Z (compile.bat Build successful; RUN_TESTS=1 conformance 493/493 + smoke PASS) on the fb2e7bd1 tree",
-    "smoke":  "PASS",
-    "tasks_completed":  5,
-    "blocked_count":  0,
-    "notes":  "LOOP11 FINAL 02:22Z: 5 tasks closed this loop -- B5-0599 (checkpoint 322cde11, held-gate then 493/493), B5-0607 (checkpoint cfef9911, playtest-guide verified zero-delta, stray pipe repaired), B5-0608 (hygiene sweep: RUN_TESTS=1 493/493 + 7 probes all exit 0), B5-0611 (pipe re-sweep: 0606/0607/0608 stripped to canonical 1-leading/7-total, class retired), B5-0612 (checkpoint fb2e7bd1, carried .agent/tools/ledger-query.ps1 per row scope). All commits NOT pushed. Session total across loops 8-11: 42 tasks. BLOCKED count: 0 (one held-gate event at 0599, resolved when B5-0617 owner closed). Queue terminal at 02:22Z; ending session per stop condition 1 of 3.",
-    "schema_version":  1,
-    "utc":  "2026-09-27T02:22:00Z",
-    "state":  "idle"
+  "schema_version": 1,
+  "agent_id": "Buffy (glm-5.3-flash)",
+  "utc": "2026-09-28T19:45:00Z",
+  "state": "idle",
+  "current_task": null,
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "Run complete: 10 of 10 task budget, zero BLOCKED, zero reaps, zero foreign files touched, no commit/push. Closed this run: B5-0959 DONE (B5-0948 ancestry-rule audit: rule missed on d1d0c6ff and 59c4f251, all six commits re-measured both refs, byte counts reproduce byte-identical third pass), B5-0960 DONE (Java 6 construct census 63 files clean: 59 raw arrow occurrences all prose via masking, getOrDefault is the project's own helper not the API, frozen archive 32 files separately censured as instrument validation), B5-0962 DONE (non-conforming heartbeat adjudicated as tombstone via quarantine-pointer, second defect found the validator misses: future-dated utc, file byte-identical), B5-0963 DONE (B5-0953 claim premise audited: file and symbols do not exist, description does not match the row, three signals all STALE recorded, VOID recommendation awaiting authorised reaper), B5-0965 DONE (dirty AIPlayer attributed to DONE rows B5-0727 and B5-0703, 14 hunks verified, gates green on dirty tree), B5-0967 DONE (compile parity by delegation: RUN_TESTS=1 sh compile.sh measured exit 0 end-to-end, compile.bat pointer comment only), B5-0970 DONE (guide fidelity: 9/9 rulebook anchors verify, one structural table defect flagged, one Power-read drift flagged), B5-0971 DONE (both dirty proposals triaged as decision-record edits citing B5-0787, citations verified), B5-0972 DONE (node_modules disposition: gitignore-and-keep implemented as the free half, git rm human-gated with command+rollback recorded), B5-0973 DONE (post-wave census: 481 rows, 14 OPEN, 12 claimable, nothing moved green to red). Lost claim races on B5-0954, B5-0960-turn, B5-0968: all aborted cleanly pre-write. Standing ghosts documented for authorised action: B5-0481 (B5-0791 says STANDS), B5-0953 (B5-0963 says VOID)."
 }

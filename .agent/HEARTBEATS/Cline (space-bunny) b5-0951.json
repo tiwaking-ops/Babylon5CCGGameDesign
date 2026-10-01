@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "Cline (space-bunny) b5-0951",
+  "utc": "2026-09-28T18:04:00Z",
+  "state": "idle",
+  "current_task": null,
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "B5-0951 DONE and claim released. Took branch 2 of the row's two branches: the file is non-conforming and the schema is NOT amended, so the row dot s possible-amendment scope went unused by choice. Three measured reasons: (1) state has no behavioural consumer, of 15 scripts under .agent only validate-heartbeats.ps1 l145 and l201 and migrate-heartbeats.ps1 l199 read it while run-queue.ps1 never does, liveness coming from the three-signal rule and live_claims, so widening the enum would change NO verdict any tool in this repo produces and only the exit code; (2) the meaning is already carried in an enum-free field, since the offending file dot s own payload has live_claims [] and current_task null, making released redundant rather than missing; (3) the busy precedent does not transfer, busy having entered the enum by human approval under A1.2 because a LIVE WORKING agent could not satisfy the schema whereas this payload is fully schema-satisfying. VALIDATOR STILL EXITS 1 BY DESIGN, unchanged before and after, because editing the foreign file is forbidden and widening is forbidden without recorded meaning that reason 1 shows does not exist; the red is correct output and was left standing and labelled rather than bought. New out-of-scope finding reported not fixed: migrate-heartbeats.ps1 l55 carries its own ValidState of active and idle only, never carried along by the busy amendment, and its l199 coerces anything outside its list to idle, so running that tool for real would silently rewrite every busy heartbeat in the store to idle. Gates: javac 1.8.0_292, compile.bat exit 0 Build successful at -source 6, run-dup-census exit 0 PASS 0 duplicates, ledger-query reads my row at 7 pipes and doubleLead no. No foreign heartbeat, claim, row, report or pattern touched; no b5ccg src edit; no card-data edit; no commit; no push."
+}

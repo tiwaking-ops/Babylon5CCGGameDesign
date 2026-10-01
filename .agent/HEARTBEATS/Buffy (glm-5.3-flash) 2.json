@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "Buffy (glm-5.3-flash) 2",
+  "utc": "2026-09-28T21:54:39Z",
+  "state": "idle",
+  "current_task": null,
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "SESSION 2 RUN COMPLETE: 7 tasks closed (B5-0997 ghost re-measurement reap-ready, B5-0992 stale-premise verdict close, B5-0993 compile.sh timing wording retired, B5-0994 anchor repaired to measured 319, B5-0995 set-anomaly class EMPTY with retraction of own prior observation, B5-0996 14 records classified into four availability classes, B5-0998 queue-health census v2). 1 stand-down: B5-0990 gate red on the B5-0953 ghost, twice. Remaining OPEN: B5-0990 gated on the human/authorized reap of .agent/CLAIMS/B5-0953.json (evidence package in B5-0997 report) and the ghost itself suppressed. B5-0996 delivered the B5-0995 erratum: the B5-0980 set-anomaly observation was own arithmetic error (37+41=78 not 77), retracted per B5-0959 style. No commit, no push."
+}

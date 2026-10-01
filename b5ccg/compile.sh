@@ -51,5 +51,42 @@ if [ "${RUN_TESTS:-0}" = "1" ]; then
   echo "=== Verification (RUN_TESTS=1) ==="
   java -cp "$OUT" b5ccg.engine.HeadlessConformanceTest
   java -cp "$OUT" b5ccg.engine.HeadlessSmokeTest
+
+  # ── Headless gate tier (B5-0956; timing wording corrected B5-0993) ────────
+  # These seven are GATES: each has a pure 0/1 exit contract (a non-zero exit
+  # means a real engine-or-data defect, never an exploratory outcome), and this
+  # gate enforces EXIT CODES ONLY. Timing is deliberately not asserted: the
+  # B5-0982 battery (8 runs per class, 56 total) measured medians 247-580ms
+  # but 3 of 7 classes exceeded 1s on at least one run under host load (max
+  # 2014ms), so the earlier "under 1s" wording was retired to keep it from
+  # hardening into a timing assertion that would flake every compile. The
+  # 8/8-green exit contract held 56/56 against the unseeded deck shuffle
+  # (b5ccg/model/Deck.java uses Collections.shuffle with no seed, so this is
+  # the real variance source, not a pinned one). `set -e` above aborts the
+  # script on the first non-zero exit, so each exit code is honoured without
+  # extra plumbing.
+  #
+  # Deliberately NOT wired here, measured the same pass:
+  #   HeadlessReportingTiebreakTest  15.4s - its live round-cap leg reads
+  #     NOT_APPLICABLE (0/4 players at 20+) on an ordinary run, so the live
+  #     check silently does not fire; keep it a report-only probe.
+  #   HeadlessHumanSeatProbe        80.3s - its own header records that
+  #     Deck.java's constructor shuffle takes no Random, so hand contents
+  #     cannot be made deterministic from the harness (B5-0482 relaxed a
+  #     coverage gate to soft for exactly this reason).
+  #   HeadlessMultiRoundTest      1268.6s (21.1 min) - measurement rig; it has
+  #     no failure exit at all (0 or 3 only), so it cannot gate anything.
+  #   HeadlessStallSoakProbe       978.6s (16.3 min) - its own final line says
+  #     "classifications are reporting, not failures"; exit 2/3 are argument
+  #     and harness errors, not verdicts.
+  # The last two are soak runners whose runtime alone disqualifies them, and
+  # their exit codes carry no pass/fail semantics. Run them on demand.
+  java -cp "$OUT" b5ccg.engine.HeadlessAIDifficultyContractTest
+  java -cp "$OUT" b5ccg.engine.HeadlessConflictResolutionProbe
+  java -cp "$OUT" b5ccg.engine.HeadlessHumanConflictAttackWindowTest
+  java -cp "$OUT" b5ccg.engine.HeadlessLeadFleetScenarioProbe
+  java -cp "$OUT" b5ccg.engine.HeadlessParticipationGatesProbe
+  java -cp "$OUT" b5ccg.engine.HeadlessStationVictoryTest
+  java -cp "$OUT" b5ccg.engine.HeadlessWarConflictProbe
   echo "✓ Verification passed."
 fi

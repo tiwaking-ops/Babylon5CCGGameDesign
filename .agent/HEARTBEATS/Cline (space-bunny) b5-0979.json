@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "Cline (space-bunny) b5-0979",
+  "utc": "2026-09-28T20:20:40Z",
+  "state": "idle",
+  "current_task": null,
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "B5-0979 BLOCKED and closed. Gate one cleared (B5-0966 DONE, claim released). Gate two red: B5-0977 LIVE on three signals (claim 20:03:05Z, heartbeat 20:03:08Z, ~15min old, inside TTL) with a docs/DECISIONS.md entry in its scope, and DECISIONS.md itself was written 20:14:32Z mid-session. Not reaped, foreign and live. No DECISIONS.md hygiene byte written; only the append-only close-out entry. Second finding: B5-0966 recommendation 1's cp1252->utf8 recipe does not reach a fixpoint (124/1081 lines, 1358/1504 marks left) because of C1 controls 0x80-0x9F; a C1-aware inverse reaches zero on all 1081 but rewrites 389 clean lines if run globally, so it must be line-scoped. Claim released, report and pattern filed, compile green, dup census PASS, row 7/no. No commit, no push."
+}

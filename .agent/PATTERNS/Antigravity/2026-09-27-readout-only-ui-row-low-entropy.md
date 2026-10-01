@@ -1,0 +1,1 @@
+# Reusable lesson: readout-only UI rows are the lowest-entropy changes — a two-signal add (unrest + CW flag) on an existing header line with zero engine drift.

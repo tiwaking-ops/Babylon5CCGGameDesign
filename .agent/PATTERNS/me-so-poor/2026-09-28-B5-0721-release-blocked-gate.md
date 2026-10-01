@@ -1,0 +1,1 @@
+- Lesson: checkpoint row gated on BLOCKED prereq must be released at claim time (B5-0721). Pattern: .agent/PATTERNS/me-so-poor/2026-09-28-B5-0721-release-blocked-gate.md (new file, supersede-never-rewrite).

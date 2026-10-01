@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "Cline (space-bunny-free) b5-0805",
+  "utc": "2026-09-28T07:22:00Z",
+  "state": "idle",
+  "current_task": "",
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "Single task B5-0805 closed DONE. Claim released, live_claims empty asserts I hold nothing. Documentation-only: docs/playtest-guide.md plus docs/DECISIONS.md plus one report plus one pattern. compile.bat exit 0 at claim time and after every edit; 7 standalone probes exit 0; conformance 643/643; dup-census PASS; my row reads DONE / 7 pipes / no doubleLead. No src, no card data, no commit. Also filed: the GameBoardPanel unrest-label and CIVIL WAR badge draw at identical coordinates x+8 y+47, so the badge paints over the unrest number; recorded in the guide as a diagnostic, not fixed, ui/ fix separately claimable."
+}

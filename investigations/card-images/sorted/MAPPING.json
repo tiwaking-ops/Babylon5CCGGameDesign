@@ -1,0 +1,4657 @@
+{
+ "dup_titles": {},
+ "files_copied": 447,
+ "mapping": {
+  "A Brighter Future": {
+   "files": [
+    "A Brighter Future.jpg.gif"
+   ],
+   "id": "de_conf_a_brighter_future",
+   "set": "DELUXE"
+  },
+  "A Good Bluff": {
+   "files": [
+    "A Good Bluff.jpg.gif"
+   ],
+   "id": "de_event_a_good_bluff",
+   "set": "DELUXE"
+  },
+  "A Rising Power": {
+   "files": [
+    "A Rising Power.jpg.gif"
+   ],
+   "id": "de_agenda_a_rising_power",
+   "set": "DELUXE"
+  },
+  "Accident": {
+   "files": [
+    "Accident.jpg.gif"
+   ],
+   "id": "de_event_accident",
+   "set": "DELUXE"
+  },
+  "Adira Tyree": {
+   "files": [
+    "Adira Tyree.jpg.gif"
+   ],
+   "id": "de_char_adira_tyree",
+   "set": "DELUXE"
+  },
+  "Affirm Alliance": {
+   "files": [
+    "Affirm Alliance.jpg.gif"
+   ],
+   "id": "event_affirm_alliance",
+   "set": "PREMIERE"
+  },
+  "Affirmation of Peace": {
+   "files": [
+    "Affirmation of Peace.jpg.gif"
+   ],
+   "id": "conf_affirmation_of_peace",
+   "set": "PREMIERE"
+  },
+  "Affirmation of Power": {
+   "files": [
+    "Affirmation of Power.jpg.gif"
+   ],
+   "id": "de_conf_affirmation_of_power",
+   "set": "DELUXE"
+  },
+  "Alliance": {
+   "files": [
+    "Alliance.jpg.gif"
+   ],
+   "id": "de_conf_alliance",
+   "set": "DELUXE"
+  },
+  "Alliance of Races": {
+   "files": [
+    "Alliance of Races.jpg.gif"
+   ],
+   "id": "agenda_alliance_of_races",
+   "set": "PREMIERE"
+  },
+  "Approval of the Grey": {
+   "files": [
+    "Approval of the Grey.jpg.gif"
+   ],
+   "id": "de_am_approval_of_the_grey",
+   "set": "DELUXE"
+  },
+  "Armed Resistance": {
+   "files": [
+    "Armed Resistance.jpg.gif"
+   ],
+   "id": "de_enh_armed_resistance",
+   "set": "DELUXE"
+  },
+  "Armistice": {
+   "files": [
+    "Armistice.jpg.gif"
+   ],
+   "id": "de_event_armistice",
+   "set": "DELUXE"
+  },
+  "As It Was Meant To Be": {
+   "files": [
+    "As It Was Meant To Be.jpg.gif"
+   ],
+   "id": "de_agenda_as_it_was_meant_to_be",
+   "set": "DELUXE"
+  },
+  "Ashan": {
+   "files": [
+    "Ashan.jpg.gif"
+   ],
+   "id": "char_ashan",
+   "set": "PREMIERE"
+  },
+  "Assault Troops": {
+   "files": [
+    "Assault Troops.jpg.gif"
+   ],
+   "id": "de_enh_assault_troops",
+   "set": "DELUXE"
+  },
+  "Assigning Blame": {
+   "files": [
+    "Assigning Blame.jpg.gif"
+   ],
+   "id": "aftermath_assigning_blame",
+   "set": "PREMIERE"
+  },
+  "Attacking Pawns": {
+   "files": [
+    "Attacking Pawns.jpg.gif"
+   ],
+   "id": "de_conf_attacking_pawns",
+   "set": "DELUXE"
+  },
+  "Avert Incident": {
+   "files": [
+    "Avert Incident.jpg.gif"
+   ],
+   "id": "de_event_avert_incident",
+   "set": "DELUXE"
+  },
+  "Babylon 5 Unrest": {
+   "files": [
+    "Babylon 5 Unrest.jpg.gif"
+   ],
+   "id": "de_enh_babylon5_unrest",
+   "set": "DELUXE"
+  },
+  "Backroom Dealing": {
+   "files": [
+    "Backroom Dealing.jpg.gif"
+   ],
+   "id": "de_enh_backroom_dealing",
+   "set": "DELUXE"
+  },
+  "Balance": {
+   "files": [
+    "Balance.jpg.gif"
+   ],
+   "id": "de_event_balance",
+   "set": "DELUXE"
+  },
+  "Battle Tested": {
+   "files": [
+    "Battle Tested.jpg.gif"
+   ],
+   "id": "de_am_battle_tested",
+   "set": "DELUXE"
+  },
+  "Bester": {
+   "files": [
+    "Bester.jpg.gif"
+   ],
+   "id": "de_char_bester",
+   "set": "DELUXE"
+  },
+  "Bio-Weapon Discovery": {
+   "files": [
+    "Bio-Weapon Discovery.jpg.gif"
+   ],
+   "id": "de_conf_bio_weapon_discovery",
+   "set": "DELUXE"
+  },
+  "Black Market": {
+   "files": [
+    "Black Market.jpg.gif"
+   ],
+   "id": "de_conf_black_market",
+   "set": "DELUXE"
+  },
+  "Blockade": {
+   "files": [
+    "Blockade.jpg.gif"
+   ],
+   "id": "de_conf_blockade",
+   "set": "DELUXE"
+  },
+  "Blood Oath": {
+   "files": [
+    "Blood Oath.jpg.gif"
+   ],
+   "id": "de_am_blood_oath",
+   "set": "DELUXE"
+  },
+  "Book of G'Quan": {
+   "files": [
+    "Book of G'Quan.jpg.gif"
+   ],
+   "id": "enh_book_of_gquan",
+   "set": "PREMIERE"
+  },
+  "Border Raid": {
+   "files": [
+    "Border Raid.jpg.gif"
+   ],
+   "id": "de_conf_border_raid",
+   "set": "DELUXE"
+  },
+  "Campaign for Support": {
+   "files": [
+    "Campaign for Support.jpg.gif"
+   ],
+   "id": "de_conf_campaign_for_support",
+   "set": "DELUXE"
+  },
+  "Carn Mollari": {
+   "files": [
+    "Carn Mollari.jpg.gif"
+   ],
+   "id": "char_carn_mollari",
+   "set": "PREMIERE"
+  },
+  "Carpe Diem": {
+   "files": [
+    "Carpe Diem.jpg.gif"
+   ],
+   "id": "de_event_carpe_diem",
+   "set": "DELUXE"
+  },
+  "Casualty Reports": {
+   "files": [
+    "Casualty Reports.jpg.gif"
+   ],
+   "id": "de_am_casualty_reports",
+   "set": "DELUXE"
+  },
+  "Catherine Sakai": {
+   "files": [
+    "Catherine Sakai.jpg.gif"
+   ],
+   "id": "de_char_catherine_sakai",
+   "set": "DELUXE"
+  },
+  "Censure": {
+   "files": [
+    "Censure.jpg.gif"
+   ],
+   "id": "de_enh_censure",
+   "set": "DELUXE"
+  },
+  "Centauri Agent": {
+   "files": [
+    "Centauri Agent.jpg.gif"
+   ],
+   "id": "de_char_centauri_agent",
+   "set": "DELUXE"
+  },
+  "Centauri Aide": {
+   "files": [
+    "Centauri Aide.jpg.gif"
+   ],
+   "id": "de_char_centauri_aide",
+   "set": "DELUXE"
+  },
+  "Centauri Captain": {
+   "files": [
+    "Centauri Captain.jpg.gif"
+   ],
+   "id": "de_char_centauri_captain",
+   "set": "DELUXE"
+  },
+  "Centauri Prime": {
+   "files": [
+    "Centauri Prime.jpg.gif"
+   ],
+   "id": "loc_centauri_prime",
+   "set": "PREMIERE"
+  },
+  "Centauri Telepath": {
+   "files": [
+    "Centauri Telepath.jpg.gif"
+   ],
+   "id": "de_char_centauri_telepath",
+   "set": "DELUXE"
+  },
+  "Change of Plans": {
+   "files": [
+    "Change of Plans.jpg.gif"
+   ],
+   "id": "de_event_change_of_plans",
+   "set": "DELUXE"
+  },
+  "Chaos Reigns": {
+   "files": [
+    "Chaos Reigns.jpg.gif"
+   ],
+   "id": "de_event_chaos_reigns",
+   "set": "DELUXE"
+  },
+  "Chrysalis": {
+   "files": [
+    "Chrysalis.jpg.gif"
+   ],
+   "id": "de_event_chrysalis",
+   "set": "DELUXE"
+  },
+  "Colonial Fleet (Centauri)": {
+   "files": [
+    "Colonial Fleet (Centauri).jpg.gif"
+   ],
+   "id": "de_fleet_colonial_centauri",
+   "set": "DELUXE"
+  },
+  "Colonial Fleet (Human)": {
+   "files": [
+    "Colonial Fleet (Human).jpg.gif"
+   ],
+   "id": "de_fleet_colonial_human",
+   "set": "DELUXE"
+  },
+  "Colonial Fleet (Narn)": {
+   "files": [
+    "Colonial Fleet (Narn).jpg.gif"
+   ],
+   "id": "de_fleet_colonial_narn",
+   "set": "DELUXE"
+  },
+  "Combat Experience": {
+   "files": [
+    "Combat Experience.jpg.gif"
+   ],
+   "id": "de_am_combat_experience",
+   "set": "DELUXE"
+  },
+  "Commerce Raiding": {
+   "files": [
+    "Commerce Raiding.jpg.gif"
+   ],
+   "id": "de_enh_commerce_raiding",
+   "set": "DELUXE"
+  },
+  "Commercial Telepaths": {
+   "files": [
+    "Commercial Telepaths.jpg.gif"
+   ],
+   "id": "de_group_commercial_telepaths",
+   "set": "DELUXE"
+  },
+  "Competing Interests": {
+   "files": [
+    "Competing Interests.jpg.gif"
+   ],
+   "id": "de_event_competing_interests",
+   "set": "DELUXE"
+  },
+  "Complete Support": {
+   "files": [
+    "Complete Support.jpg.gif"
+   ],
+   "id": "de_conf_complete_support",
+   "set": "DELUXE"
+  },
+  "Concealed Weapon": {
+   "files": [
+    "Concealed Weapon.jpg.gif"
+   ],
+   "id": "de_enh_concealed_weapon",
+   "set": "DELUXE"
+  },
+  "Concentrated Effort": {
+   "files": [
+    "Concentrated Effort.jpg.gif"
+   ],
+   "id": "de_event_concentrated_effort",
+   "set": "DELUXE"
+  },
+  "Conflicting Desires": {
+   "files": [
+    "Conflicting Desires.jpg.gif"
+   ],
+   "id": "de_event_conflicting_desires",
+   "set": "DELUXE"
+  },
+  "Conflicting Loyalties": {
+   "files": [
+    "Conflicting Loyalties.jpg.gif"
+   ],
+   "id": "de_event_conflicting_loyalties",
+   "set": "DELUXE"
+  },
+  "Confusion in Chaos": {
+   "files": [
+    "Confusion in Chaos.jpg.gif"
+   ],
+   "id": "de_event_confusion_in_chaos",
+   "set": "DELUXE"
+  },
+  "Consolidated Position": {
+   "files": [
+    "Consolidated Position.jpg.gif"
+   ],
+   "id": "de_conf_consolidated_position",
+   "set": "DELUXE"
+  },
+  "Contact with Shadows": {
+   "files": [
+    "Contact with Shadows.jpg.gif"
+   ],
+   "id": "de_event_contact_with_shadows",
+   "set": "DELUXE"
+  },
+  "Contact with Vorlons": {
+   "files": [
+    "Contact with Vorlons.jpg.gif"
+   ],
+   "id": "de_event_contact_with_vorlons",
+   "set": "DELUXE"
+  },
+  "Coordinated Fire": {
+   "files": [
+    "Coordinated Fire.jpg.gif"
+   ],
+   "id": "de_event_coordinated_fire",
+   "set": "DELUXE"
+  },
+  "Counterintelligence": {
+   "files": [
+    "CounterIntelligence.jpg.gif"
+   ],
+   "id": "de_group_counterintelligence",
+   "set": "DELUXE"
+  },
+  "Court the Rebellious": {
+   "files": [
+    "Court the Rebellious.jpg.gif"
+   ],
+   "id": "de_conf_court_the_rebellious",
+   "set": "DELUXE"
+  },
+  "Covert Allies": {
+   "files": [
+    "Covert Allies.jpg.gif"
+   ],
+   "id": "de_enh_covert_allies",
+   "set": "DELUXE"
+  },
+  "Crisis of Self": {
+   "files": [
+    "Crisis of Self.jpg.gif"
+   ],
+   "id": "de_am_crisis_of_self",
+   "set": "DELUXE"
+  },
+  "Crusade": {
+   "files": [
+    "Crusade.jpg.gif"
+   ],
+   "id": "de_conf_crusade",
+   "set": "DELUXE"
+  },
+  "Crystal Cities": {
+   "files": [
+    "Crystal Cities.jpg.gif"
+   ],
+   "id": "enh_crystal_cities",
+   "set": "PREMIERE"
+  },
+  "Cut Supply Lines": {
+   "files": [
+    "Cut Supply Lines.jpg.gif"
+   ],
+   "id": "de_event_cut_supply_lines",
+   "set": "DELUXE"
+  },
+  "Cynthia Torqueman": {
+   "files": [
+    "Cynthia Torqueman.jpg.gif"
+   ],
+   "id": "de_char_cynthia_torqueman",
+   "set": "DELUXE"
+  },
+  "Damage Control Team": {
+   "files": [
+    "Damage Control Team.jpg.gif"
+   ],
+   "id": "de_group_damage_control_team",
+   "set": "DELUXE"
+  },
+  "Dan Randall": {
+   "files": [
+    "Dan Randall.jpg.gif"
+   ],
+   "id": "de_char_dan_randall",
+   "set": "DELUXE"
+  },
+  "Decisive Tactics": {
+   "files": [
+    "Decisive Tactics.jpg.gif"
+   ],
+   "id": "event_decisive_tactics",
+   "set": "PREMIERE"
+  },
+  "Declaration of War": {
+   "files": [
+    "Declaration of War.jpg.gif"
+   ],
+   "id": "de_event_declaration_of_war",
+   "set": "DELUXE"
+  },
+  "Deep Space Fleet (Centauri)": {
+   "files": [
+    "Deep Space Fleet (Centauri).jpg.gif"
+   ],
+   "id": "de_fleet_deep_space_centauri",
+   "set": "DELUXE"
+  },
+  "Deep Space Fleet (Human)": {
+   "files": [
+    "Deep Space Fleet (Human).jpg.gif"
+   ],
+   "id": "de_fleet_deep_space_human",
+   "set": "DELUXE"
+  },
+  "Deep Space Fleet (Narn)": {
+   "files": [
+    "Deep Space Fleet (Narn).jpg.gif"
+   ],
+   "id": "de_fleet_deep_space_narn",
+   "set": "DELUXE"
+  },
+  "Defame Ambassador": {
+   "files": [
+    "Defame Ambassador.jpg.gif"
+   ],
+   "id": "de_event_defame_ambassador",
+   "set": "DELUXE"
+  },
+  "Delenn": {
+   "files": [
+    "Delenn.jpg.gif"
+   ],
+   "id": "de_char_delenn",
+   "set": "DELUXE"
+  },
+  "Delenn Transformed": {
+   "files": [
+    "Delenn Transformed.jpg.gif"
+   ],
+   "id": "de_char_delenn_transformed",
+   "set": "DELUXE"
+  },
+  "Demonstrative Victory": {
+   "files": [
+    "Demonstrative Victory.jpg.gif"
+   ],
+   "id": "de_conf_demonstrative_victory",
+   "set": "DELUXE"
+  },
+  "Despair": {
+   "files": [
+    "Despair.jpg.gif"
+   ],
+   "id": "de_am_despair",
+   "set": "DELUXE"
+  },
+  "Destiny Fulfilled": {
+   "files": [
+    "Destiny Fulfilled.jpg.gif"
+   ],
+   "id": "de_event_destiny_fulfilled",
+   "set": "DELUXE"
+  },
+  "Develop Relationship": {
+   "files": [
+    "Develop Relationship.jpg.gif"
+   ],
+   "id": "de_am_develop_relationship",
+   "set": "DELUXE"
+  },
+  "Dhaliri": {
+   "files": [
+    "Dhaliri.jpg.gif"
+   ],
+   "id": "de_char_dhaliri",
+   "set": "DELUXE"
+  },
+  "Diplomatic Advantage": {
+   "files": [
+    "Diplomatic Advantage.jpg.gif"
+   ],
+   "id": "de_am_diplomatic_advantage",
+   "set": "DELUXE"
+  },
+  "Diplomatic Blunder": {
+   "files": [
+    "Diplomatic Blunder.jpg.gif"
+   ],
+   "id": "de_event_diplomatic_blunder",
+   "set": "DELUXE"
+  },
+  "Diplomatic Corps": {
+   "files": [
+    "Diplomatic Corps.jpg.gif"
+   ],
+   "id": "de_group_diplomatic_corps",
+   "set": "DELUXE"
+  },
+  "Diplomatic Immunity": {
+   "files": [
+    "Diplomatic Immunity.jpg.gif"
+   ],
+   "id": "de_event_diplomatic_immunity",
+   "set": "DELUXE"
+  },
+  "Disaffected Centauri": {
+   "files": [
+    "Disaffected Centauri.jpg.gif"
+   ],
+   "id": "de_char_disaffected_centauri",
+   "set": "DELUXE"
+  },
+  "Disaffected Human": {
+   "files": [
+    "Disaffected Human.jpg.gif"
+   ],
+   "id": "de_char_disaffected_human",
+   "set": "DELUXE"
+  },
+  "Disaffected Minbari": {
+   "files": [
+    "Disaffected Minbari.jpg.gif"
+   ],
+   "id": "de_char_disaffected_minbari",
+   "set": "DELUXE"
+  },
+  "Disaffected Narn": {
+   "files": [
+    "Disaffected Narn.jpg.gif"
+   ],
+   "id": "de_char_disaffected_narn",
+   "set": "DELUXE"
+  },
+  "Disenchantment": {
+   "files": [
+    "Disenchantment.jpg.gif"
+   ],
+   "id": "de_am_disenchantment",
+   "set": "DELUXE"
+  },
+  "Disgrace": {
+   "files": [
+    "Disgrace.jpg.gif"
+   ],
+   "id": "de_am_disgrace",
+   "set": "DELUXE"
+  },
+  "Dishonor": {
+   "files": [
+    "Dishonor.jpg.gif"
+   ],
+   "id": "conf_dishonor",
+   "set": "PREMIERE"
+  },
+  "Draal": {
+   "files": [
+    "Draal.jpg.gif"
+   ],
+   "id": "char_draal",
+   "set": "PREMIERE"
+  },
+  "Draft": {
+   "files": [
+    "Draft.jpg.gif"
+   ],
+   "id": "de_enh_draft",
+   "set": "DELUXE"
+  },
+  "Drazi Sunhawk": {
+   "files": [
+    "Drazi Sunhawk.jpg.gif"
+   ],
+   "id": "de_fleet_drazi_sunhawk",
+   "set": "DELUXE"
+  },
+  "Drigo": {
+   "files": [
+    "Drigo.jpg.gif"
+   ],
+   "id": "char_drigo",
+   "set": "PREMIERE"
+  },
+  "Du'Nar": {
+   "files": [
+    "Du Nar.jpg.gif"
+   ],
+   "id": "de_char_dunar",
+   "set": "DELUXE"
+  },
+  "Du'Rog": {
+   "files": [
+    "Du Rog.jpg.gif"
+   ],
+   "id": "de_char_durog",
+   "set": "DELUXE"
+  },
+  "Durlan": {
+   "files": [
+    "Durlan.jpg.gif"
+   ],
+   "id": "de_char_durlan",
+   "set": "DELUXE"
+  },
+  "Early Warning": {
+   "files": [
+    "Early Warning.jpg.gif"
+   ],
+   "id": "de_event_early_warning",
+   "set": "DELUXE"
+  },
+  "Earth": {
+   "files": [
+    "Earth.jpg.gif"
+   ],
+   "id": "loc_earth",
+   "set": "PREMIERE"
+  },
+  "Elric": {
+   "files": [
+    "Elric.jpg.gif"
+   ],
+   "id": "de_char_elric",
+   "set": "DELUXE"
+  },
+  "Emergency Military Aid": {
+   "files": [
+    "Emergency Military Aid.jpg.gif"
+   ],
+   "id": "de_event_emergency_military_aid",
+   "set": "DELUXE"
+  },
+  "Energy Mines": {
+   "files": [
+    "Energy Mines.jpg.gif"
+   ],
+   "id": "de_enh_energy_mines",
+   "set": "DELUXE"
+  },
+  "Enrage": {
+   "files": [
+    "Enrage.jpg.gif"
+   ],
+   "id": "de_am_enrage",
+   "set": "DELUXE"
+  },
+  "Establish Base": {
+   "files": [
+    "Establish Base.jpg.gif"
+   ],
+   "id": "de_conf_establish_base",
+   "set": "DELUXE"
+  },
+  "Euphrates Treaty": {
+   "files": [
+    "Euphrates Treaty.jpg.gif"
+   ],
+   "id": "conf_euphrates_treaty",
+   "set": "PREMIERE"
+  },
+  "Expeditionary Fleet (Centauri)": {
+   "files": [
+    "Expeditionary Fleet (Centauri).jpg.gif"
+   ],
+   "id": "fleet_expeditionary_centauri",
+   "set": "PREMIERE"
+  },
+  "Expeditionary Fleet (Narn)": {
+   "files": [
+    "Expeditionary Fleet (Narn).jpg.gif"
+   ],
+   "id": "fleet_expeditionary_narn",
+   "set": "PREMIERE"
+  },
+  "Exploit Opportunities": {
+   "files": [
+    "Exploit Opportunities.jpg.gif"
+   ],
+   "id": "de_am_exploit_opportunities",
+   "set": "DELUXE"
+  },
+  "Exploitation": {
+   "files": [
+    "Exploitation.jpg.gif"
+   ],
+   "id": "de_enh_exploitation",
+   "set": "DELUXE"
+  },
+  "Extended Contacts": {
+   "files": [
+    "Extended Contacts.jpg.gif"
+   ],
+   "id": "de_group_extended_contacts",
+   "set": "DELUXE"
+  },
+  "Extreme Sanction": {
+   "files": [
+    "Extreme Sanction.jpg.gif"
+   ],
+   "id": "de_conf_extreme_sanction",
+   "set": "DELUXE"
+  },
+  "Finish the War": {
+   "files": [
+    "Finish the War.jpg.gif"
+   ],
+   "id": "de_agenda_finish_the_war",
+   "set": "DELUXE"
+  },
+  "First Battle Fleet (Centauri)": {
+   "files": [
+    "First Battle Fleet (Centauri).jpg.gif"
+   ],
+   "id": "de_fleet_first_battle_centauri",
+   "set": "DELUXE"
+  },
+  "First Battle Fleet (Human)": {
+   "files": [
+    "First Battle Fleet (Human).jpg.gif"
+   ],
+   "id": "de_fleet_first_battle_human",
+   "set": "DELUXE"
+  },
+  "First Battle Fleet (Narn)": {
+   "files": [
+    "First Battle Fleet (Narn).jpg.gif"
+   ],
+   "id": "de_fleet_first_battle_narn",
+   "set": "DELUXE"
+  },
+  "Fixed in Their Ways": {
+   "files": [
+    "Fixed in Their Ways.jpg.gif"
+   ],
+   "id": "de_enh_fixed_in_their_ways",
+   "set": "DELUXE"
+  },
+  "Fleet Support Base": {
+   "files": [
+    "Fleet Support Base.jpg.gif"
+   ],
+   "id": "de_enh_fleet_support_base",
+   "set": "DELUXE"
+  },
+  "Fleet of the Line": {
+   "files": [
+    "Fleet of the Line.jpg.gif"
+   ],
+   "id": "de_fleet_fleet_of_the_line",
+   "set": "DELUXE"
+  },
+  "Fleets on the Border": {
+   "files": [
+    "Fleets on the Border.jpg.gif"
+   ],
+   "id": "de_event_fleets_on_the_border",
+   "set": "DELUXE"
+  },
+  "Focus Your Efforts": {
+   "files": [
+    "Focus Your Efforts.jpg.gif"
+   ],
+   "id": "de_am_focus_your_efforts",
+   "set": "DELUXE"
+  },
+  "For My People": {
+   "files": [
+    "For My People.jpg.gif"
+   ],
+   "id": "de_event_for_my_people",
+   "set": "DELUXE"
+  },
+  "For the Common Good": {
+   "files": [
+    "For the Common Good.jpg.gif"
+   ],
+   "id": "de_event_for_the_common_good",
+   "set": "DELUXE"
+  },
+  "For the Good of All": {
+   "files": [
+    "For the Good of All.jpg.gif"
+   ],
+   "id": "de_event_for_the_good_of_all",
+   "set": "DELUXE"
+  },
+  "Forced Commitment": {
+   "files": [
+    "Forced Commitment.jpg.gif"
+   ],
+   "id": "de_enh_forced_commitment",
+   "set": "DELUXE"
+  },
+  "Forced Evolution": {
+   "files": [
+    "Forced Evolution.jpg.gif"
+   ],
+   "id": "de_agenda_forced_evolution",
+   "set": "DELUXE"
+  },
+  "Forced Impairment": {
+   "files": [
+    "Forced Impairment.jpg.gif"
+   ],
+   "id": "conf_forced_impairment",
+   "set": "PREMIERE"
+  },
+  "Forces Collide": {
+   "files": [
+    "Forces Collide.jpg.gif"
+   ],
+   "id": "de_event_forces_collide",
+   "set": "DELUXE"
+  },
+  "Frederick Lantz": {
+   "files": [
+    "Frederick Lantz.jpg.gif"
+   ],
+   "id": "de_char_frederick_lantz",
+   "set": "DELUXE"
+  },
+  "Free the Souls": {
+   "files": [
+    "Free the Souls.jpg.gif"
+   ],
+   "id": "conf_free_the_souls",
+   "set": "PREMIERE"
+  },
+  "G'Drog": {
+   "files": [
+    "G Drog.jpg.gif"
+   ],
+   "id": "de_char_gdrog",
+   "set": "DELUXE"
+  },
+  "G'Kar": {
+   "files": [
+    "G Kar.jpg.gif"
+   ],
+   "id": "de_char_gkar",
+   "set": "DELUXE"
+  },
+  "G'Sten": {
+   "files": [
+    "G Sten.jpg.gif"
+   ],
+   "id": "de_char_gsten",
+   "set": "DELUXE"
+  },
+  "Garrison Fleet": {
+   "files": [
+    "Garrison Fleet.jpg.gif"
+   ],
+   "id": "de_fleet_garrison_centauri",
+   "set": "DELUXE"
+  },
+  "General Franklin": {
+   "files": [
+    "General Franklin.jpg.gif"
+   ],
+   "id": "de_char_general_franklin",
+   "set": "DELUXE"
+  },
+  "General Hague": {
+   "files": [
+    "General Hague.jpg.gif"
+   ],
+   "id": "de_char_general_hague",
+   "set": "DELUXE"
+  },
+  "Glory": {
+   "files": [
+    "Glory.jpg.gif"
+   ],
+   "id": "de_am_glory",
+   "set": "DELUXE"
+  },
+  "Government Opposition": {
+   "files": [
+    "Government Opposition.jpg.gif"
+   ],
+   "id": "de_group_government_opposition",
+   "set": "DELUXE"
+  },
+  "Grey Council Fleet": {
+   "files": [
+    "Grey Council Fleet.jpg.gif"
+   ],
+   "id": "de_fleet_grey_council_fleet",
+   "set": "DELUXE"
+  },
+  "Grievance": {
+   "files": [
+    "Grievance.jpg.gif"
+   ],
+   "id": "de_am_grievance",
+   "set": "DELUXE"
+  },
+  "Growth in Chaos": {
+   "files": [
+    "Growth in Chaos.jpg.gif"
+   ],
+   "id": "de_agenda_growth_in_chaos",
+   "set": "DELUXE"
+  },
+  "Guilt": {
+   "files": [
+    "Guilt.jpg.gif"
+   ],
+   "id": "de_am_guilt",
+   "set": "DELUXE"
+  },
+  "Gunboat Diplomacy": {
+   "files": [
+    "Gunboat Diplomacy.jpg.gif"
+   ],
+   "id": "de_conf_gunboat_diplomacy",
+   "set": "DELUXE"
+  },
+  "Harvest Souls": {
+   "files": [
+    "Harvest Souls.jpg.gif"
+   ],
+   "id": "de_am_harvest_souls",
+   "set": "DELUXE"
+  },
+  "Hate Crime": {
+   "files": [
+    "Hate Crime.jpg.gif"
+   ],
+   "id": "de_conf_hate_crime",
+   "set": "DELUXE"
+  },
+  "Heavy Fleet": {
+   "files": [
+    "Heavy Fleet.jpg.gif"
+   ],
+   "id": "de_fleet_heavy_fleet",
+   "set": "DELUXE"
+  },
+  "Hedronn": {
+   "files": [
+    "Hedronn.jpg.gif"
+   ],
+   "id": "char_hedronn",
+   "set": "PREMIERE"
+  },
+  "Hidden Agent": {
+   "files": [
+    "Hidden Agent.jpg.gif"
+   ],
+   "id": "de_am_hidden_agent",
+   "set": "DELUXE"
+  },
+  "Hidden Knowledge": {
+   "files": [
+    "Hidden Knowledge.jpg.gif"
+   ],
+   "id": "de_event_hidden_knowledge",
+   "set": "DELUXE"
+  },
+  "Higher Calling": {
+   "files": [
+    "Higher Calling.jpg.gif"
+   ],
+   "id": "de_agenda_higher_calling",
+   "set": "DELUXE"
+  },
+  "Hire Raiders": {
+   "files": [
+    "Hire Raiders.jpg.gif"
+   ],
+   "id": "de_event_hire_raiders",
+   "set": "DELUXE"
+  },
+  "Homeworld Fleet (Centauri)": {
+   "files": [
+    "Homeworld Fleet (Centauri).jpg.gif"
+   ],
+   "id": "fleet_homeworld_centauri",
+   "set": "PREMIERE"
+  },
+  "Homeworld Fleet (Human)": {
+   "files": [
+    "Homeworld Fleet (Human).jpg.gif"
+   ],
+   "id": "fleet_homeworld_human",
+   "set": "PREMIERE"
+  },
+  "Homeworld Fleet (Narn)": {
+   "files": [
+    "Homeworld Fleet (Narn).jpg.gif"
+   ],
+   "id": "fleet_homeworld_narn",
+   "set": "PREMIERE"
+  },
+  "Hour of the Wolf": {
+   "files": [
+    "Hour of The Wolf.jpg.gif"
+   ],
+   "id": "de_event_hour_of_the_wolf",
+   "set": "DELUXE"
+  },
+  "Human Agent": {
+   "files": [
+    "Human Agent.jpg.gif"
+   ],
+   "id": "de_char_human_agent",
+   "set": "DELUXE"
+  },
+  "Human Aide": {
+   "files": [
+    "Human Aide.jpg.gif"
+   ],
+   "id": "de_char_human_aide",
+   "set": "DELUXE"
+  },
+  "Human Captain": {
+   "files": [
+    "Human Captain.jpg.gif"
+   ],
+   "id": "de_char_human_captain",
+   "set": "DELUXE"
+  },
+  "Humanitarian Aid": {
+   "files": [
+    "Humanitarian Aid.jpg.gif"
+   ],
+   "id": "de_conf_humanitarian_aid",
+   "set": "DELUXE"
+  },
+  "Hunted": {
+   "files": [
+    "Hunted.jpg.gif"
+   ],
+   "id": "de_am_hunted",
+   "set": "DELUXE"
+  },
+  "Hunter, Prey": {
+   "files": [
+    "Hunter, Prey.jpg.gif"
+   ],
+   "id": "de_conf_hunter_prey",
+   "set": "DELUXE"
+  },
+  "ISN": {
+   "files": [
+    "ISN.jpg.gif"
+   ],
+   "id": "de_group_isn",
+   "set": "DELUXE"
+  },
+  "Immolan V": {
+   "files": [
+    "Immolan V.jpg.gif"
+   ],
+   "id": "de_loc_immolan_v",
+   "set": "DELUXE"
+  },
+  "Immortality Serum": {
+   "files": [
+    "Immortality Serum.jpg.gif"
+   ],
+   "id": "conf_immortality_serum",
+   "set": "PREMIERE"
+  },
+  "Imperial Telepaths": {
+   "files": [
+    "Imperial Telepaths.jpg.gif"
+   ],
+   "id": "de_group_imperial_telepaths",
+   "set": "DELUXE"
+  },
+  "Imperialism": {
+   "files": [
+    "Imperialism.jpg.gif"
+   ],
+   "id": "de_agenda_imperialism",
+   "set": "DELUXE"
+  },
+  "In the Line of Duty": {
+   "files": [
+    "In the Line of Duty.jpg.gif"
+   ],
+   "id": "de_am_in_the_line_of_duty",
+   "set": "DELUXE"
+  },
+  "Inevitable Destiny": {
+   "files": [
+    "Inevitable Destiny.jpg.gif"
+   ],
+   "id": "de_am_inevitable_destiny",
+   "set": "DELUXE"
+  },
+  "Infiltrate and Exploit": {
+   "files": [
+    "Infiltrate and Exploit.jpg.gif"
+   ],
+   "id": "de_agenda_infiltrate_and_exploit",
+   "set": "DELUXE"
+  },
+  "Influential Lords": {
+   "files": [
+    "Influential Lords.jpg.gif"
+   ],
+   "id": "de_group_influential_lords",
+   "set": "DELUXE"
+  },
+  "Internal Strife": {
+   "files": [
+    "Internal Strife.jpg.gif"
+   ],
+   "id": "de_event_internal_strife",
+   "set": "DELUXE"
+  },
+  "Interstellar Corporation": {
+   "files": [
+    "Interstellar Corporation.jpg.gif"
+   ],
+   "id": "de_group_interstellar_corporation",
+   "set": "DELUXE"
+  },
+  "Intolerable Interference": {
+   "files": [
+    "Intolerable Interference.jpg.gif"
+   ],
+   "id": "de_am_intolerable_interference",
+   "set": "DELUXE"
+  },
+  "Intrigues Mature": {
+   "files": [
+    "Intrigues Mature.jpg.gif"
+   ],
+   "id": "de_event_intrigues_mature",
+   "set": "DELUXE"
+  },
+  "Ipsha Battleglobe": {
+   "files": [
+    "Ipsha Battleglobe.jpg.gif"
+   ],
+   "id": "de_fleet_ipsha_battleglobe",
+   "set": "DELUXE"
+  },
+  "Isolated": {
+   "files": [
+    "Isolated.jpg.gif"
+   ],
+   "id": "de_enh_isolated",
+   "set": "DELUXE"
+  },
+  "Isolationism": {
+   "files": [
+    "Isolationism.jpg.gif"
+   ],
+   "id": "de_enh_isolationism",
+   "set": "DELUXE"
+  },
+  "It Will Be His Undoing": {
+   "files": [
+    "It Will Be His Undoing.jpg.gif"
+   ],
+   "id": "de_am_it_will_be_his_undoing",
+   "set": "DELUXE"
+  },
+  "Ja'Doc": {
+   "files": [
+    "Ja Doc.jpg.gif"
+   ],
+   "id": "de_char_jadoc",
+   "set": "DELUXE"
+  },
+  "Jason Ironheart": {
+   "files": [
+    "Jason Ironheart.jpg.gif"
+   ],
+   "id": "char_jason_ironheart",
+   "set": "PREMIERE"
+  },
+  "Jeffrey Sinclair": {
+   "files": [
+    "Jeffrey Sinclair.jpg.gif"
+   ],
+   "id": "de_char_jeffrey_sinclair",
+   "set": "DELUXE"
+  },
+  "Jha'Dur": {
+   "files": [
+    "Jha'Dur.jpg.gif"
+   ],
+   "id": "char_jhadur",
+   "set": "PREMIERE"
+  },
+  "John Sheridan": {
+   "files": [
+    "John Sheridan.jpg.gif"
+   ],
+   "id": "de_char_john_sheridan",
+   "set": "DELUXE"
+  },
+  "Kalain": {
+   "files": [
+    "Kalain.jpg.gif"
+   ],
+   "id": "char_kalain",
+   "set": "PREMIERE"
+  },
+  "Kha'Mak": {
+   "files": [
+    "Kha Mak.jpg.gif"
+   ],
+   "id": "de_char_khamak",
+   "set": "DELUXE"
+  },
+  "Kidnapping": {
+   "files": [
+    "Kidnapping.jpg.gif"
+   ],
+   "id": "conf_kidnapping",
+   "set": "PREMIERE"
+  },
+  "Knowledge of Shadows": {
+   "files": [
+    "Knowledge of Shadows.jpg.gif"
+   ],
+   "id": "de_event_knowledge_of_shadows",
+   "set": "DELUXE"
+  },
+  "Knowledge of the Soul": {
+   "files": [
+    "Knowledge of the Soul.jpg.gif"
+   ],
+   "id": "de_event_knowledge_of_the_soul",
+   "set": "DELUXE"
+  },
+  "Ko'Dath": {
+   "files": [
+    "Ko Dath.jpg.gif"
+   ],
+   "id": "char_kodath",
+   "set": "PREMIERE"
+  },
+  "Kosh Naranek": {
+   "files": [
+    "Kosh Naranek.jpg.gif"
+   ],
+   "id": "de_char_kosh_naranek",
+   "set": "DELUXE"
+  },
+  "Lack of Subtlety": {
+   "files": [
+    "Lack of Subtlety.jpg.gif"
+   ],
+   "id": "de_event_lack_of_subtlety",
+   "set": "DELUXE"
+  },
+  "Lady Ladira": {
+   "files": [
+    "Lady Ladira.jpg.gif"
+   ],
+   "id": "de_char_lady_ladira",
+   "set": "DELUXE"
+  },
+  "Lady Morella": {
+   "files": [
+    "Lady Morella.jpg.gif"
+   ],
+   "id": "char_lady_morella",
+   "set": "PREMIERE"
+  },
+  "Lamentations": {
+   "files": [
+    "Lamentations.jpg.gif"
+   ],
+   "id": "de_am_lamentations",
+   "set": "DELUXE"
+  },
+  "Latent Telepath": {
+   "files": [
+    "Latent Telepath.jpg.gif"
+   ],
+   "id": "de_enh_latent_telepath",
+   "set": "DELUXE"
+  },
+  "Leading the Races": {
+   "files": [
+    "Leading the Races.jpg.gif"
+   ],
+   "id": "de_agenda_leading_the_races",
+   "set": "DELUXE"
+  },
+  "Learning Experience": {
+   "files": [
+    "Learning Experience.jpg.gif"
+   ],
+   "id": "de_am_learning_experience",
+   "set": "DELUXE"
+  },
+  "Left Vulnerable": {
+   "files": [
+    "Left Vulnerable.jpg.gif"
+   ],
+   "id": "de_am_left_vulnerable",
+   "set": "DELUXE"
+  },
+  "Lennier": {
+   "files": [
+    "Lennier.jpg.gif"
+   ],
+   "id": "char_lennier",
+   "set": "PREMIERE"
+  },
+  "Limited Strike": {
+   "files": [
+    "Limited Strike.jpg.gif"
+   ],
+   "id": "conf_limited_strike",
+   "set": "PREMIERE"
+  },
+  "Liquidating Assets": {
+   "files": [
+    "Liquidating Assets.jpg.gif"
+   ],
+   "id": "de_event_liquidating_assets",
+   "set": "DELUXE"
+  },
+  "Lockdown": {
+   "files": [
+    "Lockdown.jpg.gif"
+   ],
+   "id": "de_event_lockdown",
+   "set": "DELUXE"
+  },
+  "Londo Mollari": {
+   "files": [
+    "Londo Mollari.jpg.gif"
+   ],
+   "id": "de_char_londo_mollari",
+   "set": "DELUXE"
+  },
+  "Long Term Investment": {
+   "files": [
+    "Long Term Investment.jpg.gif"
+   ],
+   "id": "de_event_long_term_investment",
+   "set": "DELUXE"
+  },
+  "Lord Kiro": {
+   "files": [
+    "Lord Kiro.jpg.gif"
+   ],
+   "id": "de_char_lord_kiro",
+   "set": "DELUXE"
+  },
+  "Lord Refa": {
+   "files": [
+    "Lord Refa.jpg.gif"
+   ],
+   "id": "de_char_lord_refa",
+   "set": "DELUXE"
+  },
+  "Lord Valo": {
+   "files": [
+    "Lord Valo.jpg.gif"
+   ],
+   "id": "de_char_lord_valo",
+   "set": "DELUXE"
+  },
+  "Loss of Face": {
+   "files": [
+    "Loss of Face.jpg.gif"
+   ],
+   "id": "de_am_loss_of_face",
+   "set": "DELUXE"
+  },
+  "Loss of Support": {
+   "files": [
+    "Loss of Support.jpg.gif"
+   ],
+   "id": "de_conf_loss_of_support",
+   "set": "DELUXE"
+  },
+  "Lovell": {
+   "files": [
+    "Lovell.jpg.gif"
+   ],
+   "id": "de_char_lovell",
+   "set": "DELUXE"
+  },
+  "Luis Santiago": {
+   "files": [
+    "Luis Santiago.jpg.gif"
+   ],
+   "id": "de_char_luis_santiago",
+   "set": "DELUXE"
+  },
+  "Luxuries of Homeworld": {
+   "files": [
+    "Luxuries of Homeworld.jpg.gif"
+   ],
+   "id": "de_enh_luxuries_of_homeworld",
+   "set": "DELUXE"
+  },
+  "Lyndisty": {
+   "files": [
+    "Lyndisty.jpg.gif"
+   ],
+   "id": "de_char_lyndisty",
+   "set": "DELUXE"
+  },
+  "Lyta Alexander": {
+   "files": [
+    "Lyta Alexander.jpg.gif"
+   ],
+   "id": "char_lyta_alexander",
+   "set": "PREMIERE"
+  },
+  "Maintain the Peace": {
+   "files": [
+    "Maintain the Peace.jpg.gif"
+   ],
+   "id": "de_agenda_maintain_the_peace",
+   "set": "DELUXE"
+  },
+  "Marcus Cole": {
+   "files": [
+    "Marcus Cole.jpg.gif"
+   ],
+   "id": "de_char_marcus_cole",
+   "set": "DELUXE"
+  },
+  "Markab Fleet": {
+   "files": [
+    "Markab Fleet.jpg.gif"
+   ],
+   "id": "de_fleet_markab_fleet",
+   "set": "DELUXE"
+  },
+  "Mars Colony": {
+   "files": [
+    "Mars Colony.jpg.gif"
+   ],
+   "id": "loc_mars_colony",
+   "set": "PREMIERE"
+  },
+  "Martyr": {
+   "files": [
+    "Martyr.jpg.gif"
+   ],
+   "id": "de_am_martyr",
+   "set": "DELUXE"
+  },
+  "Mary Ann Cramer": {
+   "files": [
+    "Mary Ann Cramer.jpg.gif"
+   ],
+   "id": "de_char_mary_ann_cramer",
+   "set": "DELUXE"
+  },
+  "Mass Drivers": {
+   "files": [
+    "Mass Drivers.jpg.gif"
+   ],
+   "id": "de_enh_mass_drivers",
+   "set": "DELUXE"
+  },
+  "Meddling with Others": {
+   "files": [
+    "Meddling with Others.jpg.gif"
+   ],
+   "id": "de_agenda_meddling_with_others",
+   "set": "DELUXE"
+  },
+  "Medical Assistance": {
+   "files": [
+    "Medical Assistance.jpg.gif"
+   ],
+   "id": "de_event_medical_assistance",
+   "set": "DELUXE"
+  },
+  "Meditation": {
+   "files": [
+    "Meditation.jpg.gif"
+   ],
+   "id": "de_event_meditation",
+   "set": "DELUXE"
+  },
+  "Merchandising B5": {
+   "files": [
+    "Merchandising B5.jpg.gif"
+   ],
+   "id": "de_event_merchandising_b5",
+   "set": "DELUXE"
+  },
+  "Miagi Hidoshi": {
+   "files": [
+    "Miagi Hidoshi.jpg.gif"
+   ],
+   "id": "char_miagi_hidoshi",
+   "set": "PREMIERE"
+  },
+  "Michael Garibaldi": {
+   "files": [
+    "Michael Garibaldi.jpg.gif"
+   ],
+   "id": "char_michael_garibaldi",
+   "set": "PREMIERE"
+  },
+  "Military Cadre": {
+   "files": [
+    "Military Cadre.jpg.gif"
+   ],
+   "id": "de_group_military_cadre",
+   "set": "DELUXE"
+  },
+  "Military Telepaths": {
+   "files": [
+    "Military Telepaths.jpg.gif"
+   ],
+   "id": "de_group_military_telepaths",
+   "set": "DELUXE"
+  },
+  "Minbar": {
+   "files": [
+    "Minbar.jpg.gif"
+   ],
+   "id": "loc_minbar",
+   "set": "PREMIERE"
+  },
+  "Minbari Agent": {
+   "files": [
+    "Minbari Agent.jpg.gif"
+   ],
+   "id": "de_char_minbari_agent",
+   "set": "DELUXE"
+  },
+  "Minbari Aide": {
+   "files": [
+    "Minbari Aide.jpg.gif"
+   ],
+   "id": "de_char_minbari_aide",
+   "set": "DELUXE"
+  },
+  "Minbari Captain": {
+   "files": [
+    "Minbari Captain.jpg.gif"
+   ],
+   "id": "de_char_minbari_captain",
+   "set": "DELUXE"
+  },
+  "Minbari Protectorate": {
+   "files": [
+    "Minbari Protectorate.jpg.gif"
+   ],
+   "id": "de_loc_minbari_protectorate",
+   "set": "DELUXE"
+  },
+  "Minbari Telepath": {
+   "files": [
+    "Minbari Telepath.jpg.gif"
+   ],
+   "id": "char_minbari_telepath",
+   "set": "PREMIERE"
+  },
+  "Mines": {
+   "files": [
+    "Mines.jpg.gif"
+   ],
+   "id": "de_enh_mines",
+   "set": "DELUXE"
+  },
+  "Minister Malachi": {
+   "files": [
+    "Minister Malachi.jpg.gif"
+   ],
+   "id": "de_char_minister_malachi",
+   "set": "DELUXE"
+  },
+  "Morden": {
+   "files": [
+    "Morden.jpg.gif"
+   ],
+   "id": "de_char_morden",
+   "set": "DELUXE"
+  },
+  "Motivated Leaders": {
+   "files": [
+    "Motivated Leaders.jpg.gif"
+   ],
+   "id": "de_group_motivated_leaders",
+   "set": "DELUXE"
+  },
+  "Mr. Adams": {
+   "files": [
+    "Mr. Adams.jpg.gif"
+   ],
+   "id": "de_char_mr_adams",
+   "set": "DELUXE"
+  },
+  "Muddy the Waters": {
+   "files": [
+    "Muddy the Waters.jpg.gif"
+   ],
+   "id": "de_conf_muddy_the_waters",
+   "set": "DELUXE"
+  },
+  "N'Grath": {
+   "files": [
+    "N'Grath.jpg.gif"
+   ],
+   "id": "char_ngrath",
+   "set": "PREMIERE"
+  },
+  "Na'Far": {
+   "files": [
+    "Na Far.jpg.gif"
+   ],
+   "id": "de_char_nafar",
+   "set": "DELUXE"
+  },
+  "Na'Ka'Leen Feeder": {
+   "files": [
+    "Na'Ka'Leen Feeder.jpg.gif"
+   ],
+   "id": "de_conf_nakalen_feeder",
+   "set": "DELUXE"
+  },
+  "Na'Kal": {
+   "files": [
+    "Na Kal.jpg.gif"
+   ],
+   "id": "char_nakal",
+   "set": "PREMIERE"
+  },
+  "Na'Toth": {
+   "files": [
+    "Na Toth.jpg.gif"
+   ],
+   "id": "de_char_natoth",
+   "set": "DELUXE"
+  },
+  "Narn Agent": {
+   "files": [
+    "Narn Agent.jpg.gif"
+   ],
+   "id": "de_char_narn_agent",
+   "set": "DELUXE"
+  },
+  "Narn Aide": {
+   "files": [
+    "Narn Aide.jpg.gif"
+   ],
+   "id": "de_char_narn_aide",
+   "set": "DELUXE"
+  },
+  "Narn Captain": {
+   "files": [
+    "Narn Captain.jpg.gif"
+   ],
+   "id": "de_char_narn_captain",
+   "set": "DELUXE"
+  },
+  "Narn Homeworld": {
+   "files": [
+    "Narn Homeworld.jpg.gif"
+   ],
+   "id": "loc_narn_homeworld",
+   "set": "PREMIERE"
+  },
+  "Narn Rabble": {
+   "files": [
+    "Narn Rabble.jpg.gif"
+   ],
+   "id": "de_group_narn_rabble",
+   "set": "DELUXE"
+  },
+  "Negotiated Surrender": {
+   "files": [
+    "Negotiated Surrender.jpg.gif"
+   ],
+   "id": "de_am_negotiated_surrender",
+   "set": "DELUXE"
+  },
+  "Neroon": {
+   "files": [
+    "Neroon.jpg.gif"
+   ],
+   "id": "de_char_neroon",
+   "set": "DELUXE"
+  },
+  "Neutrality Treaty": {
+   "files": [
+    "Neutrality Treaty.jpg.gif"
+   ],
+   "id": "de_conf_neutrality_treaty",
+   "set": "DELUXE"
+  },
+  "Never Again": {
+   "files": [
+    "Never Again.jpg.gif"
+   ],
+   "id": "agenda_never_again",
+   "set": "PREMIERE"
+  },
+  "News of Defeat": {
+   "files": [
+    "News of Defeat.jpg.gif"
+   ],
+   "id": "de_am_news_of_defeat",
+   "set": "DELUXE"
+  },
+  "News of Galactic Import": {
+   "files": [
+    "News of Galactic Import.jpg.gif"
+   ],
+   "id": "de_event_news_of_galactic_import",
+   "set": "DELUXE"
+  },
+  "Nightmares": {
+   "files": [
+    "Nightmares.jpg.gif"
+   ],
+   "id": "de_am_nightmares",
+   "set": "DELUXE"
+  },
+  "No Escape": {
+   "files": [
+    "No Escape.jpg.gif"
+   ],
+   "id": "de_am_no_escape",
+   "set": "DELUXE"
+  },
+  "Non-Aligned Support": {
+   "files": [
+    "Non-Aligned Support.jpg.gif"
+   ],
+   "id": "de_conf_non_aligned_support",
+   "set": "DELUXE"
+  },
+  "Not Meant to Be": {
+   "files": [
+    "Not Meant to Be.jpg.gif"
+   ],
+   "id": "de_event_not_meant_to_be",
+   "set": "DELUXE"
+  },
+  "Observers": {
+   "files": [
+    "Observers.jpg.gif"
+   ],
+   "id": "de_group_observers",
+   "set": "DELUXE"
+  },
+  "Older but Wiser": {
+   "files": [
+    "Older But Wiser.jpg.gif"
+   ],
+   "id": "de_am_older_but_wiser",
+   "set": "DELUXE"
+  },
+  "Order Above All": {
+   "files": [
+    "Order Above All.jpg.gif"
+   ],
+   "id": "de_agenda_order_above_all",
+   "set": "DELUXE"
+  },
+  "Overworked": {
+   "files": [
+    "Overworked.jpg.gif"
+   ],
+   "id": "de_enh_overworked",
+   "set": "DELUXE"
+  },
+  "Parliament of Dreams": {
+   "files": [
+    "Parliament of Dreams.jpg.gif"
+   ],
+   "id": "de_conf_parliament_of_dreams",
+   "set": "DELUXE"
+  },
+  "Paying for Sins": {
+   "files": [
+    "Paying for Sins.jpg.gif"
+   ],
+   "id": "de_am_paying_for_sins",
+   "set": "DELUXE"
+  },
+  "Peacekeeping": {
+   "files": [
+    "Peacekeeping.jpg.gif"
+   ],
+   "id": "de_conf_peacekeeping",
+   "set": "DELUXE"
+  },
+  "Personal Involvement": {
+   "files": [
+    "Personal Involvement.jpg.gif"
+   ],
+   "id": "de_am_personal_involvement",
+   "set": "DELUXE"
+  },
+  "Personal Protection": {
+   "files": [
+    "Personal Protection.jpg.gif"
+   ],
+   "id": "de_enh_personal_protection",
+   "set": "DELUXE"
+  },
+  "Personal Sacrifice": {
+   "files": [
+    "Personal Sacrifice.jpg.gif"
+   ],
+   "id": "de_am_personal_sacrifice",
+   "set": "DELUXE"
+  },
+  "Picket Fleet (Centauri)": {
+   "files": [
+    "Picket Fleet (Centauri).jpg.gif"
+   ],
+   "id": "de_fleet_picket_centauri",
+   "set": "DELUXE"
+  },
+  "Picket Fleet (Human)": {
+   "files": [
+    "Picket Fleet (Human).jpg.gif"
+   ],
+   "id": "de_fleet_picket_human",
+   "set": "DELUXE"
+  },
+  "Picket Fleet (Narn)": {
+   "files": [
+    "Picket Fleet (Narn).jpg.gif"
+   ],
+   "id": "de_fleet_picket_narn",
+   "set": "DELUXE"
+  },
+  "Planetary Defenses": {
+   "files": [
+    "Planetary Defenses.jpg.gif"
+   ],
+   "id": "de_enh_planetary_defenses",
+   "set": "DELUXE"
+  },
+  "Political Realignment": {
+   "files": [
+    "Political Realignment.jpg.gif"
+   ],
+   "id": "de_event_political_realignment",
+   "set": "DELUXE"
+  },
+  "Popular Support": {
+   "files": [
+    "Popular Support.jpg.gif"
+   ],
+   "id": "event_popular_support",
+   "set": "PREMIERE"
+  },
+  "Power Politics": {
+   "files": [
+    "Power Politics.jpg.gif"
+   ],
+   "id": "agenda_power_politics",
+   "set": "PREMIERE"
+  },
+  "Power Posturing": {
+   "files": [
+    "Power Posturing.jpg.gif"
+   ],
+   "id": "de_enh_power_posturing",
+   "set": "DELUXE"
+  },
+  "Precision Strike": {
+   "files": [
+    "Precision Strike.jpg.gif"
+   ],
+   "id": "de_conf_precision_strike",
+   "set": "DELUXE"
+  },
+  "Prolonged Talks": {
+   "files": [
+    "Prolonged Talks.jpg.gif"
+   ],
+   "id": "de_event_prolonged_talks",
+   "set": "DELUXE"
+  },
+  "Prophecy": {
+   "files": [
+    "Prophecy.jpg.gif"
+   ],
+   "id": "de_enh_prophecy",
+   "set": "DELUXE"
+  },
+  "Protests": {
+   "files": [
+    "Protests.jpg.gif"
+   ],
+   "id": "de_am_protests",
+   "set": "DELUXE"
+  },
+  "Proxima III": {
+   "files": [
+    "Proxima III.jpg.gif"
+   ],
+   "id": "de_loc_proxima_iii",
+   "set": "DELUXE"
+  },
+  "Psi Attack": {
+   "files": [
+    "Psi Attack.jpg.gif"
+   ],
+   "id": "de_conf_psi_attack",
+   "set": "DELUXE"
+  },
+  "Psi Bodyguard": {
+   "files": [
+    "Psi Bodyguard.jpg.gif"
+   ],
+   "id": "de_enh_psi_bodyguard",
+   "set": "DELUXE"
+  },
+  "Psi Interrogation": {
+   "files": [
+    "Psi Interrogation.jpg.gif"
+   ],
+   "id": "de_conf_psi_interrogation",
+   "set": "DELUXE"
+  },
+  "Public Apology": {
+   "files": [
+    "Public Apology.jpg.gif"
+   ],
+   "id": "de_am_public_apology",
+   "set": "DELUXE"
+  },
+  "Pulling Strings": {
+   "files": [
+    "Pulling Strings.jpg.gif"
+   ],
+   "id": "de_enh_pulling_strings",
+   "set": "DELUXE"
+  },
+  "Purge the Disloyal": {
+   "files": [
+    "Purge the Disloyal.jpg.gif"
+   ],
+   "id": "de_conf_purge_the_disloyal",
+   "set": "DELUXE"
+  },
+  "Quadrant 14": {
+   "files": [
+    "Quadrant 14.jpg.gif"
+   ],
+   "id": "de_loc_quadrant_14",
+   "set": "DELUXE"
+  },
+  "Quadrant 37": {
+   "files": [
+    "Quadrant 37.jpg.gif"
+   ],
+   "id": "de_loc_quadrant_37",
+   "set": "DELUXE"
+  },
+  "Rabble Rousers": {
+   "files": [
+    "Rabble Rousers.jpg.gif"
+   ],
+   "id": "de_group_rabble_rousers",
+   "set": "DELUXE"
+  },
+  "Racial Hatred": {
+   "files": [
+    "Racial Hatred.jpg.gif"
+   ],
+   "id": "de_am_racial_hatred",
+   "set": "DELUXE"
+  },
+  "Ragesh III": {
+   "files": [
+    "Ragesh III.jpg.gif"
+   ],
+   "id": "de_loc_ragesh_iii",
+   "set": "DELUXE"
+  },
+  "Raid Shipping": {
+   "files": [
+    "Raid Shipping.jpg.gif"
+   ],
+   "id": "de_conf_raid_shipping",
+   "set": "DELUXE"
+  },
+  "Rally the People": {
+   "files": [
+    "Rally the People.jpg.gif"
+   ],
+   "id": "de_conf_rally_the_people",
+   "set": "DELUXE"
+  },
+  "Rally to the Cause": {
+   "files": [
+    "Rally to the Cause.jpg.gif"
+   ],
+   "id": "de_event_rally_to_the_cause",
+   "set": "DELUXE"
+  },
+  "Ramming": {
+   "files": [
+    "Ramming.jpg.gif"
+   ],
+   "id": "de_event_ramming",
+   "set": "DELUXE"
+  },
+  "Ranger Strike Team": {
+   "files": [
+    "Ranger Strike Team.jpg.gif"
+   ],
+   "id": "de_group_ranger_strike_team",
+   "set": "DELUXE"
+  },
+  "Rangers Surveillance": {
+   "files": [
+    "Rangers Surveillance.jpg.gif"
+   ],
+   "id": "de_group_rangers_surveillance",
+   "set": "DELUXE"
+  },
+  "Rathenn": {
+   "files": [
+    "Rathenn.jpg.gif"
+   ],
+   "id": "de_char_rathenn",
+   "set": "DELUXE"
+  },
+  "Recalled to Service": {
+   "files": [
+    "Recalled to Service.jpg.gif"
+   ],
+   "id": "de_event_recalled_to_service",
+   "set": "DELUXE"
+  },
+  "Refugees": {
+   "files": [
+    "Refugees.jpg.gif"
+   ],
+   "id": "de_am_refugees",
+   "set": "DELUXE"
+  },
+  "Religious Caste": {
+   "files": [
+    "Religious Caste.jpg.gif"
+   ],
+   "id": "de_group_religious_caste",
+   "set": "DELUXE"
+  },
+  "Renowned Victory": {
+   "files": [
+    "Renowned Victory.jpg.gif"
+   ],
+   "id": "de_am_renowned_victory",
+   "set": "DELUXE"
+  },
+  "Repairing the Past": {
+   "files": [
+    "Repairing the Past.jpg.gif"
+   ],
+   "id": "de_am_repairing_the_past",
+   "set": "DELUXE"
+  },
+  "Rescue": {
+   "files": [
+    "Rescue.jpg.gif"
+   ],
+   "id": "de_am_rescue",
+   "set": "DELUXE"
+  },
+  "Retribution": {
+   "files": [
+    "Retribution.jpg.gif"
+   ],
+   "id": "de_am_retribution",
+   "set": "DELUXE"
+  },
+  "Revenge": {
+   "files": [
+    "Revenge.jpg.gif"
+   ],
+   "id": "agenda_revenge",
+   "set": "PREMIERE"
+  },
+  "Reverse Advances": {
+   "files": [
+    "Reverse Advances.jpg.gif"
+   ],
+   "id": "de_am_reverse_advances",
+   "set": "DELUXE"
+  },
+  "Rise of the Republic": {
+   "files": [
+    "Rise of the Republic.jpg.gif"
+   ],
+   "id": "agenda_rise_of_the_republic",
+   "set": "PREMIERE"
+  },
+  "Rise to Power": {
+   "files": [
+    "Rise to Power.jpg.gif"
+   ],
+   "id": "de_am_rise_to_power",
+   "set": "DELUXE"
+  },
+  "Rivalry": {
+   "files": [
+    "Rivalry.jpg.gif"
+   ],
+   "id": "de_am_rivalry",
+   "set": "DELUXE"
+  },
+  "Rogue Soul Hunter": {
+   "files": [
+    "Rogue Soul Hunter.jpg.gif"
+   ],
+   "id": "de_char_rogue_soul_hunter",
+   "set": "DELUXE"
+  },
+  "Saber Rattling": {
+   "files": [
+    "Saber Rattling.jpg.gif"
+   ],
+   "id": "de_conf_saber_rattling",
+   "set": "DELUXE"
+  },
+  "Sabotage": {
+   "files": [
+    "Sabotage.jpg.gif"
+   ],
+   "id": "de_conf_sabotage",
+   "set": "DELUXE"
+  },
+  "Salvage Yard": {
+   "files": [
+    "Salvage Yard.jpg.gif"
+   ],
+   "id": "de_enh_salvage_yard",
+   "set": "DELUXE"
+  },
+  "Sanctions": {
+   "files": [
+    "Sanctions.jpg.gif"
+   ],
+   "id": "de_event_sanctions",
+   "set": "DELUXE"
+  },
+  "Sandra Hiroshi": {
+   "files": [
+    "Sandra Hiroshi.jpg.gif"
+   ],
+   "id": "de_char_sandra_hiroshi",
+   "set": "DELUXE"
+  },
+  "Sarah": {
+   "files": [
+    "Sarah.jpg.gif"
+   ],
+   "id": "de_char_sarah",
+   "set": "DELUXE"
+  },
+  "Second Battle Fleet (Centauri)": {
+   "files": [
+    "Second Battle Fleet (Centauri).jpg.gif"
+   ],
+   "id": "de_fleet_second_battle_centauri",
+   "set": "DELUXE"
+  },
+  "Second Battle Fleet (Human)": {
+   "files": [
+    "Second Battle Fleet (Human).jpg.gif"
+   ],
+   "id": "de_fleet_second_battle_human",
+   "set": "DELUXE"
+  },
+  "Second Battle Fleet (Narn)": {
+   "files": [
+    "Second Battle Fleet (Narn).jpg.gif"
+   ],
+   "id": "de_fleet_second_battle_narn",
+   "set": "DELUXE"
+  },
+  "Secondary Control": {
+   "files": [
+    "Secondary Control.jpg.gif"
+   ],
+   "id": "de_enh_secondary_control",
+   "set": "DELUXE"
+  },
+  "Secondary Experience": {
+   "files": [
+    "Secondary Experience.jpg.gif"
+   ],
+   "id": "de_am_secondary_experience",
+   "set": "DELUXE"
+  },
+  "Secret Police": {
+   "files": [
+    "Secret Police.jpg.gif"
+   ],
+   "id": "de_group_secret_police",
+   "set": "DELUXE"
+  },
+  "Secret Strike": {
+   "files": [
+    "Secret Strike.jpg.gif"
+   ],
+   "id": "de_event_secret_strike",
+   "set": "DELUXE"
+  },
+  "Secret Vorlon Aid": {
+   "files": [
+    "Secret Vorlon Aid.jpg.gif"
+   ],
+   "id": "de_event_secret_vorlon_aid",
+   "set": "DELUXE"
+  },
+  "Security Training": {
+   "files": [
+    "Security Training.jpg.gif"
+   ],
+   "id": "de_enh_security_training",
+   "set": "DELUXE"
+  },
+  "Seduction": {
+   "files": [
+    "Seduction.jpg.gif"
+   ],
+   "id": "de_event_seduction",
+   "set": "DELUXE"
+  },
+  "Seizing Advantage": {
+   "files": [
+    "Seizing Advantage.jpg.gif"
+   ],
+   "id": "de_agenda_seizing_advantage",
+   "set": "DELUXE"
+  },
+  "Self Doubt": {
+   "files": [
+    "Self Doubt.jpg.gif"
+   ],
+   "id": "de_event_self_doubt",
+   "set": "DELUXE"
+  },
+  "Senator Voudreau": {
+   "files": [
+    "Senator Voudreau.jpg.gif"
+   ],
+   "id": "de_char_senator_voudreau",
+   "set": "DELUXE"
+  },
+  "Servants of Order": {
+   "files": [
+    "Servants of Order.jpg.gif"
+   ],
+   "id": "de_agenda_servants_of_order",
+   "set": "DELUXE"
+  },
+  "Shadow Assault": {
+   "files": [
+    "Shadow Assault.jpg.gif"
+   ],
+   "id": "de_conf_shadow_assault",
+   "set": "DELUXE"
+  },
+  "Shadow Strike": {
+   "files": [
+    "Shadow Strike.jpg.gif"
+   ],
+   "id": "de_event_shadow_strike",
+   "set": "DELUXE"
+  },
+  "Shakat": {
+   "files": [
+    "Shakat.jpg.gif"
+   ],
+   "id": "de_char_shakat",
+   "set": "DELUXE"
+  },
+  "Shal Mayan": {
+   "files": [
+    "Shal Mayan.jpg.gif"
+   ],
+   "id": "de_char_shal_mayan",
+   "set": "DELUXE"
+  },
+  "Short Term Goals": {
+   "files": [
+    "Short Term Goals.jpg.gif"
+   ],
+   "id": "de_event_short_term_goals",
+   "set": "DELUXE"
+  },
+  "Short Term Investment": {
+   "files": [
+    "Short Term Investment.jpg.gif"
+   ],
+   "id": "de_event_short_term_investment",
+   "set": "DELUXE"
+  },
+  "Shunned": {
+   "files": [
+    "Shunned.jpg.gif"
+   ],
+   "id": "de_enh_shunned",
+   "set": "DELUXE"
+  },
+  "Skeletons in the Closet": {
+   "files": [
+    "Skeletons in the Closet.jpg.gif"
+   ],
+   "id": "de_am_skeletons_in_the_closet",
+   "set": "DELUXE"
+  },
+  "Sleeper Personality": {
+   "files": [
+    "Sleeper Personality.jpg.gif"
+   ],
+   "id": "de_conf_sleeper_personality",
+   "set": "DELUXE"
+  },
+  "Sleeping Z'ha'dum": {
+   "files": [
+    "Sleeping Z'ha'dum.jpg.gif"
+   ],
+   "id": "de_loc_sleeping_zhadum",
+   "set": "DELUXE"
+  },
+  "Sneak Attack": {
+   "files": [
+    "Sneak Attack.jpg.gif"
+   ],
+   "id": "de_event_sneak_attack",
+   "set": "DELUXE"
+  },
+  "Sortie": {
+   "files": [
+    "Sortie.jpg.gif"
+   ],
+   "id": "de_event_sortie",
+   "set": "DELUXE"
+  },
+  "Soul Hunter": {
+   "files": [
+    "Soul Hunter.jpg.gif"
+   ],
+   "id": "de_char_soul_hunter",
+   "set": "DELUXE"
+  },
+  "Special Ops": {
+   "files": [
+    "Special Ops.jpg.gif"
+   ],
+   "id": "de_event_special_ops",
+   "set": "DELUXE"
+  },
+  "Spin Doctors": {
+   "files": [
+    "Spin Doctors.jpg.gif"
+   ],
+   "id": "de_group_spin_doctors",
+   "set": "DELUXE"
+  },
+  "Sponsor Rebels": {
+   "files": [
+    "Sponsor Rebels.jpg.gif"
+   ],
+   "id": "de_conf_sponsor_rebels",
+   "set": "DELUXE"
+  },
+  "Stealth Technology": {
+   "files": [
+    "Stealth Technology.jpg.gif"
+   ],
+   "id": "de_enh_stealth_technology",
+   "set": "DELUXE"
+  },
+  "Stephen Franklin": {
+   "files": [
+    "Stephen Franklin.jpg.gif"
+   ],
+   "id": "char_stephen_franklin",
+   "set": "PREMIERE"
+  },
+  "Stop Hostilities": {
+   "files": [
+    "Stop Hostilities.jpg.gif"
+   ],
+   "id": "de_conf_stop_hostilities",
+   "set": "DELUXE"
+  },
+  "Strafing Run": {
+   "files": [
+    "Strafing Run.jpg.gif"
+   ],
+   "id": "de_event_strafing_run",
+   "set": "DELUXE"
+  },
+  "Strategic Reassignment": {
+   "files": [
+    "Strategic Reassignment.jpg.gif"
+   ],
+   "id": "de_event_strategic_reassignment",
+   "set": "DELUXE"
+  },
+  "Strength in Adversity": {
+   "files": [
+    "Strength in Adversity.jpg.gif"
+   ],
+   "id": "de_agenda_strength_in_adversity",
+   "set": "DELUXE"
+  },
+  "Subliminal Influence": {
+   "files": [
+    "Subliminal Influence.jpg.gif"
+   ],
+   "id": "de_event_subliminal_influence",
+   "set": "DELUXE"
+  },
+  "Successful Manipulation": {
+   "files": [
+    "Successful Manipulation.jpg.gif"
+   ],
+   "id": "de_am_successful_manipulation",
+   "set": "DELUXE"
+  },
+  "Supplement Security": {
+   "files": [
+    "Supplement Security.jpg.gif"
+   ],
+   "id": "conf_supplement_security",
+   "set": "PREMIERE"
+  },
+  "Support Babylon 5": {
+   "files": [
+    "Support Babylon 5.jpg.gif"
+   ],
+   "id": "de_event_support_babylon5",
+   "set": "DELUXE"
+  },
+  "Support of the Mighty": {
+   "files": [
+    "Support of the Mighty.jpg.gif"
+   ],
+   "id": "de_agenda_support_of_the_mighty",
+   "set": "DELUXE"
+  },
+  "Susan Ivanova": {
+   "files": [
+    "Susan Ivanova.jpg.gif"
+   ],
+   "id": "char_susan_ivanova",
+   "set": "PREMIERE"
+  },
+  "Ta'Lon": {
+   "files": [
+    "Ta Lon.jpg.gif"
+   ],
+   "id": "char_talon",
+   "set": "PREMIERE"
+  },
+  "Talia Winters": {
+   "files": [
+    "Talia Winters.jpg.gif"
+   ],
+   "id": "char_talia_winters",
+   "set": "PREMIERE"
+  },
+  "Technological Espionage": {
+   "files": [
+    "Technological Espionage.jpg.gif"
+   ],
+   "id": "de_conf_technological_espionage",
+   "set": "DELUXE"
+  },
+  "Telepathic Scan": {
+   "files": [
+    "Telepathic Scan.jpg.gif"
+   ],
+   "id": "de_conf_telepathic_scan",
+   "set": "DELUXE"
+  },
+  "Temptations": {
+   "files": [
+    "Temptations.jpg.gif"
+   ],
+   "id": "de_conf_temptations",
+   "set": "DELUXE"
+  },
+  "Terrorist Bombings": {
+   "files": [
+    "Terrorist Bombings.jpg.gif"
+   ],
+   "id": "de_conf_terrorist_bombings",
+   "set": "DELUXE"
+  },
+  "Test Their Mettle": {
+   "files": [
+    "Test Their Mettle.jpg.gif"
+   ],
+   "id": "de_conf_test_their_mettle",
+   "set": "DELUXE"
+  },
+  "The Eye": {
+   "files": [
+    "The Eye.jpg.gif"
+   ],
+   "id": "enh_the_eye",
+   "set": "PREMIERE"
+  },
+  "The Great Machine": {
+   "files": [
+    "The Great Machine.jpg.gif"
+   ],
+   "id": "conf_the_great_machine",
+   "set": "PREMIERE"
+  },
+  "The Hope of Peace": {
+   "files": [
+    "The Hope of Peace.jpg.gif"
+   ],
+   "id": "de_agenda_the_hope_of_peace",
+   "set": "DELUXE"
+  },
+  "The Opposition Rises": {
+   "files": [
+    "The Opposition Rises.jpg.gif"
+   ],
+   "id": "de_event_the_opposition_rises",
+   "set": "DELUXE"
+  },
+  "The Price of Power": {
+   "files": [
+    "The Price of Power.jpg.gif"
+   ],
+   "id": "de_event_the_price_of_power",
+   "set": "DELUXE"
+  },
+  "Thenta Makur": {
+   "files": [
+    "Thenta Makur.jpg.gif"
+   ],
+   "id": "de_group_thenta_makur",
+   "set": "DELUXE"
+  },
+  "Third Battle Fleet (Centauri)": {
+   "files": [
+    "Third Battle Fleet (Centauri).jpg.gif"
+   ],
+   "id": "de_fleet_third_battle_centauri",
+   "set": "DELUXE"
+  },
+  "Total War": {
+   "files": [
+    "Total War.jpg.gif"
+   ],
+   "id": "de_agenda_total_war",
+   "set": "DELUXE"
+  },
+  "Trade Pact": {
+   "files": [
+    "Trade Pact.jpg.gif"
+   ],
+   "id": "de_conf_trade_pact",
+   "set": "DELUXE"
+  },
+  "Trade Windfall": {
+   "files": [
+    "Trade Windfall.jpg.gif"
+   ],
+   "id": "de_event_trade_windfall",
+   "set": "DELUXE"
+  },
+  "Transfer Point Io": {
+   "files": [
+    "Transfer Point Io.jpg.gif"
+   ],
+   "id": "de_loc_transfer_point_io",
+   "set": "DELUXE"
+  },
+  "Triluminary": {
+   "files": [
+    "Triluminary.jpg.gif"
+   ],
+   "id": "de_enh_triluminary",
+   "set": "DELUXE"
+  },
+  "Tu'Pari": {
+   "files": [
+    "Tu Pari.jpg.gif"
+   ],
+   "id": "de_char_tupari",
+   "set": "DELUXE"
+  },
+  "Under Pressure": {
+   "files": [
+    "Under Pressure.jpg.gif"
+   ],
+   "id": "de_am_under_pressure",
+   "set": "DELUXE"
+  },
+  "Underworld Connections": {
+   "files": [
+    "Underworld Connections.jpg.gif"
+   ],
+   "id": "event_underworld_connections",
+   "set": "PREMIERE"
+  },
+  "United Front": {
+   "files": [
+    "United Front.jpg.gif"
+   ],
+   "id": "de_am_united_front",
+   "set": "DELUXE"
+  },
+  "Universe Today Feature": {
+   "files": [
+    "Universe Today Feature.jpg.gif"
+   ],
+   "id": "de_event_universe_today_feature",
+   "set": "DELUXE"
+  },
+  "Upgraded Defenses": {
+   "files": [
+    "Upgraded Defenses.jpg.gif"
+   ],
+   "id": "enh_upgraded_defenses",
+   "set": "PREMIERE"
+  },
+  "Urza Jaddo": {
+   "files": [
+    "Urza Jaddo.jpg.gif"
+   ],
+   "id": "char_urza_jaddo",
+   "set": "PREMIERE"
+  },
+  "Utility Fleet (Centauri)": {
+   "files": [
+    "Utility Fleet (Centauri).jpg.gif"
+   ],
+   "id": "de_fleet_utility_centauri",
+   "set": "DELUXE"
+  },
+  "Utility Fleet (Human)": {
+   "files": [
+    "Utility Fleet (Human).jpg.gif"
+   ],
+   "id": "de_fleet_utility_human",
+   "set": "DELUXE"
+  },
+  "Utility Fleet (Narn)": {
+   "files": [
+    "Utility Fleet (Narn).jpg.gif"
+   ],
+   "id": "de_fleet_utility_narn",
+   "set": "DELUXE"
+  },
+  "Vendetta": {
+   "files": [
+    "Vendetta.jpg.gif"
+   ],
+   "id": "de_am_vendetta",
+   "set": "DELUXE"
+  },
+  "Victory in My Grasp": {
+   "files": [
+    "Victory In My Grasp.jpg.gif"
+   ],
+   "id": "de_event_victory_in_my_grasp",
+   "set": "DELUXE"
+  },
+  "Vir Cotto": {
+   "files": [
+    "Vir Cotto.jpg.gif"
+   ],
+   "id": "char_vir_cotto",
+   "set": "PREMIERE"
+  },
+  "Vorlon Enhancement": {
+   "files": [
+    "Vorlon Enhancement.jpg.gif"
+   ],
+   "id": "de_enh_vorlon_enhancement",
+   "set": "DELUXE"
+  },
+  "Vorlon Rescue": {
+   "files": [
+    "Vorlon Rescue.jpg.gif"
+   ],
+   "id": "de_event_vorlon_rescue",
+   "set": "DELUXE"
+  },
+  "Vree Saucers": {
+   "files": [
+    "Vree Saucers.jpg.gif"
+   ],
+   "id": "de_fleet_vree_saucers",
+   "set": "DELUXE"
+  },
+  "War College": {
+   "files": [
+    "War College.jpg.gif"
+   ],
+   "id": "de_group_war_college",
+   "set": "DELUXE"
+  },
+  "War Hero": {
+   "files": [
+    "War Hero.jpg.gif"
+   ],
+   "id": "de_am_war_hero",
+   "set": "DELUXE"
+  },
+  "War by Popular Decree": {
+   "files": [
+    "War by Popular Decree.jpg.gif"
+   ],
+   "id": "de_event_war_by_popular_decree",
+   "set": "DELUXE"
+  },
+  "Warleader Shakiri": {
+   "files": [
+    "Warleader Shakiri.jpg.gif"
+   ],
+   "id": "de_char_warleader_shakiri",
+   "set": "DELUXE"
+  },
+  "Warleader's Fleet": {
+   "files": [
+    "Warleaders Fleet.jpg.gif"
+   ],
+   "id": "de_fleet_warleaders_fleet",
+   "set": "DELUXE"
+  },
+  "Warren Keffer": {
+   "files": [
+    "Warren Keffer.jpg.gif"
+   ],
+   "id": "de_char_warren_keffer",
+   "set": "DELUXE"
+  },
+  "Warrior Caste": {
+   "files": [
+    "Warrior Caste.jpg.gif"
+   ],
+   "id": "de_group_warrior_caste",
+   "set": "DELUXE"
+  },
+  "Wear and Tear": {
+   "files": [
+    "Wear and Tear.jpg.gif"
+   ],
+   "id": "de_am_wear_and_tear",
+   "set": "DELUXE"
+  },
+  "What Do You Want?": {
+   "files": [
+    "What Do You Want.jpg.gif"
+   ],
+   "id": "de_event_what_do_you_want",
+   "set": "DELUXE"
+  },
+  "Who Are You?": {
+   "files": [
+    "Who Are You.jpg.gif"
+   ],
+   "id": "de_event_who_are_you",
+   "set": "DELUXE"
+  },
+  "Wind Swords": {
+   "files": [
+    "Wind Swords.jpg.gif"
+   ],
+   "id": "de_group_wind_swords",
+   "set": "DELUXE"
+  },
+  "Witness Protection": {
+   "files": [
+    "Witness Protection.jpg.gif"
+   ],
+   "id": "de_conf_witness_protection",
+   "set": "DELUXE"
+  },
+  "Working Relationship": {
+   "files": [
+    "Working Relationship.jpg.gif"
+   ],
+   "id": "de_enh_working_relationship",
+   "set": "DELUXE"
+  },
+  "Wounded": {
+   "files": [
+    "Wounded.jpg.gif"
+   ],
+   "id": "de_am_wounded",
+   "set": "DELUXE"
+  },
+  "You Are Not Ready": {
+   "files": [
+    "You Are Not Ready.jpg.gif"
+   ],
+   "id": "de_event_you_are_not_ready",
+   "set": "DELUXE"
+  },
+  "You Know My Reputation": {
+   "files": [
+    "You Know My Reputation.jpg.gif"
+   ],
+   "id": "de_event_you_know_my_reputation",
+   "set": "DELUXE"
+  },
+  "Zack Allan": {
+   "files": [
+    "Zack Allan.jpg.gif"
+   ],
+   "id": "de_char_zack_allen",
+   "set": "DELUXE"
+  }
+ },
+ "matched_titles": 446,
+ "nonimage_skipped": [
+  "README.md",
+  "Thumbs.db"
+ ],
+ "pool_titles_with_no_scan": [],
+ "rejected_lookalike": {
+  "Judgement.jpg.gif": "face reads Judgement / Character Contingency, a different expansion card, NOT Judgment by Success; left uncopied"
+ },
+ "unmatched_files": [
+  "13.jpg.gif",
+  "14.jpg.gif",
+  "15.jpg.gif",
+  "16.jpg.gif",
+  "50 Credits a Week.jpg.gif",
+  "A Better Place.jpg.gif",
+  "A Brighter FutureS.jpg.gif",
+  "A Call For Help.jpg.gif",
+  "A Crusade For A Cure.jpg.gif",
+  "A Crusade For Profit.jpg.gif",
+  "A Crusade For a Legacy.jpg.gif",
+  "A Crusade for Enlightenment.jpg",
+  "A Crusade for Knowledge.jpg.gif",
+  "A Dying People.jpg.gif",
+  "A Final Statement.jpg.gif",
+  "A Good Lead.jpg.gif",
+  "A Meeting of Minds.jpg.gif",
+  "A Moment of Beauty.jpg.gif",
+  "A New Era.jpg.gif",
+  "A Room Full of Narns.jpg",
+  "A Shot in the Dark.jpg.gif",
+  "A Show of Guile.jpg.gif",
+  "A Time for Heroes.jpg.gif",
+  "A Time for Peace.jpg.gif",
+  "A Very Agreeable Thump.jpg",
+  "A Warning.jpg.gif",
+  "A World Gone Mad.jpg.gif",
+  "Abandoned.jpg.gif",
+  "Abbut.jpg.gif",
+  "Above It All.jpg.gif",
+  "Acclaim.jpg.gif",
+  "Accommodations.jpg.gif",
+  "Acknowledge Legitimacy.jpg.gif",
+  "Acolyte.jpg.gif",
+  "Act of War.jpg.gif",
+  "Additional Force.jpg.gif",
+  "Adira Mollari.jpg",
+  "Administrator Drake.jpg.gif",
+  "Advance Fleet.jpg.gif",
+  "Advanced Training.jpg.gif",
+  "Affirmation of Support.jpg.gif",
+  "Afraid of the Dark.jpg.gif",
+  "Against the First Ones.jpg.gif",
+  "Agamemnon.jpg.gif",
+  "Age of Conquest.jpg.gif",
+  "Age of Exploration.jpg.gif",
+  "Age of Prosperity.jpg",
+  "Agents Durkani and Lyssa.jpg.gif",
+  "Aggresive Action.jpg.gif",
+  "Agitation.jpg.gif",
+  "Aiding the Shadows.jpg.gif",
+  "Aiding the Vorlons.jpg.gif",
+  "Ain't I a Stinker.jpg.gif",
+  "Airlock Mishap.jpg.gif",
+  "Aldus.jpg",
+  "Alexander.jpg.gif",
+  "Alfred Bester.jpg.gif",
+  "Alien Scum.jpg.gif",
+  "Alien Takeover.jpg.gif",
+  "Alisa Beldon.jpg.gif",
+  "All Alone in the Night.jpg.gif",
+  "All Out War.jpg",
+  "All in the Cards.jpg.gif",
+  "All or Nothing.jpg.gif",
+  "Alliance Fleet.jpg.gif",
+  "Alliance Superfleet.jpg.gif",
+  "Altruism.jpg.gif",
+  "Alwyn.jpg.gif",
+  "Alyt Neroon.jpg.gif",
+  "Alyt.jpg.gif",
+  "Amanda Carter.jpg",
+  "Ambassador Cotto (rep).jpg",
+  "Ambassador Cotto.jpg",
+  "Ambassador Kosh.jpg.gif",
+  "Ambassador Ta'lon.jpg",
+  "Ambitious Captain.jpg.gif",
+  "Anarchy.jpg.gif",
+  "Ancient Data Crystal.jpg.gif",
+  "Ancient Enemies.jpg.gif",
+  "Ancient Rivals.jpg.gif",
+  "And So It Begins.jpg.gif",
+  "Andre Sabbat.jpg.gif",
+  "Angel.jpg",
+  "Anger.jpg",
+  "Animus.jpg",
+  "Anla'shok na Ivanova.jpg",
+  "Anla'shok na Lenonn.jpg",
+  "AnlaShok.jpg.gif",
+  "Anna Sheridan.jpg.gif",
+  "Annex Neutral World.jpg.gif",
+  "Anti-Intruder Device.jpg",
+  "Anti-Psi Training.jpg.gif",
+  "Anti-Telepath Virus.jpg.gif",
+  "Apocalypse Box.jpg.gif",
+  "Application of Terror.jpg",
+  "Apriori Flentak & Nix.jpg.gif",
+  "Archaeologist D. Taylor.jpg.gif",
+  "Aria Tensus.jpg",
+  "Arms Cache.jpg",
+  "Arms Race.jpg.gif",
+  "Arrest Dissidents.jpg.gif",
+  "Arsenal of Yesterdays.jpg.gif",
+  "Ashan (V).jpg",
+  "Asimov Laws.jpg.gif",
+  "Assissination Device.jpg.gif",
+  "Associates Revealed.jpg.gif",
+  "Assume Authority.jpg.gif",
+  "At Any Cost.jpg.gif",
+  "At Peak Performance.jpg.gif",
+  "At a Standstill.jpg.gif",
+  "Atmospheric Fighters.jpg.gif",
+  "Attache Cotto.jpg.gif",
+  "Attache.jpg.gif",
+  "Attack Babylon 5.jpg.gif",
+  "Attack Formation.jpg.gif",
+  "Attack Outpost.jpg.gif",
+  "Attack the Shadows.jpg.gif",
+  "Attack the Underlings.jpg.gif",
+  "Attack.jpg.gif",
+  "Automated Fleet.jpg.gif",
+  "BI.jpg.gif",
+  "Babylon 5 Fighters.jpg.gif",
+  "Babylon 5 Merchant.jpg",
+  "Babylon 5 War Council.jpg.gif",
+  "Backlash.jpg.gif",
+  "Balus.jpg.gif",
+  "Bankruptcy Restructuring.jpg",
+  "Barren Worlds.jpg.gif",
+  "Battle Hardened.jpg.gif",
+  "Battle Momentum.jpg.gif",
+  "Be Seeing You.jpg.gif",
+  "Behind the Curve.jpg.gif",
+  "Benzer.jpg",
+  "Bester (Ambassador).jpg.gif",
+  "Bester (V).jpg",
+  "Bester's Black Omega.jpg.gif",
+  "Between You & the Abyss.jpg.gif",
+  "Beyond the Rim.jpg.gif",
+  "Biased Reporting.jpg.gif",
+  "Big Guns.jpg.gif",
+  "Bio-Adaptive Shielding.jpg.gif",
+  "Black Omega Auxiliary.jpg.gif",
+  "Black Omega Fighters.jpg.gif",
+  "Black Omega Pilot.jpg.gif",
+  "Black Omega Squadron.jpg.gif",
+  "Black Ops Consultant.jpg.gif",
+  "Black Rose Killer.jpg.gif",
+  "Blackmail.jpg.gif",
+  "Blaylock.jpg.gif",
+  "Blessings.jpg.gif",
+  "Blind the Watchers.jpg.gif",
+  "Block Progress.jpg.gif",
+  "Block.jpg.gif",
+  "Bloodhound.jpg.gif",
+  "Bloodied but Unbowed.jpg.gif",
+  "Blow the Jump Gate.jpg.gif",
+  "Blue Narn.jpg.gif",
+  "Bluff.jpg.gif",
+  "Boardroom Coup.jpg",
+  "Body Armor.jpg.gif",
+  "Bogged Down.jpg.gif",
+  "Bolstered Defenses.jpg.gif",
+  "Bombing Run.jpg.gif",
+  "Border World.jpg.gif",
+  "Brakir.jpg.gif",
+  "Brakiri Cruisers.jpg.gif",
+  "Brakiri Merchant.jpg.gif",
+  "Brakiri Priest.jpg.gif",
+  "Brakiri War Fleet.jpg.gif",
+  "Branmer.jpg",
+  "Breaching Pod.jpg.gif",
+  "Bread and Circuses.jpg.gif",
+  "Breaking News.jpg.gif",
+  "Brevari!.jpg.gif",
+  "Broken Allegiance.jpg.gif",
+  "Brother Theo.jpg.gif",
+  "Bruder.jpg.gif",
+  "Build Bridges.jpg.gif",
+  "Build Infrastructure.jpg.gif",
+  "Bureaucracy.jpg.gif",
+  "Bureaucratic Controls.jpg.gif",
+  "Bureaucratic Infighting.jpg.gif",
+  "Burnt From Both Ends.jpg.gif",
+  "Burnt Out.jpg.gif",
+  "Business Deal.jpg",
+  "Business Plan.jpg",
+  "But We're Your Allies.jpg.gif",
+  "Buy Favor.jpg.gif",
+  "Buy New Resources.jpg.gif",
+  "Buy What They Want.jpg",
+  "By Any Means Necessary.jpg",
+  "Byron.jpg.gif",
+  "C1O.jpg.gif",
+  "C1S.jpg.gif",
+  "C2O.jpg.gif",
+  "C2S.jpg.gif",
+  "C3O.jpg.gif",
+  "C3S.jpg.gif",
+  "CEO Lise Hampton Edgars.jpg",
+  "CEO William Edgars.jpg",
+  "Calenn.jpg.gif",
+  "Caliban.jpg.gif",
+  "Calieer.jpg",
+  "Call In a Marker.jpg.gif",
+  "Call Their Bluff.jpg.gif",
+  "Calling the Shots.jpg.gif",
+  "Cannot Run Out of Time.jpg.gif",
+  "Captain Daniels.jpg.gif",
+  "Captain Ivanova.jpg.gif",
+  "Captain Jack.jpg",
+  "Captain Lochley (B5).jpg.gif",
+  "Captain Lochley.jpg.gif",
+  "Captain Montoya.jpg",
+  "Captain Pierce.jpg.gif",
+  "Captain Sheridan (card).jpg.gif",
+  "Captain Sheridan.jpg.gif",
+  "Captain Sinclair.jpg.gif",
+  "Captured Fleet.jpg.gif",
+  "Card Shark.jpg",
+  "CardBack.jpg.gif",
+  "Carn Mollari (V).jpg",
+  "Carrier Group.jpg.gif",
+  "Carve Up the Galaxy.jpg.gif",
+  "Cashflow Crises.jpg",
+  "Casualties.jpg.gif",
+  "Catastophic Damage.jpg.gif",
+  "Cease Fire.jpg.gif",
+  "Centauri Beta I.jpg.gif",
+  "Centauri Courier.jpg.gif",
+  "Centauri Dealer.jpg",
+  "Centauri Fanatic.jpg.gif",
+  "Centauri Festival.jpg.gif",
+  "Cestus.jpg",
+  "Chain of Command.jpg.gif",
+  "Challenge Psi Corps.jpg.gif",
+  "Change of Heart.jpg.gif",
+  "Changed of Direction.jpg.gif",
+  "Changeling Net.jpg.gif",
+  "Chaos Theory.jpg",
+  "Charge.jpg",
+  "Charting the Cource.jpg.gif",
+  "Cheat Fate.jpg.gif",
+  "Chen Hikaru.jpg.gif",
+  "Chief Allan.jpg.gif",
+  "Chosen of God.jpg.gif",
+  "Citizen G Kar.jpg.gif",
+  "Civil Servants.jpg.gif",
+  "Claim their Place.jpg",
+  "Cloak and Dagger.jpg.gif",
+  "Cloud of Doom.jpg.gif",
+  "Cocksure.jpg.gif",
+  "Coincidence.jpg.gif",
+  "Collaboration.jpg.gif",
+  "Collar Gun.jpg.gif",
+  "Colonial Fleet.jpg.gif",
+  "Combined Fleet.jpg.gif",
+  "Comdemn Deportations.jpg.gif",
+  "Come Join US.jpg.gif",
+  "Command Ship.jpg.gif",
+  "Commander Ivanova.jpg.gif",
+  "Communications Blackout.jpg",
+  "Compatiable Goals.jpg.gif",
+  "Compensation.jpg.gif",
+  "Concealed Fighting Pike.jpg",
+  "Confrontation.jpg.gif",
+  "Conquered Holding.jpg.gif",
+  "Conquest Fleet.jpg.gif",
+  "Conscription.jpg.gif",
+  "Conspiracy!.jpg.gif",
+  "Conspiracy.jpg.gif",
+  "Consultants.jpg.gif",
+  "Consumed by Shadows.jpg.gif",
+  "Contact First Ones.jpg.gif",
+  "Contest the Presidency.jpg.gif",
+  "Continued Progress.jpg.gif",
+  "Contract.jpg",
+  "Convene the Grey Council.jpg.gif",
+  "Convincing Words.jpg.gif",
+  "Cooperative Measure.jpg.gif",
+  "Coplann.jpg.gif",
+  "Corporate Connections.jpg.gif",
+  "Corporate Espionage.jpg",
+  "Corporate HQ.jpg",
+  "Corporations Go On.jpg.gif",
+  "Corrupted Destiny.jpg.gif",
+  "Cosmopolis.jpg.gif",
+  "Councilor La'shan.jpg.gif",
+  "Councilor Na Far.jpg.gif",
+  "Coup de Grace.jpg.gif",
+  "Courtly Intrigue.jpg.gif",
+  "Covering Weaknesses.jpg.gif",
+  "Crawling Chaos.jpg.gif",
+  "Create Common Ground.jpg",
+  "Create Tachyon Rift.jpg",
+  "Create The Future.jpg",
+  "Credit Chip.jpg.gif",
+  "Crisis Talks.jpg",
+  "Cult of Personality.jpg.gif",
+  "Cultural Connections.jpg.gif",
+  "Cyborg Reconstruction.jpg.gif",
+  "Cycle of Violence.jpg",
+  "Cynthia & Rose.jpg.gif",
+  "DNA Programming.jpg",
+  "Dagool.jpg.gif",
+  "Damage From Within.jpg.gif",
+  "Damage.jpg.gif",
+  "Damage130.jpg.gif",
+  "Damage80.jpg.gif",
+  "Danger Sense.jpg.gif",
+  "Dangerous Game.jpg.gif",
+  "Dark Dreams.jpg",
+  "Dark Legacy.jpg.gif",
+  "Dark Star.jpg",
+  "Dark Talia.jpg.gif",
+  "David.jpg.gif",
+  "Dawn of a new Age.jpg",
+  "Day of the Dead.jpg.gif",
+  "Death Incarnate.jpg.gif",
+  "Death Walker.jpg",
+  "Death of Culture.jpg.gif",
+  "Death of Kosh.jpg.gif",
+  "Death of Personality.jpg",
+  "Death of a Planet.jpg.gif",
+  "Debt of Gratitude.jpg.gif",
+  "Declaration of Principles.jpg.gif",
+  "Dedicated Assistant.jpg.gif",
+  "Dedicated Follower.jpg.gif",
+  "Deep Agent.jpg.gif",
+  "Deep Scan.jpg.gif",
+  "Deep Space Fleet.jpg.gif",
+  "Deeron.jpg.gif",
+  "Defeated.jpg.gif",
+  "Defector Revealed.jpg.gif",
+  "Defend the Races.jpg.gif",
+  "Defense Treaty.jpg.gif",
+  "Defense of Depth.jpg.gif",
+  "Defensive Tactics.jpg.gif",
+  "Defuse the Situation.jpg.gif",
+  "Delay the War.jpg.gif",
+  "Delegate Authority.jpg.gif",
+  "Delenn (Lennier).jpg.gif",
+  "Delenn (V).jpg",
+  "Delenn (promote).jpg.gif",
+  "Delenn (search).jpg.gif",
+  "Deluxe303.jpg.gif",
+  "Den'sha.jpg.gif",
+  "Desperate Measures.jpg.gif",
+  "Destined For The Stars.jpg",
+  "Destined to Be.jpg.gif",
+  "Destined.jpg",
+  "Destiny.jpg.gif",
+  "Destroy Them From Within.jpg.gif",
+  "Destroy Them Utterly.jpg",
+  "Destroy the Opposition.jpg.gif",
+  "Detailed Data Analysis.jpg.gif",
+  "Different Perspectives.jpg.gif",
+  "Diplomatic Channels.jpg.gif",
+  "Diplomatic Intrusion.jpg.gif",
+  "Diplomatic Payoff.jpg.gif",
+  "Diplomatic Recognition.jpg.gif",
+  "Dire Consequences.jpg.gif",
+  "Direct Link.jpg.gif",
+  "Directing Events.jpg.gif",
+  "Disarm.jpg",
+  "Disarray.jpg.gif",
+  "Disciple of Light.jpg.gif",
+  "Disillusioned Garibaldi.jpg.gif",
+  "Disinformation.jpg.gif",
+  "Disruption.jpg.gif",
+  "Dissent.jpg.gif",
+  "Diversity.jpg",
+  "Divert Blame.jpg.gif",
+  "Divide and Conquer.jpg.gif",
+  "Do as You Are Told.jpg.gif",
+  "Doctor Franklin.jpg.gif",
+  "Doctor Lillian Hobbs.jpg.gif",
+  "Doctor Sheridan.jpg.gif",
+  "Dodger.jpg.gif",
+  "Dogfight.jpg.gif",
+  "Domestic Concerns.jpg.gif",
+  "Don't You Trust Me.jpg.gif",
+  "Doom Expedition.jpg.gif",
+  "Doom.jpg.gif",
+  "Doomed Conspiracy.jpg.gif",
+  "Doomed.jpg",
+  "Double-cross.jpg.gif",
+  "Dr. Benjamin Kyle.jpg",
+  "Dr. Sarah Chambers(2).jpg.gif",
+  "Dr. Sarah Chambers.jpg.gif",
+  "Draal the Caretaker.jpg.gif",
+  "Drakh Armada.jpg.gif",
+  "Drakh Entire.jpg.gif",
+  "Drakh Mothership.jpg.gif",
+  "Drakh Raiders.jpg.gif",
+  "Drazi Merchant.jpg.gif",
+  "Drazi Strike Fleet.jpg.gif",
+  "Drazi War Fleet.jpg.gif",
+  "Drone Fleet.jpg.gif",
+  "Drone.jpg",
+  "Drop Your Barriers.jpg.gif",
+  "Droshalla.jpg",
+  "Drozak.jpg",
+  "Duck Dodgers.jpg",
+  "Duel to the Death.jpg.gif",
+  "Dukhat.jpg",
+  "Dureena Nafeel(2).jpg.gif",
+  "Dureena Nafeel.jpg.gif",
+  "Dust.jpg.gif",
+  "Dwindling Resources.jpg.gif",
+  "E.A.S. Cortez.jpg",
+  "EA.jpg.gif",
+  "EVA Salavaging.jpg.gif",
+  "Earth (Psi).jpg.gif",
+  "Earth Force One.jpg",
+  "Edgars Industries.jpg",
+  "Efficiency Drive.jpg",
+  "Efficiency Engineers.jpg.gif",
+  "Efficiency.jpg.gif",
+  "Ego Boost.jpg.gif",
+  "Egyptian God of Frustration.jpg.gif",
+  "Eight.jpg.gif",
+  "Elder Races Triumph.jpg.gif",
+  "Elections.jpg.gif",
+  "Electron Incantaion.jpg.gif",
+  "Eleven.jpg.gif",
+  "Eliminate Threats.jpg.gif",
+  "Elite Black Omega.jpg.gif",
+  "Elizabeth Lochley (Nightwatch).jpg.gif",
+  "Elizabeth Lochley.jpg.gif",
+  "Elizabeth Trent.jpg.gif",
+  "Emergency Repairs.jpg.gif",
+  "Emfeeli.jpg.gif",
+  "Empathy.jpg.gif",
+  "Empereror Turham.jpg.gif",
+  "Emperor Cartagia.jpg.gif",
+  "Emperor Cotto.jpg",
+  "Emperor Mollari II(old).jpg.gif",
+  "Emperor Mollari II(young).jpg.gif",
+  "Emperor Refa.jpg.gif",
+  "Empire Builder.jpg.gif",
+  "Enduring Service.jpg",
+  "Enegry Mines.jpg.gif",
+  "Entil zha Delenn.jpg.gif",
+  "Entil'zha Sheridan.jpg",
+  "Entil'zha.jpg.gif",
+  "Entrap.jpg.gif",
+  "Epsilon III.jpg",
+  "Ericsson.jpg",
+  "Errand of Mercy.jpg.gif",
+  "Espers.jpg.gif",
+  "Ethnocentric.jpg.gif",
+  "Evacuation.jpg.gif",
+  "Everything Has a Price.jpg.gif",
+  "Evidence of Shadows.jpg.gif",
+  "Excalibur.jpg.gif",
+  "Execuetive Aide.jpg.gif",
+  "Exercises of the Mind.jpg.gif",
+  "Exhaustion.jpg.gif",
+  "Exodus.jpg.gif",
+  "Expanded Network.jpg.gif",
+  "Expeditionary Fleet.jpg.gif",
+  "Expelled.jpg.gif",
+  "Expendable.jpg.gif",
+  "Expenditionary Fleet (Human).jpg.gif",
+  "Explore Vorlon Space.jpg.gif",
+  "Exposed.jpg.gif",
+  "Extermination.jpg.gif",
+  "Extortion.jpg",
+  "Eye for an Eye.jpg.gif",
+  "Eye of the Storm.jpg.gif",
+  "Eyes and Ears.jpg.gif",
+  "Eyes on the Border.jpg.gif",
+  "Faceless Executive.jpg",
+  "Faces In Stone.jpg.gif",
+  "Facing Oblivion.jpg.gif",
+  "Factional Inertia.jpg.gif",
+  "Failed Goals.jpg.gif",
+  "Falsified Orders.jpg.gif",
+  "Far Reaching Schemes.jpg.gif",
+  "Fashar.jpg.gif",
+  "Fast Learner.jpg.gif",
+  "Fast Transport.jpg.gif",
+  "Fate Awaits.jpg.gif",
+  "Fate Calls.jpg.gif",
+  "Fate Favors.jpg.gif",
+  "Feast of Lights.jpg.gif",
+  "Feast of Strife.jpg.gif",
+  "Feint.jpg.gif",
+  "Fifth Column.jpg.gif",
+  "Fighter Base.jpg.gif",
+  "Final Destiny.jpg.gif",
+  "Find Focus.jpg.gif",
+  "Findell.jpg",
+  "Fireball.jpg.gif",
+  "First Battle Fleet.jpg.gif",
+  "First Contact Protocols.jpg.gif",
+  "First One Intervention.jpg.gif",
+  "First One Involvement.jpg.gif",
+  "First Ones Protection.jpg.gif",
+  "First Squadron.jpg.gif",
+  "First United Fleet.jpg.gif",
+  "Five.jpg.gif",
+  "Flarn.jpg.gif",
+  "Flash Mob.jpg",
+  "Flashback.jpg.gif",
+  "Flashy Maneuvers.jpg",
+  "Flying Fortress.jpg.gif",
+  "Foiled Scheme.jpg.gif",
+  "Followers of G Quan.jpg.gif",
+  "Foment Disord.jpg.gif",
+  "For the Future.jpg.gif",
+  "Force Majeure.jpg.gif",
+  "Force Omega.jpg.gif",
+  "Force the Issue.jpg.gif",
+  "Forced Down.jpg.gif",
+  "Forece Them Back.jpg.gif",
+  "Forell.jpg.gif",
+  "Forging Alliances.jpg.gif",
+  "Forgot Something.jpg.gif",
+  "Four.jpg.gif",
+  "Franklin - Off Duty.jpg",
+  "Fray at the Edges.jpg.gif",
+  "Free Trade.jpg.gif",
+  "Freedom of Choice.jpg.gif",
+  "Friendless & Forgotten.jpg.gif",
+  "From the Sidelines.jpg.gif",
+  "Front Man.jpg.gif",
+  "Front Page Exposure.jpg.gif",
+  "Fugitive Fleet.jpg",
+  "Fulcrum of Power.jpg.gif",
+  "Full Mobilization.jpg.gif",
+  "Further Gains.jpg.gif",
+  "Futility.jpg.gif",
+  "FutureCorp.jpg",
+  "G Kar (card).jpg.gif",
+  "G Kar Enlighten.jpg.gif",
+  "G Kar Forsaken.jpg.gif",
+  "G Neb.jpg.gif",
+  "G Obel.jpg.gif",
+  "G'Dan.jpg",
+  "G'Dok.jpg",
+  "G'Drog (V).jpg",
+  "G'Kar (V).jpg",
+  "G'Kar(AS).jpg",
+  "G'Lan.jpg",
+  "Gaim Merchant.jpg.gif",
+  "Galen's Crystal Ball.jpg.gif",
+  "Galen's Magic Rock.jpg.gif",
+  "Galen's Ship.jpg.gif",
+  "Galen's Staff.jpg.gif",
+  "Galen(2).jpg.gif",
+  "Galen.jpg.gif",
+  "Garibaldi (AS).jpg",
+  "Garibaldi - Off Duty.jpg",
+  "Garrison Duty.jpg.gif",
+  "Gather Rebels.jpg.gif",
+  "Gear Up for War.jpg.gif",
+  "General Ivanova.jpg.gif",
+  "General Na Tok.jpg.gif",
+  "Genius Loci.jpg.gif",
+  "Gerontocracy.jpg.gif",
+  "Gestalt.jpg.gif",
+  "Ghost Ship.jpg.gif",
+  "Giant Fusion Bbomb.jpg.gif",
+  "Give Them What They Want.jpg",
+  "Glitch.jpg.gif",
+  "Good Press.jpg.gif",
+  "Good to Go.jpg.gif",
+  "Goods and Services.jpg.gif",
+  "Gordon.jpg.gif",
+  "Government Aid.jpg.gif",
+  "Government Hostility.jpg.gif",
+  "Grassroots Support.jpg.gif",
+  "Gravity Well.jpg.gif",
+  "Greed.jpg.gif",
+  "Grey Council Servitor.jpg.gif",
+  "Grome Bigot.jpg",
+  "Ground Forces.jpg.gif",
+  "Growing Distrust.jpg.gif",
+  "Growing Skepticism.jpg.gif",
+  "Guarded Resource.jpg.gif",
+  "Guerillas.jpg.gif",
+  "Guilds.jpg.gif",
+  "Guinevere Corey.jpg",
+  "Gyor.jpg.gif",
+  "Hacker.jpg.gif",
+  "Hand of Valen.jpg.gif",
+  "Handy Dandy Micro Helper.jpg.gif",
+  "Hard Lessons.jpg.gif",
+  "Harkar.jpg.gif",
+  "Harriman Gray.jpg.gif",
+  "Head on a Pike.jpg.gif",
+  "Heal.jpg.gif",
+  "Healing Artifact.jpg.gif",
+  "Heart of Darkness.jpg",
+  "Heavy Loses.jpg.gif",
+  "Heavy Resistance.jpg.gif",
+  "Held Back.jpg.gif",
+  "Hello, Old friend.jpg.gif",
+  "Heralds of the Grey.jpg.gif",
+  "Heroic Aid.jpg.gif",
+  "Hidden Corruption.jpg.gif",
+  "Hidden Hand.jpg.gif",
+  "Hidden Pressures.jpg.gif",
+  "Hidden Safehouse.jpg.gif",
+  "Hidden Treasury.jpg.gif",
+  "Hide-bound.jpg",
+  "High Level Connections.jpg.gif",
+  "High-Tech Weapon.jpg.gif",
+  "Hindsight.jpg.gif",
+  "Hole in Your Mind.jpg.gif",
+  "Hollow Victory.jpg.gif",
+  "Holo-Demons.jpg.gif",
+  "Holo-Dragon.jpg.gif",
+  "Homeworld Fleet.jpg.gif",
+  "Homunculus.jpg.gif",
+  "Honored Position.jpg.gif",
+  "Hope..for Victory.jpg",
+  "Hostile Reaction.jpg.gif",
+  "Hot-Head.jpg",
+  "Household Gods.jpg",
+  "How Dare You.jpg.gif",
+  "How to Succeed In Business.jpg.gif",
+  "Human Fanatic.jpg.gif",
+  "Humiliation.jpg",
+  "Hunting the Blips.jpg.gif",
+  "Hyach Matriarch.jpg.gif",
+  "Hyach Patriarch.jpg.gif",
+  "Hyperspace Getaway.jpg.gif",
+  "I'd Die First.jpg.gif",
+  "IPX Official.jpg.gif",
+  "IPX.jpg",
+  "ISA President.jpg.gif",
+  "ISN Reporter.jpg.gif",
+  "Ikaran Weapon.jpg",
+  "Ill Fated Reverses.jpg.gif",
+  "Illegal Raid.jpg.gif",
+  "Impasse.jpg.gif",
+  "Important Visitor.jpg.gif",
+  "Improvised Weapon.jpg.gif",
+  "In Chaos, Uncertainity.jpg.gif",
+  "In Our Image.jpg",
+  "In the Spotlight.jpg.gif",
+  "Incentives.jpg.gif",
+  "Incite Mutineers.jpg",
+  "Inconclusive Strike.jpg.gif",
+  "Independence.jpg.gif",
+  "Independent Support.jpg.gif",
+  "Inflexible Plans.jpg.gif",
+  "Influence.jpg.gif",
+  "Informant.jpg.gif",
+  "Information Control.jpg.gif",
+  "Information Overload.jpg.gif",
+  "Insufficient Support.jpg.gif",
+  "Insurgency.jpg",
+  "Insurrection.jpg.gif",
+  "Int3.jpg.gif",
+  "Intelligence Gathering.jpg.gif",
+  "Interference.jpg.gif",
+  "Internal Disruptions.jpg.gif",
+  "Internal Opposition.jpg.gif",
+  "Internecine Struggle.jpg.gif",
+  "Interstellar Alliance.jpg.gif",
+  "Intervention Force.jpg.gif",
+  "Into Their Own.jpg.gif",
+  "Invent the Future.jpg.gif",
+  "Invisibility.jpg.gif",
+  "Invulnerable.jpg",
+  "Irrelevant.jpg.gif",
+  "Is That the Whole Truth.jpg.gif",
+  "Isabelle's Quest.jpg.gif",
+  "Isabelle.jpg.gif",
+  "Isdrell.jpg.gif",
+  "Ivory Tower.jpg.gif",
+  "Jack.jpg",
+  "Jacob Redway.jpg.gif",
+  "Jane.jpg.gif",
+  "Jason's Gift.jpg.gif",
+  "Jecinda.jpg.gif",
+  "Jeffrey Sinclair (AS).jpg",
+  "Jinxo.jpg",
+  "John Matheson(2).jpg.gif",
+  "John Matheson.jpg.gif",
+  "Join the Corp.jpg.gif",
+  "Jonathan Harris.jpg.gif",
+  "Journalistic Integrity.jpg.gif",
+  "Judgement by Sucess.jpg.gif",
+  "Judgement.jpg.gif",
+  "Julie Musante.jpg.gif",
+  "Junk Food.jpg.gif",
+  "Juphar Trkider.jpg.gif",
+  "Justin.jpg.gif",
+  "Ka'tok.jpg",
+  "Kal Kra Dool.jpg",
+  "Kalika Qwal'mizra.jpg.gif",
+  "Katz.jpg.gif",
+  "Kelsey.jpg.gif",
+  "Kevin Sprach.jpg.gif",
+  "Kha Ri Citadel.jpg.gif",
+  "Kill Them All.jpg.gif",
+  "King Arthur.jpg.gif",
+  "Kiron Maray.jpg",
+  "Kirrin.jpg.gif",
+  "Know Your Enemy.jpg.gif",
+  "Knowledge of Power.jpg.gif",
+  "Knowledge, Then Action.jpg.gif",
+  "Korrinine.jpg.gif",
+  "Kosh's Ship.jpg",
+  "Kosh.jpg",
+  "Kulan.jpg.gif",
+  "Kullenbrak.jpg.gif",
+  "L3.jpg.gif",
+  "Labor Strike.jpg.gif",
+  "Lack of Direction.jpg.gif",
+  "Lack of Leadership.jpg",
+  "Lady Daggair.jpg.gif",
+  "Lady Mariel.jpg.gif",
+  "Lady Na Toth.jpg.gif",
+  "Lady Timov.jpg.gif",
+  "Lashing Out.jpg.gif",
+  "Last Ditch Effort.jpg.gif",
+  "Last Man Standing.jpg",
+  "Laurel Takashima.jpg.gif",
+  "Lavindra.jpg.gif",
+  "Lazarenn.jpg.gif",
+  "Lead.jpg.gif",
+  "League Spokesbeing.jpg.gif",
+  "Learn Their Weakness.jpg.gif",
+  "Leaving the Past.jpg.gif",
+  "Led Astray No More.jpg.gif",
+  "Leech.jpg",
+  "Lemm Uh'Ekim.jpg.gif",
+  "Lennan.jpg.gif",
+  "Lennier (V).jpg",
+  "Leonard Anderson.jpg.gif",
+  "Let Them Fight.jpg.gif",
+  "Let the Galaxy Burn.jpg.gif",
+  "Lethke Zum Bartrado.jpg.gif",
+  "Level the Playing Field.jpg.gif",
+  "Lhim-Dram.jpg.gif",
+  "Li.jpg",
+  "Liberating Resources.jpg.gif",
+  "Lieutenant Carr.jpg.gif",
+  "Lieutenant Corwin.jpg.gif",
+  "Lieutenant Tewart.jpg.gif",
+  "Life Pods.jpg.gif",
+  "Light Shines.jpg.gif",
+  "Like Unto The Gods.jpg.gif",
+  "Lindstrom.jpg.gif",
+  "Lise Hampton Edgars Garibaldi.jpg.gif",
+  "Lise Hampton Edgars.jpg.gif",
+  "Lise Hampton.jpg.gif",
+  "Llort Bodyguard.jpg.gif",
+  "Lobbyists.jpg.gif",
+  "Local Supremacy.jpg.gif",
+  "Londo Mollari (V).jpg",
+  "Londo Mollari(diplomat).jpg.gif",
+  "Londo Mollori(gambler).jpg.gif",
+  "Londo's Wives.jpg.gif",
+  "Look To The Future.jpg",
+  "Looking Ahead.jpg.gif",
+  "Lord Mollari.jpg.gif",
+  "Lord Refa(Amb.).jpg.gif",
+  "Lorien.jpg.gif",
+  "Lorkans.jpg.gif",
+  "Lose Control.jpg",
+  "Lost Opportunities.jpg.gif",
+  "Lost in Shadows.jpg.gif",
+  "Lou Welch.jpg.gif",
+  "Low Level Conflict.jpg.gif",
+  "Low Morale.jpg.gif",
+  "Loyal Guardsmen.jpg.gif",
+  "Lt. David Corwin.jpg.gif",
+  "Luhf-Syhf.jpg.gif",
+  "Lukor.jpg",
+  "Lurkers.jpg.gif",
+  "Lyta Empowered.jpg.gif",
+  "Lyta Released.jpg.gif",
+  "Lyta.jpg",
+  "M. Garibaldi, CEO.jpg.gif",
+  "Machiavellian Politics.jpg.gif",
+  "Machine City.jpg",
+  "Main Battle Fleet.jpg.gif",
+  "Main Gun.jpg.gif",
+  "Maintain Control.jpg.gif",
+  "Major Krantz.jpg.gif",
+  "Major Lianna Kemmer.jpg.gif",
+  "Make Money Fast.jpg",
+  "Make Them Angry.jpg.gif",
+  "Malcontent.jpg.gif",
+  "Man for All Seasons.jpg.gif",
+  "Manacles of Truth.jpg",
+  "Managed Growth.jpg.gif",
+  "Manifest Destiny.jpg.gif",
+  "Manipulate the Masters.jpg.gif",
+  "Manish'tushu.jpg.gif",
+  "Marata Fleet.jpg.gif",
+  "Marcus.jpg",
+  "Marked Out.jpg.gif",
+  "Market Dominance.jpg",
+  "Mars Conference.jpg.gif",
+  "Martial Law.jpg.gif",
+  "Mass Carnage.jpg.gif",
+  "Mass Rioting.jpg.gif",
+  "Master Manipulation.jpg.gif",
+  "Master Plan.jpg.gif",
+  "Master of All.jpg.gif",
+  "Master of Darkness.jpg.gif",
+  "Master of Deception.jpg.gif",
+  "Masterful Plan.jpg",
+  "Matthew Gideon (2).jpg.gif",
+  "Matthew Gideon.jpg.gif",
+  "Matthew Stoner.jpg.gif",
+  "Max Ellerson (2).jpg.gif",
+  "Max Ellerson.jpg.gif",
+  "Med Lab.jpg.gif",
+  "Meddling with the Unknown.jpg.gif",
+  "Media Circus.jpg.gif",
+  "Media Mogul.jpg.gif",
+  "Media Monopolist.jpg",
+  "Medical Database.jpg.gif",
+  "Megalopolis.jpg.gif",
+  "Melat.jpg.gif",
+  "Merciless.jpg.gif",
+  "Mila Shar.jpg",
+  "Milashi Voktal.jpg.gif",
+  "Military Buildup.jpg.gif",
+  "Military Outpost.jpg.gif",
+  "Minbari Fanatic.jpg.gif",
+  "Minbari Fighting Pike.jpg.gif",
+  "Minbari Worker.jpg",
+  "Mind Games.jpg.gif",
+  "Minds That Matter.jpg.gif",
+  "Mindwalkers.jpg.gif",
+  "Mindwipe.jpg.gif",
+  "Minister Chorlini.jpg.gif",
+  "Minister Durano.jpg.gif",
+  "Minister Verano.jpg.gif",
+  "Minister Virini.jpg.gif",
+  "Ministrations.jpg",
+  "Misdirected Force.jpg.gif",
+  "Misdirection.jpg.gif",
+  "Miss Constance.jpg.gif",
+  "Mistaken Identity.jpg.gif",
+  "Mister Allan.jpg.gif",
+  "Mister Welles.jpg.gif",
+  "Miziri Tai.jpg.gif",
+  "Mob Violence.jpg.gif",
+  "Mobilize Reserves.jpg.gif",
+  "Modern Refit.jpg.gif",
+  "Mog Mal Ged.jpg",
+  "Mogoth.jpg",
+  "Moles.jpg.gif",
+  "Momentum.jpg.gif",
+  "Monitored Deal.jpg.gif",
+  "Monks.jpg.gif",
+  "Monopoly.jpg.gif",
+  "Mora'dum.jpg",
+  "Moral Quandry.jpg.gif",
+  "Morann.jpg",
+  "Mother Of All Parties.jpg",
+  "Mother Ship Alpha.jpg.gif",
+  "Movekk.jpg.gif",
+  "Mr. Chase.jpg.gif",
+  "Mr. Jones.jpg.gif",
+  "Mr. Morden.jpg.gif",
+  "Mr. Paretti.jpg",
+  "Mu Tai Exhibition.jpg.gif",
+  "Munitions Convoy.jpg.gif",
+  "Muster Support.jpg.gif",
+  "Mutiny.jpg.gif",
+  "Mutual Defense.jpg.gif",
+  "Mutual Understanding.jpg.gif",
+  "My Good Friend.jpg.gif",
+  "My Hands are tied.jpg.gif",
+  "Mysterious Protections.jpg.gif",
+  "Na Far (ambassador).jpg.gif",
+  "Na Mel.jpg.gif",
+  "Na Toth (fleet).jpg.gif",
+  "Na'Keth.jpg",
+  "Na'Toth (V).jpg",
+  "NanoTech Plague.jpg.gif",
+  "Napar'ishu.jpg.gif",
+  "Narn Agitator.jpg.gif",
+  "Narn Fanatic.jpg.gif",
+  "Natchok Var.jpg.gif",
+  "Natural Born Leader.jpg.gif",
+  "Navigator Robertson.jpg.gif",
+  "Nay-Sayer.jpg.gif",
+  "Negotiation Deadline.jpg.gif",
+  "Nejokk.jpg.gif",
+  "Neoma Connoly.jpg",
+  "Neroon (ambassador).jpg.gif",
+  "Nest of Vipers.jpg.gif",
+  "Network Support.jpg.gif",
+  "Never Forgive.jpg",
+  "Never Give Up.jpg",
+  "New Opportunities.jpg.gif",
+  "New Priorities.jpg.gif",
+  "New Team.jpg.gif",
+  "New Uniforms.jpg.gif",
+  "Newton's Third Law.jpg.gif",
+  "NhimGrem.jpg",
+  "Nhuk-Vrek.jpg.gif",
+  "Night Terrors.jpg",
+  "Night of the Long Knives.jpg.gif",
+  "Nightwatch Agent.jpg.gif",
+  "Nightwatch Collaborators.jpg.gif",
+  "Nightwatch Enforcers.jpg.gif",
+  "Nine.jpg.gif",
+  "No Alternatives.jpg.gif",
+  "No Compromises.jpg.gif",
+  "No Mercy.jpg.gif",
+  "No One Returns.jpg.gif",
+  "No Surprises.jpg.gif",
+  "Nobody Can Stop Us.jpg.gif",
+  "Non-Aggresion Pact.jpg.gif",
+  "Non-Aligned Agent.jpg.gif",
+  "Non-Aligned Aide.jpg.gif",
+  "Non-Aligned Captain.jpg.gif",
+  "Non-Aligned Fanatic.jpg.gif",
+  "None Shall Pass.jpg",
+  "Not Alone.jpg.gif",
+  "Not Dead Yet.jpg.gif",
+  "Not In Vain.jpg.gif",
+  "Not Our Concern.jpg.gif",
+  "Not The One.jpg.gif",
+  "Not Without a Fight.jpg.gif",
+  "Nova Dreadnoughts.jpg.gif",
+  "Now He's Ready.jpg.gif",
+  "Nowhere But Down.jpg.gif",
+  "Nowhere to Hide.jpg.gif",
+  "Nozakk.jpg",
+  "Nuclear Bluff.jpg.gif",
+  "Nug-Ulg.jpg.gif",
+  "Null Field.jpg.gif",
+  "Number One.jpg.gif",
+  "Nurture Conspiracy.jpg",
+  "Oath of Honor.jpg",
+  "Obey.jpg.gif",
+  "Observation Post.jpg.gif",
+  "Obstacles to Victory.jpg.gif",
+  "Off Planet Accounts.jpg",
+  "Offer a Position.jpg.gif",
+  "Officer Exchange.jpg.gif",
+  "On All Fronts.jpg.gif",
+  "One.jpg.gif",
+  "Onslaught.jpg.gif",
+  "Open Aggresion.jpg.gif",
+  "Open Season.jpg.gif",
+  "Opportunism.jpg.gif",
+  "Opportunity Knocks.jpg.gif",
+  "Opportunity for Chaos.jpg.gif",
+  "Oqmrritkz.jpg.gif",
+  "Order Maintained.jpg.gif",
+  "Order Triumphant.jpg",
+  "Order.jpg",
+  "Organelle Transfer.jpg.gif",
+  "Organic Technology.jpg.gif",
+  "Orin Zento.jpg",
+  "Ostracised.jpg.gif",
+  "Our Last, Best Hope.jpg.gif",
+  "Our Own People First.jpg.gif",
+  "Out of My Sky.jpg.gif",
+  "Out of the Loop.jpg.gif",
+  "Out-Fought.jpg",
+  "Out-Led.jpg",
+  "Out-Maneuvered.jpg",
+  "Out-Thought.jpg",
+  "Out-Witted.jpg",
+  "Outfoxed.jpg.gif",
+  "Over the Brink.jpg.gif",
+  "Oversight Committee.jpg.gif",
+  "Overwhelmed.jpg.gif",
+  "Overwhelming Emotions.jpg.gif",
+  "PPG Rifle.jpg.gif",
+  "Pain.jpg.gif",
+  "Pak'ma'ra Lurkers.jpg.gif",
+  "Pak'ma'ra Spacelanes.jpg.gif",
+  "Pak'ma'ra's Hump.jpg.gif",
+  "Paparazzi.jpg.gif",
+  "Paralyzing Injury.jpg.gif",
+  "Pariah.jpg.gif",
+  "Parlay Gains.jpg.gif",
+  "Partnership for Peace.jpg.gif",
+  "Past Victories.jpg.gif",
+  "Path of Sorrows.jpg",
+  "Patrol Fleet (Centauri).jpg.gif",
+  "Patrol Fleet.jpg.gif",
+  "Peace Accord.jpg.gif",
+  "Peace Dividend.jpg.gif",
+  "Peace in Our Times.jpg.gif",
+  "Peaceful Solutions.jpg.gif",
+  "Peaceful Unification.jpg.gif",
+  "Penultimate Revenge.jpg.gif",
+  "Permanent Loses.jpg.gif",
+  "Permanent Wound.jpg.gif",
+  "Perpetual Conflict.jpg.gif",
+  "Personal Crusade.jpg.gif",
+  "Personal Growth.jpg.gif",
+  "Personal Insult.jpg.gif",
+  "Personal Quest.jpg.gif",
+  "Personnal Enemies.jpg.gif",
+  "Pestilence, Famine, Death.jpg.gif",
+  "Picket Duty.jpg.gif",
+  "Picket Fleet.jpg.gif",
+  "Pieces of the Puzzle.jpg.gif",
+  "Pierce Macabee.jpg.gif",
+  "Plague.jpg.gif",
+  "Planet Defense Fleet.jpg.gif",
+  "Planet-wide Unrest.jpg.gif",
+  "Plans Revealed.jpg.gif",
+  "Plans Within Plans.jpg",
+  "Play for Keeps.jpg.gif",
+  "PlayHandBg.gif",
+  "Playing Both Sides.jpg.gif",
+  "Point of No Return.jpg.gif",
+  "Pointing Fingers.jpg.gif",
+  "Political Firestorm.jpg.gif",
+  "Political Pull.jpg.gif",
+  "Popular Tariffs.jpg.gif",
+  "Portents.jpg.gif",
+  "Portrait of the Past.jpg.gif",
+  "Postal Service.jpg",
+  "Power Block.jpg.gif",
+  "Power Brokers.jpg.gif",
+  "Power In Concensus.jpg.gif",
+  "Power Play.jpg.gif",
+  "Power Supreme.jpg.gif",
+  "Power of Darkness.jpg.gif",
+  "Power.jpg.gif",
+  "Precise Targeting.jpg.gif",
+  "Predestination.jpg.gif",
+  "Preeminence.jpg.gif",
+  "Prejudice Grows.jpg.gif",
+  "Premier001.jpg.gif",
+  "Premier221.jpg.gif",
+  "Premier222.jpg.gif",
+  "Premier223.jpg.gif",
+  "Premier224.jpg.gif",
+  "Premier225.jpg.gif",
+  "Premier226.jpg.gif",
+  "Premier369.jpg.gif",
+  "Premier382.jpg.gif",
+  "Premier387.jpg.gif",
+  "Premier399.jpg.gif",
+  "Premier402.jpg.gif",
+  "Premier403.jpg",
+  "Premier405.jpg.gif",
+  "Premier408.jpg.gif",
+  "Premier411.jpg.gif",
+  "Premier419.jpg.gif",
+  "Premier420.jpg.gif",
+  "Premier422.jpg.gif",
+  "Premier425.jpg.gif",
+  "Premier440.jpg.gif",
+  "Premonition.jpg.gif",
+  "Presentation2.gif",
+  "Preserve The Mu'Tai.jpg",
+  "President Clark.jpg",
+  "President Delenn.jpg",
+  "President Sheridan.jpg.gif",
+  "Presidential Coup.jpg.gif",
+  "Prey on the Weak.jpg.gif",
+  "Pride of the Kha Ri.jpg.gif",
+  "Prime Minister Mollari.jpg.gif",
+  "Prime Minister Refa.jpg.gif",
+  "Pro Zeta Corporation.jpg.gif",
+  "Probes.jpg.gif",
+  "Profit from Strife.jpg",
+  "Prohibited Area.jpg.gif",
+  "Promote.jpg.gif",
+  "Proof of Genocide.jpg.gif",
+  "Propaganda.jpg.gif",
+  "Prophecy Attended.jpg",
+  "Protected.jpg.gif",
+  "Protecting Your Race.jpg.gif",
+  "Prove Your Worth.jpg.gif",
+  "Psi Academy.jpg.gif",
+  "Psi Arbitrators.jpg.gif",
+  "Psi Corps Intelligence (Bester).jpg.gif",
+  "Psi Corps Intelligence (Psi).jpg.gif",
+  "Psi Spies.jpg.gif",
+  "Psi Suppressors.jpg.gif",
+  "Psi World.jpg.gif",
+  "Psi3.jpg.gif",
+  "PsiOne.jpg.gif",
+  "Psionic Pacification.jpg.gif",
+  "Psionic Sabotage.jpg.gif",
+  "Psychedelic Program.jpg.gif",
+  "Psychic Projection.jpg.gif",
+  "Psychic Trauma.jpg.gif",
+  "Psychopath.jpg.gif",
+  "Public Outcry.jpg.gif",
+  "Public Resentment.jpg.gif",
+  "Pull From Behind.jpg.gif",
+  "Pundits.jpg.gif",
+  "Punished.jpg",
+  "Punitive Sanctions.jpg.gif",
+  "Puppeteer.jpg.gif",
+  "Purple Files.jpg.gif",
+  "Pushed to War.jpg.gif",
+  "Pushing Limits.jpg.gif",
+  "Put on the Squeeze.jpg.gif",
+  "Quality Leadership.jpg.gif",
+  "Quarantine.jpg.gif",
+  "Quartermaster.jpg.gif",
+  "Question Authority.jpg.gif",
+  "Quick to Anger.jpg.gif",
+  "Racial Command.jpg.gif",
+  "Racial Cooperation.jpg.gif",
+  "Racial Ties.jpg.gif",
+  "Rag-Tag Fleet.jpg.gif",
+  "Raising the Stakes.jpg.gif",
+  "Rampage.jpg.gif",
+  "Ranger Banner.jpg",
+  "Ranger Fighting Pike.jpg",
+  "Ranger Infiltrator.jpg",
+  "Ranger Initiate.jpg.gif",
+  "Ranger Lennier.jpg.gif",
+  "Ranger Operations.jpg.gif",
+  "Ranger Operative.jpg",
+  "Ranger Pin.jpg",
+  "Ranger Sakai (AS).jpg",
+  "Ranger Sakai.jpg",
+  "Ranger Training.jpg.gif",
+  "Rapid Aging.jpg.gif",
+  "Rapid Growth.jpg.gif",
+  "Rapid Recovery.jpg.gif",
+  "Rapture.jpg",
+  "Rastenn.jpg",
+  "Ratings Battle.jpg",
+  "Reap the Whirlwind.jpg.gif",
+  "Reaping Iniquity.jpg.gif",
+  "Rebirth Ceremony.jpg.gif",
+  "Rebuilding Effort.jpg.gif",
+  "Recalled.jpg.gif",
+  "Record Returns.jpg.gif",
+  "Recover and Regroup.jpg.gif",
+  "Red Tape.jpg.gif",
+  "Redeemed.jpg.gif",
+  "Reducing Risk.jpg.gif",
+  "Reeling From the Blows.jpg.gif",
+  "Refuge.jpg.gif",
+  "Refusal to Yield.jpg.gif",
+  "Reign of Terror.jpg.gif",
+  "Relaxation.jpg.gif",
+  "Relentless.jpg",
+  "Religious Festival.jpg.gif",
+  "Reluctant Allies.jpg.gif",
+  "Removed From Power.jpg.gif",
+  "Renegade Telepath.jpg.gif",
+  "Repair.jpg.gif",
+  "Reparations.jpg.gif",
+  "Repeating Lasers.jpg.gif",
+  "Reprisal.jpg.gif",
+  "Reprogrammer.jpg.gif",
+  "Reprogramming Team.jpg.gif",
+  "Research Station.jpg.gif",
+  "Reservations.jpg.gif",
+  "Reserve Fleet (Human).jpg.gif",
+  "Resigned to His Fate.jpg.gif",
+  "Resist Control.jpg.gif",
+  "Resist the Vorlons.jpg.gif",
+  "Resupply Network.jpg.gif",
+  "Retributive Strike.jpg.gif",
+  "Return to Ideals.jpg.gif",
+  "Reunited.jpg",
+  "Revenge is Sweet.jpg.gif",
+  "Reverse Engineering.jpg.gif",
+  "Reward Obedience.jpg",
+  "Right Makes Might.jpg.gif",
+  "Rimush.jpg.gif",
+  "Rising Star.jpg.gif",
+  "Roam the Stars.jpg.gif",
+  "Robert Conner.jpg.gif",
+  "Rogue Telepath.jpg.gif",
+  "Rogue.jpg.gif",
+  "Round Table.jpg.gif",
+  "Rule By the Masses.jpg.gif",
+  "Rumor Mongers.jpg.gif",
+  "Saboteurs.jpg.gif",
+  "Sacrifice Play.jpg.gif",
+  "Safety in Numbers.jpg.gif",
+  "Samuel Drake.jpg.gif",
+  "Sanctity of The Mind.jpg.gif",
+  "Sanctuary.jpg.gif",
+  "Sanctum.jpg",
+  "Sara.jpg.gif",
+  "Sareer.jpg",
+  "Say What They Want.jpg.gif",
+  "Scapegoats.jpg.gif",
+  "Schism.jpg.gif",
+  "Screened.jpg.gif",
+  "Search For a Home.jpg.gif",
+  "Search for Direction.jpg.gif",
+  "Seat of Power.jpg.gif",
+  "Sebastian.jpg.gif",
+  "Sech Durhan.jpg",
+  "Sech Turval.jpg",
+  "Second Battle Fleet.jpg.gif",
+  "Second Squadron.jpg.gif",
+  "Second United Fleet.jpg.gif",
+  "Secret Subversion.jpg",
+  "Secret and Arrogant.jpg.gif",
+  "Secrets Of Thge Order.jpg",
+  "Secrets of Success.jpg.gif",
+  "Sector 14.jpg",
+  "Sector 90.jpg.gif",
+  "Secure the Home Front.jpg.gif",
+  "Security Crackdown.jpg.gif",
+  "Security Detail.jpg.gif",
+  "Security Fleet (Centauri).jpg.gif",
+  "Security Fleet (Human).jpg.gif",
+  "Security Fleet (Narn).jpg.gif",
+  "Security Fleet.jpg.gif",
+  "Security Override.jpg.gif",
+  "Seductive Arguments.jpg.gif",
+  "Seeds of Anarchy.jpg.gif",
+  "Seeds of Destruction.jpg.gif",
+  "Seeing Shadows.jpg.gif",
+  "Seeking Knowledge.jpg.gif",
+  "Senator King.jpg.gif",
+  "Senator Quantrell.jpg",
+  "Senator Young.jpg.gif",
+  "Serendipity.jpg.gif",
+  "Service.jpg",
+  "Seven.jpg.gif",
+  "Severed Ties.jpg.gif",
+  "Sh Sak.jpg.gif",
+  "Shadow Aid.jpg.gif",
+  "Shadow Base.jpg.gif",
+  "Shadow Cloud.jpg.gif",
+  "Shadow Contact.jpg.gif",
+  "Shadow Implants.jpg.gif",
+  "Shadow Medallion.jpg.gif",
+  "Shadow Retribution.jpg.gif",
+  "Shadow Scouts.jpg.gif",
+  "Shadow Ship.jpg.gif",
+  "Shadow Strike Fleet.jpg.gif",
+  "Shadow Symbiont.jpg.gif",
+  "Shadow Tech Upgrade.jpg.gif",
+  "Shadow War Fleet.jpg.gif",
+  "Shadow of a Shadow.jpg.gif",
+  "Shadow.jpg.gif",
+  "Shadows Fall.jpg.gif",
+  "Shadowwatch.jpg.gif",
+  "Shady Dealings.jpg.gif",
+  "Shai Alyt Neroon.jpg.gif",
+  "Shambah III.jpg.gif",
+  "Shar'kali.jpg.gif",
+  "Sharrukin.jpg.gif",
+  "She'lah.jpg.gif",
+  "Sheedos.jpg",
+  "Sheridan Reborn.jpg.gif",
+  "Shine in the Night.jpg.gif",
+  "Shining Beacon in Space.jpg.gif",
+  "Shiv'kala.jpg.gif",
+  "Shot In The Back.jpg",
+  "Show the Colors.jpg.gif",
+  "Sigma 957.jpg.gif",
+  "Signs and Portents.jpg.gif",
+  "Signs.jpg",
+  "Silent Majority.jpg.gif",
+  "Silver Tongue.jpg.gif",
+  "Six.jpg.gif",
+  "Skirmish.jpg.gif",
+  "Sleeping in the Light.jpg",
+  "Slow Poison.jpg.gif",
+  "Slow Reecovery.jpg.gif",
+  "Sniper.jpg.gif",
+  "Snoop.jpg.gif",
+  "Sogayu.jpg.gif",
+  "Soldier of Darkness.jpg.gif",
+  "Solidarity.jpg",
+  "Solo Flight.jpg.gif",
+  "Something Always Happens.jpg.gif",
+  "Something In the Air.jpg.gif",
+  "Song of Sol-Mon.jpg",
+  "Sowing Unrest.jpg.gif",
+  "Special Agent Kendarr.jpg.gif",
+  "Special Intelligence.jpg.gif",
+  "Spirit of Cooperation.jpg.gif",
+  "Sponsor.jpg.gif",
+  "Spoo.jpg.gif",
+  "Spread Unrest.jpg.gif",
+  "Squandered Chances.jpg.gif",
+  "Staff Of Office.jpg",
+  "Stagnation.jpg.gif",
+  "Stand Against The Past.jpg",
+  "Stand Together.jpg",
+  "Star Chamber.jpg.gif",
+  "Starfire Wheel.jpg.gif",
+  "Stasis.jpg.gif",
+  "State Visit.jpg.gif",
+  "Statement of Position.jpg.gif",
+  "Status Quo.jpg.gif",
+  "Steal Babylon 4.jpg.gif",
+  "Steal Skills.jpg.gif",
+  "Stealing Secrets.jpg.gif",
+  "Stephen Franklin, DXb.jpg",
+  "Stevens.jpg",
+  "Stim Addiction.jpg.gif",
+  "Stirring Rebuke.jpg.gif",
+  "Stolen Spoils.jpg.gif",
+  "Straight Talk.jpg.gif",
+  "Strange Bedfellows.jpg.gif",
+  "Strange happenings.jpg.gif",
+  "Strife.jpg.gif",
+  "Strike Back!.jpg.gif",
+  "Strike Fleet (Narn).jpg.gif",
+  "Strike at the Heart.jpg.gif",
+  "Striken.jpg",
+  "Stripped Bare.jpg.gif",
+  "Stripped.jpg",
+  "Strive For Freedom.jpg",
+  "Strong-Arm tactics.jpg",
+  "Suarez Cil'tlakh.jpg.gif",
+  "Subsidiary(1).jpg",
+  "Subsidiary(2).jpg",
+  "Subsidiary(3).jpg",
+  "Subtle Influences.jpg.gif",
+  "Subversion.jpg.gif",
+  "Subvert the Nexus.jpg.gif",
+  "Successful IPO.jpg",
+  "Suicide Run.jpg.gif",
+  "Superiority.jpg",
+  "Supply Convoy.jpg.gif",
+  "Support Fleet (Centauri).jpg.gif",
+  "Support Fleet (Human).jpg.gif",
+  "Support Fleet (Narn).jpg.gif",
+  "Support Fleet.jpg.gif",
+  "Suppress the Media.jpg.gif",
+  "Suppress.jpg",
+  "Surgeon of Darkness.jpg.gif",
+  "Surgical Strike.jpg.gif",
+  "Surprising Allies.jpg.gif",
+  "Survey in Force.jpg.gif",
+  "Survival Training.jpg",
+  "Survivor's Guilt.jpg.gif",
+  "Swat!.jpg",
+  "Sworn to Shadows.jpg.gif",
+  "Sycophant.jpg.gif",
+  "Syria Planum.jpg.gif",
+  "Tactical Error.jpg.gif",
+  "Tactical Nuke.jpg.gif",
+  "Tacticians.jpg.gif",
+  "Take What They Want.jpg",
+  "Taking Credit.jpg.gif",
+  "Taking Sides.jpg.gif",
+  "Talia Winters (Psi).jpg.gif",
+  "Tannier.jpg",
+  "Taralenn II.jpg.gif",
+  "Taree.jpg.gif",
+  "Taro Isogi.jpg",
+  "Taunts and Games.jpg.gif",
+  "Team Player.jpg.gif",
+  "Techno-Virus.jpg.gif",
+  "Techno-mage.jpg.gif",
+  "Telekinesis.jpg.gif",
+  "Telepath Block.jpg.gif",
+  "Telepath Colony.jpg.gif",
+  "Telepath Hunter.jpg.gif",
+  "Telepath Recruit.jpg.gif",
+  "Telepath Recruiters.jpg.gif",
+  "Telepath for Hire.jpg.gif",
+  "Telepathic Revenge.jpg.gif",
+  "Temporary Aid.jpg.gif",
+  "Ten.jpg.gif",
+  "Tense Situation.jpg.gif",
+  "Tenuous Control.jpg.gif",
+  "Terra Firma.jpg.gif",
+  "Terror Tactics.jpg.gif",
+  "Terrorist Strike.jpg.gif",
+  "Tessa Halloran.jpg",
+  "Test of Merit.jpg.gif",
+  "That's the Spirit.jpg.gif",
+  "The Almighty Credit.jpg",
+  "The Badge & The Gloves.jpg.gif",
+  "The Bottom Line.jpg",
+  "The Call Of The Stars.jpg",
+  "The Chosen Ones.jpg.gif",
+  "The Circle is Joined.jpg.gif",
+  "The Conspiracy Deepens.jpg.gif",
+  "The Corp is Father.jpg.gif",
+  "The Corp is Mother.jpg.gif",
+  "The Dreaming.jpg.gif",
+  "The Fen.jpg.gif",
+  "The Good Old Days.jpg",
+  "The Great Eye.jpg",
+  "The Great Pit.jpg",
+  "The Greater Good.jpg.gif",
+  "The Haunter In The Dark.jpg",
+  "The Hive.jpg.gif",
+  "The Inquisitor.jpg",
+  "The Just Suffer.jpg.gif",
+  "The Katai.jpg.gif",
+  "The Line.jpg",
+  "The Lion Of The Stars.jpg",
+  "The Long Night.jpg.gif",
+  "The Lure of Shadow.jpg.gif",
+  "The Man In Between.jpg",
+  "The Messiah Effect.jpg.gif",
+  "The Mind's Eye.jpg.gif",
+  "The Misalliance.jpg",
+  "The Mu'Tai.jpg",
+  "The Mutah-doh.jpg",
+  "The One.jpg.gif",
+  "The Path of Conquest.jpg.gif",
+  "The Path to Peace.jpg.gif",
+  "The Price of Fame.jpg.gif",
+  "The Rangers.jpg.gif",
+  "The Regent.jpg.gif",
+  "The Right Contacts.jpg.gif",
+  "The Rush Act.jpg",
+  "The Secret Masters.jpg.gif",
+  "The Shadows Move.jpg",
+  "The Song.jpg",
+  "The Spider's Web.jpg.gif",
+  "The Tech.jpg.gif",
+  "The Third Age.jpg.gif",
+  "The Truth is Out.jpg.gif",
+  "The Universe Blinked.jpg",
+  "The Universe Today.jpg",
+  "The Upper Hand.jpg.gif",
+  "The Vorlons Respond.jpg.gif",
+  "The Wealth of Planets.jpg",
+  "The White Star.jpg.gif",
+  "The Young Races Rise.jpg.gif",
+  "The Zocalo.jpg",
+  "Their Own Destiny.jpg.gif",
+  "They Are Not For You.jpg.gif",
+  "They're Just Mundanes.jpg.gif",
+  "They're Killing Us.jpg.gif",
+  "Thieve's Guild.jpg.gif",
+  "Things To Come.jpg.gif",
+  "Third Battle Fleet.jpg.gif",
+  "Third Squadron.jpg.gif",
+  "Third United Fleet.jpg.gif",
+  "Thirteen.jpg.gif",
+  "This Was a Mistake.jpg.gif",
+  "Thomas.jpg.gif",
+  "Thought Police.jpg.gif",
+  "Three.jpg.gif",
+  "Thug.jpg.gif",
+  "Ties to the Mighty.jpg.gif",
+  "Time Jump.jpg.gif",
+  "Time Stabilizer.jpg.gif",
+  "Time of Decision.jpg.gif",
+  "Tip-Top Shape.jpg.gif",
+  "To Find.jpg",
+  "To Make a Stand.jpg.gif",
+  "To Seek.jpg",
+  "To Stand Alone.jpg.gif",
+  "To Strive.jpg",
+  "To fight Legends.jpg.gif",
+  "To the Victor.jpg.gif",
+  "Toast to Victory.jpg.gif",
+  "Tolonius VII.jpg.gif",
+  "Tomorrow's Children.jpg.gif",
+  "Tonia Wells.jpg.gif",
+  "Too Predictable.jpg.gif",
+  "Trace Miller.jpg.gif",
+  "Trade Sanctions.jpg.gif",
+  "Trade War.jpg.gif",
+  "Trakis.jpg.gif",
+  "Treachery.jpg.gif",
+  "Trial By Fire.jpg.gif",
+  "Triple-cross.jpg.gif",
+  "Trivial Gains.jpg.gif",
+  "Trouble-Maker.jpg",
+  "Troubles Brewing.jpg.gif",
+  "Truce.jpg.gif",
+  "Trulann.jpg.gif",
+  "Trust the Corps.jpg",
+  "Tualakh Vit'lokh.jpg.gif",
+  "Tunnel of Life & Death.jpg.gif",
+  "Tuzanor.jpg",
+  "Twelve.jpg.gif",
+  "Twisting the Knife.jpg.gif",
+  "Two.jpg.gif",
+  "Tyranny Enthroned.jpg.gif",
+  "UST.jpg.gif",
+  "Ulkesh Kosh.jpg.gif",
+  "Ulkesh.jpg",
+  "Ulterior Motives.jpg.gif",
+  "Unauthorized Scan.jpg.gif",
+  "Uncertain Followers.jpg.gif",
+  "Uncertain Futures.jpg.gif",
+  "Uncertain Times.jpg.gif",
+  "Under Our Protection.jpg.gif",
+  "UnderCover Investigation.jpg.gif",
+  "Underground Leader.jpg.gif",
+  "Underground Railroad.jpg.gif",
+  "Underground Resistance.jpg.gif",
+  "Underground Telepath.jpg.gif",
+  "Undermine Trust.jpg.gif",
+  "Undermined.jpg",
+  "Underutilized Resources.jpg.gif",
+  "Undung Hero.jpg.gif",
+  "Unexpected Activity.jpg.gif",
+  "Unexpected Return.jpg.gif",
+  "Unfounded Rumors.jpg.gif",
+  "Unheralded Losses.jpg.gif",
+  "Unity.jpg.gif",
+  "Universal Enemy.jpg.gif",
+  "Universal Policeman.jpg.gif",
+  "University Complex.jpg.gif",
+  "Unpopular Goals.jpg.gif",
+  "Unpopular Intervention.jpg.gif",
+  "Unrecognition Data.jpg.gif",
+  "Unrelenting Pressure.jpg.gif",
+  "Unstuck in Time.jpg.gif",
+  "Ur'nammu.jpg.gif",
+  "Use The Machine.jpg",
+  "Utility Fleet.jpg.gif",
+  "VIP Involvement.jpg.gif",
+  "Va Kal.jpg.gif",
+  "Va'Kal (V).jpg",
+  "Valarius.jpg.gif",
+  "Valen (V).jpg",
+  "Valen's Gift.jpg",
+  "Valen's War.jpg.gif",
+  "Valeria.jpg",
+  "Varn.jpg",
+  "Vengeance Fleet.jpg.gif",
+  "Venlesh.jpg.gif",
+  "Veteran Fleet.jpg.gif",
+  "Vicious Blow.jpg.gif",
+  "Vicious Rumors.jpg.gif",
+  "Victory.jpg.gif",
+  "Visions in Time.jpg.gif",
+  "Vital Interest.jpg.gif",
+  "Vizak.jpg.gif",
+  "Vlur-Nhar.jpg.gif",
+  "Vocator Jaddo.jpg",
+  "Voice of the Resistance.jpg.gif",
+  "Vorlon Allies.jpg.gif",
+  "Vorlon Cruiser.jpg.gif",
+  "Vorlon Dreams.jpg.gif",
+  "Vorlon Order.jpg.gif",
+  "Vorlon Planet Killer.jpg.gif",
+  "Vorlon Protection.jpg.gif",
+  "Vorlon Proxy.jpg.gif",
+  "Vorlon Renegade.jpg.gif",
+  "Vorlon Space.jpg.gif",
+  "Vorlon Strike Fleet.jpg.gif",
+  "Vorlon Universe.jpg.gif",
+  "Vorlon War Fleet.jpg.gif",
+  "Vorlon.jpg.gif",
+  "VorlonMark.jpg.gif",
+  "Vorlons Ascendent.jpg.gif",
+  "Vree Scouts.jpg.gif",
+  "Wade, Corporate Henchman.jpg",
+  "Wade.jpg.gif",
+  "Walkabout.jpg.gif",
+  "Walker Smith.jpg",
+  "Walking Stick.jpg",
+  "War Crimes trial.jpg.gif",
+  "War Fever.jpg.gif",
+  "War Footing.jpg.gif",
+  "War Protesters.jpg.gif",
+  "War of Information.jpg.gif",
+  "Wargames.jpg.gif",
+  "Warlock Destroyers.jpg.gif",
+  "Warpath.jpg",
+  "Warren Keffer (V).jpg",
+  "Warriors Council.jpg.gif",
+  "Wastelands.jpg.gif",
+  "Watch Your Back.jpg.gif",
+  "We Are One.jpg.gif",
+  "We Are not Impressed.jpg.gif",
+  "We Can't Allow That.jpg.gif",
+  "We Die for The One.jpg.gif",
+  "We Have Always Been Here.jpg.gif",
+  "We Say It's Over.jpg.gif",
+  "We Serve the One.jpg",
+  "We Think Alike.jpg.gif",
+  "We are Both Damned.jpg.gif",
+  "We'll Take Over.jpg.gif",
+  "Well Publicized.jpg.gif",
+  "Well of Forever.jpg.gif",
+  "What Are You.jpg.gif",
+  "What Were You Thinking.jpg.gif",
+  "Wheel of Fire.jpg.gif",
+  "When Duty Calls.jpg.gif",
+  "Where No Others Will Enter.jpg",
+  "White Star 2.jpg",
+  "White Star 27.jpg",
+  "White Star 90.jpg",
+  "White Star Attack Wing.jpg",
+  "White Star Fleet.jpg.gif",
+  "White Star Patrol Wing.jpg",
+  "White Star Recon Wing.jpg",
+  "Who Do You Serve.jpg.gif",
+  "Who's Your Little Pak'ma'ra.jpg.gif",
+  "Why Are You Here.jpg.gif",
+  "Why Are You Hitting Me.jpg.gif",
+  "William Edgars.jpg.gif",
+  "William Morgan Clark (Ambassador).jpg.gif",
+  "William Morgan Clark.jpg.gif",
+  "Win-Win Schemes.jpg.gif",
+  "Wisdom Of G Quan.jpg.gif",
+  "With Us or Against Us.jpg.gif",
+  "With a Sacrifice.jpg.gif",
+  "With an Iron Fist.jpg.gif",
+  "Withdrawal.jpg.gif",
+  "Work of the Wicked.jpg.gif",
+  "Working Together.jpg.gif",
+  "Written in the Stars.jpg.gif",
+  "Wrong Place and Time.jpg.gif",
+  "Wushmeshkeshlep Fo.jpg.gif",
+  "Xenophobia.jpg.gif",
+  "Yabc Ftoba.jpg.gif",
+  "Yellow Journalism.jpg.gif",
+  "You Are Expendable.jpg.gif",
+  "You Didn't Mean That.jpg.gif",
+  "You Do Not Understand.jpg.gif",
+  "You Have No Power Here.jpg.gif",
+  "You Have a Destiny.jpg.gif",
+  "You Three Are One.jpg.gif",
+  "Z'athras.jpg.gif",
+  "Z'ha'dum Awaken.jpg.gif",
+  "Za'thras.jpg.gif",
+  "Zagros VII.jpg",
+  "Zat'hras.jpg.gif",
+  "Zath'ras.jpg.gif",
+  "Zathr'as.jpg.gif",
+  "Zathra's.jpg.gif",
+  "Zathras Fix.jpg",
+  "Zathras Who Was.jpg.gif",
+  "Zathras'.jpg.gif",
+  "Zathras.jpg.gif",
+  "Zero Sum Game.jpg.gif",
+  "Zhabar.jpg.gif",
+  "Zog!.jpg.gif",
+  "Zoog.jpg",
+  "b5.card.back.jpg.gif",
+  "b5.chip.power.pos.01.bmp.gif",
+  "blueten.jpg.gif",
+  "blueten160.bmp.gif",
+  "blueten160.jpg.gif",
+  "cg0.jpg.gif",
+  "de1.bmp.gif",
+  "dip3.jpg.gif",
+  "id.jpg.gif",
+  "x.GIF.gif"
+ ],
+ "user_supplied": {
+  "event_changing_opinion.jpg": "de_event_changing_opinion (face-verified, CCG Trader watermark, real JPEG)",
+  "event_exploration.jpg": "event_exploration (face-verified, CCG Trader watermark, real JPEG; no cost orb legible, bottom cropped at watermark)"
+ },
+ "verified_alias_titles": {
+  "Colonial Fleet.jpg.gif": "Colonial Fleet (Minbari)",
+  "Comdemn Deportations.jpg.gif": "Condemn Deportations",
+  "Compatiable Goals.jpg.gif": "Compatible Goals",
+  "Deep Space Fleet.jpg.gif": "Deep Space Fleet (Minbari)",
+  "Defense of Depth.jpg.gif": "Defense in Depth",
+  "Empereror Turham.jpg.gif": "Emperor Turhan",
+  "Expeditionary Fleet.jpg.gif": "Expeditionary Fleet (Minbari)",
+  "Expenditionary Fleet (Human).jpg.gif": "Expeditionary Fleet (Human)",
+  "First Battle Fleet.jpg.gif": "First Battle Fleet (Minbari)",
+  "Homeworld Fleet.jpg.gif": "Homeworld Fleet (Minbari)",
+  "Judgement by Sucess.jpg.gif": "Judgment by Success",
+  "Knowledge of Power.jpg.gif": "Knowledge is Power",
+  "Level the Playing Field.jpg.gif": "Level the Playing Field 3+9",
+  "Moral Quandry.jpg.gif": "Moral Quandary",
+  "Non-Aggresion Pact.jpg.gif": "Non-Aggression Pact",
+  "Peace in Our Times.jpg.gif": "Peace In Our Time",
+  "Personnal Enemies.jpg.gif": "Personal Enemies",
+  "Picket Fleet.jpg.gif": "Picket Fleet (Minbari)",
+  "Reserve Fleet (Human).jpg.gif": "Reserve Fleet",
+  "Second Battle Fleet.jpg.gif": "Second Battle Fleet (Minbari)",
+  "Strike Fleet (Narn).jpg.gif": "Strike Fleet",
+  "Third Battle Fleet.jpg.gif": "Third Battle Fleet (Minbari)",
+  "Unrecognition Data.jpg.gif": "Unrecognized Data",
+  "Vital Interest.jpg.gif": "Vital Interests"
+ },
+ "verified_aliases": {
+  "Colonial Fleet.jpg.gif": "de_fleet_colonial_minbari",
+  "Comdemn Deportations.jpg.gif": "de_conf_condemn_deportations",
+  "Compatiable Goals.jpg.gif": "de_conf_compatible_goals",
+  "Deep Space Fleet.jpg.gif": "de_fleet_deep_space_minbari",
+  "Defense of Depth.jpg.gif": "de_agenda_defense_in_depth",
+  "Empereror Turham.jpg.gif": "de_char_emperor_turhan",
+  "Expeditionary Fleet.jpg.gif": "fleet_expeditionary_minbari",
+  "Expenditionary Fleet (Human).jpg.gif": "fleet_expeditionary_human",
+  "First Battle Fleet.jpg.gif": "de_fleet_first_battle_minbari",
+  "Homeworld Fleet.jpg.gif": "fleet_homeworld_minbari",
+  "Judgement by Sucess.jpg.gif": "de_enh_judgment_by_success",
+  "Knowledge of Power.jpg.gif": "de_agenda_knowledge_is_power",
+  "Level the Playing Field.jpg.gif": "event_level_the_playing_field",
+  "Moral Quandry.jpg.gif": "de_event_moral_quandary",
+  "Non-Aggresion Pact.jpg.gif": "de_conf_non_aggression_pact",
+  "Peace in Our Times.jpg.gif": "de_agenda_peace_in_our_time",
+  "Personnal Enemies.jpg.gif": "de_am_personal_enemies",
+  "Picket Fleet.jpg.gif": "de_fleet_picket_minbari",
+  "Psi Corps Intelligence variants": {
+   "group_psi_corps_intelligence.gif": "Psi Corps Intelligence (Psi).jpg.gif",
+   "group_psi_corps_intelligence_2.gif": "Psi Corps Intelligence (Bester).jpg.gif"
+  },
+  "Reserve Fleet (Human).jpg.gif": "de_fleet_reserve_human",
+  "Second Battle Fleet.jpg.gif": "de_fleet_second_battle_minbari",
+  "Strike Fleet (Narn).jpg.gif": "de_fleet_strike_fleet",
+  "Third Battle Fleet.jpg.gif": "de_fleet_third_battle_minbari",
+  "Unrecognition Data.jpg.gif": "de_event_unrecognized_data",
+  "Vital Interest.jpg.gif": "de_enh_vital_interests"
+ }
+}

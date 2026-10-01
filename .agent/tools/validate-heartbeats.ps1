@@ -26,6 +26,14 @@
    * live_claims is validated against the RAW TEXT, not the parsed object, because
      PowerShell 5.1 ConvertFrom-Json does not round-trip array-ness reliably.
 
+   * B5-1469: a heartbeat whose utc payload reads more than 60 minutes ahead of
+     sampled UtcNow OR more than 60 minutes ahead of its own file mtime is a
+     FUTURE SKEW finding, reported with the value and both deltas. Tolerance is
+     matched to the runner's 60-minute bound (B5-0952/B5-1466) so the two
+     instruments agree. The finding is a data-quality defect, NOT a liveness
+     input: mtime stays the sole liveness source per the run-queue heartbeat
+     index, and this check never changes TTL or reap semantics.
+
    * mtime is reported next to the parsed value: during the 2026-09-27 survey mtime
      was the most reliable liveness signal because payloads were malformed in 19 of 32
      files while the filesystem maintained mtime regardless.
@@ -36,6 +44,7 @@
 .PARAMETER Directory  Heartbeat directory. Default <repo>/.agent/HEARTBEATS
 .PARAMETER Json       Emit machine-readable JSON instead of the table.
 .PARAMETER TtlMinutes Freshness window for the mtime column (default 30).
+.PARAMETER FutureSkewMinutes Future-skew tolerance for the utc payload vs sampled UtcNow and vs the file's own mtime (default 60, matched to the runner bound).
 
 .OUTPUTS
   Exit 0 = every heartbeat conforms. Exit 1 = a non-conforming or unreadable file.
@@ -45,7 +54,8 @@
 param(
     [string]$Directory,
     [switch]$Json,
-    [int]$TtlMinutes = 30
+    [int]$TtlMinutes = 30,
+    [int]$FutureSkewMinutes = 60
 )
 
 $ErrorActionPreference = "Continue"      # deliberate: a bad file is a finding, not a crash
@@ -74,13 +84,20 @@ $regPath  = Join-Path $Directory '_registry.json'
 if (Test-Path -LiteralPath $regPath) {
     try {
         $registry = @{}
-        $rm = ([IO.File]::ReadAllText($regPath) | ConvertFrom-Json -ErrorAction Stop).map
+        # B5-1002: encoding pinned to explicit UTF-8 (heartbeats are strict JSON, UTF-8 per HEARTBEATS/README.md).
+        $rm = ([IO.File]::ReadAllText($regPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json -ErrorAction Stop).map
         if ($null -ne $rm) { $rm.PSObject.Properties | ForEach-Object { $registry[$_.Name] = $_.Value } }
     } catch { $registry = $null }
 }
 
 $now   = [DateTime]::UtcNow
-$files = @(Get-ChildItem -LiteralPath $Directory -File | Where-Object { $_.Name -ne 'README.md' -and $_.Name -ne '_registry.json' })
+# B5-1062: recurse into _quarantine/. A quarantined file is out of the live store by
+# decision, but a lookalike-codepoint name is a DEFECT OF THE NAME, not of the
+# location, and the only cross-file evidence of the collision is the sibling's presence.
+# Without -Recurse this tool reported 0 collisions on a store that held a live one.
+# -File keeps subdirectories from being returned; '*.json' filtering is done below
+# rather than via -Filter so that non-.json entries stay visible as EXTENSION findings.
+$files = @(Get-ChildItem -LiteralPath $Directory -File -Recurse | Where-Object { $_.Name -ne 'README.md' -and $_.Name -ne '_registry.json' })
 if ($files.Count -eq 0) { Write-Error "Heartbeat directory is empty: $Directory"; exit 2 }
 
 $results = @()
@@ -91,7 +108,7 @@ foreach ($f in $files) {
     $data   = $null
     $raw    = ''
 
-    try { $raw = [IO.File]::ReadAllText($f.FullName) } catch { $issues.Add("UNREADABLE: $($_.Exception.Message)"); $raw = '' }
+    try { $raw = [IO.File]::ReadAllText($f.FullName, [System.Text.Encoding]::UTF8) } catch { $issues.Add("UNREADABLE: $($_.Exception.Message)"); $raw = '' }
 
     $stem   = [IO.Path]::GetFileNameWithoutExtension($f.Name)
     $ageMin = [int](($now - $f.LastWriteTimeUtc).TotalMinutes)
@@ -119,6 +136,20 @@ foreach ($f in $files) {
         } else {
             $parsed = [DateTime]::MinValue
             if (-not [DateTime]::TryParse($tsValue, [ref]$parsed)) { $issues.Add("TIMESTAMP UNPARSEABLE: '$tsValue'") }
+            else {
+                # B5-1469: heartbeat-side future-skew gate, the complement of the
+                # claims-side B5-1466 rule in the census tools. A payload clocked more
+                # than $FutureSkewMinutes ahead of sampled UtcNow or of its own file
+                # mtime is the B5-1008/B5-0952 clock-defect class wearing a heartbeat:
+                # report it with the value and both deltas. It is a FINDING only -- it
+                # never feeds liveness; mtime stays the sole liveness source.
+                $parsedUtc = if ($parsed.Kind -eq [DateTimeKind]::Local) { $parsed.ToUniversalTime() } else { [DateTime]::SpecifyKind($parsed, [DateTimeKind]::Utc) }
+                $aheadOfNowMin   = ($parsedUtc - $now).TotalMinutes
+                $aheadOfMtimeMin = ($parsedUtc - $f.LastWriteTimeUtc).TotalMinutes
+                if ($aheadOfNowMin -gt $FutureSkewMinutes -or $aheadOfMtimeMin -gt $FutureSkewMinutes) {
+                    $issues.Add(("FUTURE SKEW: utc '{0}' is {1:N1} min ahead of sampled UtcNow and {2:N1} min ahead of its own file mtime (tolerance {3} min). Finding only -- never feeds liveness; mtime stays the sole liveness source per the run-queue heartbeat index." -f $tsValue, $aheadOfNowMin, $aheadOfMtimeMin, $FutureSkewMinutes))
+                }
+            }
             if ('utc' -notin $props) { $notes.Add("legacy timestamp field '$tsKey' (tolerated one cycle); canonical field is 'utc'") }
         }
 
@@ -149,6 +180,28 @@ foreach ($f in $files) {
     }
 
     if ($f.Extension -ne '.json') { $issues.Add("EXTENSION: '$($f.Name)' is not a .json file") }
+
+    # B5-1062: a lookalike codepoint in the FILENAME is a finding in its own right.
+    # The cross-file agent_id check below cannot see it: a U+F03A colon satisfies every
+    # Windows filename constraint, so 'solar-pro4<U+F03A>free.json' parses, and if the
+    # correctly-spelled sibling is absent from the scanned set the store reports
+    # 0 collisions while two sessions share one identity. Measured on the live store
+    # before this check existed: 94 files / 0 collisions, with the sibling sitting
+    # in _quarantine/ that the non-recursive listing never reached.
+    # NOTE: no \u{...} astral escape here. .NET's regex engine rejects the brace form
+    # outright ("Insufficient hexadecimal digits"), and a regex that throws inside
+    # Matches() returns 0 findings -- a validator that silently reports "clean" on the
+    # exact input it was written to catch. Astral PUA is matched by explicit surrogate
+    # pairs below instead.
+    $lookalikes = @(
+        [regex]::Matches($f.Name, '[\uE000-\uF8FF]')                       # BMP private use
+        [regex]::Matches($f.Name, '\uD800[\uDC00-\uDFFF]')                 # astral PUA, low surrogate
+        [regex]::Matches($f.Name, '\u2028|\u2029|\u00A0')                 # line/para sep, NBSP
+    ) | ForEach-Object { $_ } | Where-Object { $_ -ne $null }
+    if (@($lookalikes).Count -gt 0) {
+        $cps = (@($lookalikes) | ForEach-Object { 'U+{0:X4}' -f [int][char]$_.Value } | Sort-Object -Unique) -join ', '
+        $issues.Add("FILENAME LOOKALIKE: '$($f.Name)' contains non-ASCII codepoint(s) $cps -- a PUA or separator character that Windows accepts in a filename but that reads as ':' or '/' and produces a DIFFERENT stem for the SAME agent_id (R7). Sanitise to the documented ':'/'/' -> '-' form; do not mint a second file.")
+    }
 
     $results += [pscustomobject]@{
         File         = $f.Name
@@ -193,6 +246,8 @@ if ($Json) {
     Write-Output ("files     : {0}   conforming: {1}   non-conforming: {2}" -f $results.Count, $ok.Count, $bad.Count)
     Write-Output ("identity  : {0} distinct agent_id   collisions: {1}" -f $byAgent.Count, $collisions.Count)
     Write-Output ("TTL       : {0} min" -f $TtlMinutes)
+    # B5-1002: encoding receipt -- every file above was read as explicit UTF-8.
+    Write-Output "encoding  : UTF-8 (explicit; [IO.File]::ReadAllText(path, UTF8))"
     Write-Output ""
     Write-Output ("{0,-44} {1,-40} {2,-9} {3,-8} {4}" -f 'FILE', 'AGENT_ID', 'MTIME_MIN', 'STATE', 'VERDICT')
     Write-Output ("-" * 118)

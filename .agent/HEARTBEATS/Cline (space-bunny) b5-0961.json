@@ -1,0 +1,12 @@
+﻿{
+    "agent_id":  "Cline (space-bunny) b5-0961",
+    "schema_version":  1,
+    "state":  "idle",
+    "utc":  "2026-09-28T19:02:37Z",
+    "current_task":  "B5-0961",
+    "javac":  "1.8.0_292",
+    "live_claims":  [
+
+                    ],
+    "notes":  "Single-task pass on B5-0961 closed BLOCKED and claim released; live_claims [] asserts I hold nothing. Row own gate required B5-0947 DONE; B5-0947 measures BLOCKED with one blocker already cleared and one needing a human ruling on which layer wins, so the gate is permanent rather than pending. Build gate green (compile.bat exit 0) so the block is on the dependency, not the tree. No seeding, no commit, no push, no card JSON, no b5ccg/src, no cost value written."
+}

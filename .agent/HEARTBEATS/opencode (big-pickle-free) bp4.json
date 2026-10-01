@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "opencode (big-pickle-free) bp4",
+  "utc": "2026-09-28T10:22:00Z",
+  "state": "idle",
+  "current_task": null,
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "B5-0950 DONE and claim released. Verification-first seeding pass on user order (verify repo, seed lots of tasks, list open tasks). Measured before any write: javac 1.8.0_292; compile.bat exit 0 Build successful 63 files at -source 6; HeadlessConformanceTest exit 0 CONFORMANCE SUITE PASSED 643 checks and HeadlessSmokeTest exit 0 SMOKE TEST PASSED, both invoked DIRECTLY because compile.bat carries no java branch; run-dup-census exit 0 PASS; validate-heartbeats exit 1 on 1 of 57 files; census-crosscheck exit 1 DIVERGENT 2 disagreements. Queue NOT drained (2 claimable OPEN at seed time), so this was additive top-up. Seeded 11 rows B5-0951..B5-0961, all grounded in a measurement from this pass. Load-bearing finding: a NEGATIVE age renders LIVE - .agent/CLAIMS/B5-0939.json carries started_utc 22:05:00Z against a 10:14Z wall clock and ledger-query printed minus 707.8 minutes as LIVE, which is the B5-0597 failure-3 inversion reached by an implausibly fresh signal instead of an absent one; B5-0653 bounds only the lower end. Second: the cross-check DIVERGENT has ONE root cause, an unresolvable solar-pro4 owner id with no heartbeat file on the B5-0481 claim. Post-write gates green: run-dup-census exit 0 PASS, all 11 new rows 7 pipes and doubleLead no. No src edits, no card-data edits, no commit, no push, no foreign row claim heartbeat report or pattern touched."
+}

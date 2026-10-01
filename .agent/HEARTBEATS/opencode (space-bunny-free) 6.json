@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "opencode (space-bunny-free) 6",
+  "utc": "2026-09-30T06:26:08Z",
+  "state": "idle",
+  "current_task": null,
+  "live_claims": [],
+  "javac": "1.8.0_292",
+  "notes": "Seeding pass complete on user order. Seeded B5-1109..B5-1127 as OPEN, 10 rows, claimable; no claim held at any point and none of the 10 worked; own rows only. Grounded every premise by measurement before writing: 4 findings, of which 2 were ALREADY OWNED and deliberately not seeded (the 2699-line UNKNOWN FIELD flood is B5-1068 to fix; the influenceReward drop causing the HeadlessConformanceTest 507 ClassCastException is B5-1087 triaged and B5-1088 to fix) and 2 are unowned and carry the wave: the B5-1038 cost gate checks raw card cost while RECRUIT_CHARACTER charges through SponsorCost, so gate and charge read two cost notions for the same card (B5-1109, consumed by B5-1121); and 377 of 829 records now carry a cost field against 0 at the B5-0311 C1 census with 268 of the 377 costing more than the starting appliedPool of 4, so 71 percent of the costed pool is unplayable on turn one (B5-1113, with B5-1119 adding the AI action-mix leg). COLLISION: a concurrent seeder took B5-1107 between my pre-check and my SHA-guarded append; post-write census caught it as x2; I diverged my row to non-adjacent B5-1127 per B5-0622 and left the foreign row byte-identical with status untouched. Planned 19, shipped 10, and the queue note says 10 and says why. Gates: run-dup-census PASS exit 0, all 10 own rows 7 pipes doubleLead no, append added no new defect class. Scratch probe git-ignored and deleted. No foreign row or claim or heartbeat edited, no src or data edit, no commit, no push."
+}

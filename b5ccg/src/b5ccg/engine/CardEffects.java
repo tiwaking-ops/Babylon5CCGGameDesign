@@ -103,6 +103,14 @@ public final class CardEffects {
         CONFLICT_LOSER_INFLUENCE.put("de_conf_loss_of_support",      Integer.valueOf(1));
         CONFLICT_LOSER_INFLUENCE.put("conf_hate_crime",              Integer.valueOf(2));
         CONFLICT_LOSER_INFLUENCE.put("de_conf_hate_crime",           Integer.valueOf(2));
+        // B5-1089 (WRONG #2 of 7 from B5-1032): de_conf_bio_weapon_discovery
+        // deluxe delta — "loser also loses 1 Influence" on top of the
+        // existing discard-2 (CONFLICT_LOSER_DISCARD). Premiere
+        // conf_bio_weapon_discovery stays discards-only by omission from
+        // this table (same shape as the B5-1045 AGENDA_BANS_DIPLOMACY_AFTERMATH
+        // deluxe-only split). Data text (deluxe.json): "Loser must discard 2
+        // cards. (Deluxe text change: loser also loses 1 Influence.)"
+        CONFLICT_LOSER_INFLUENCE.put("de_conf_bio_weapon_discovery", Integer.valueOf(1));
     }
 
     // ── Conflicts: card id → cards the LOSER discards at random ─────────────
@@ -146,6 +154,23 @@ public final class CardEffects {
             Arrays.asList(new String[] {
                 "agenda_total_war",       "de_agenda_total_war",
                 "agenda_order_above_all", "de_agenda_order_above_all"
+            }));
+
+    // ── Agendas: card id → the owner's own play restriction ─────────────────
+    // Data (deluxe.json, de_agenda_total_war): "You may not play Diplomacy
+    // conflict cards. (Deluxe text change: restriction now also prohibits
+    // playing Diplomacy Aftermath cards.)"
+    //
+    // B5-1045: the delta is the Aftermath extension, and it is DELUXE-ONLY —
+    // the premiere twin's id is deliberately absent from this table, so the
+    // premiere path is unchanged in behaviour by construction rather than by a
+    // second branch. B5-1032 records that the core Diplomacy-CONFLICT
+    // restriction is itself unenforced; enforcing that half is out of this
+    // row's scope and would change premiere behaviour, so it is not done here.
+    private static final Set<String> AGENDA_BANS_DIPLOMACY_AFTERMATH =
+            new HashSet<String>(
+            Arrays.asList(new String[] {
+                "de_agenda_total_war"
             }));
 
     // ── Enhancements: location income bonus, id → extra influence/round ─────
@@ -399,6 +424,94 @@ public final class CardEffects {
         }
     }
 
+    // ── Aftermaths: card id → dispatched effect ────────────────────────────
+    // B5-0990 (B5-0741 census slice 1): the first aftermath dispatch entries.
+    // Data: "Negotiated Surrender" (premiere + deluxe) text: "Play after a
+    // Military conflict. The loser may keep one fleet from being rotated.
+    // Gain 1 Influence." (Deluxe adds: loser also draws 1 card.)
+    private static final Set<String> AFTERMATH_NEGOTIATED_SURRENDER =
+            new HashSet<String>();
+    static {
+        AFTERMATH_NEGOTIATED_SURRENDER.add("aftermath_negotiated_surrender");
+        AFTERMATH_NEGOTIATED_SURRENDER.add("de_am_negotiated_surrender");
+    }
+
+    private static final Set<String> AFTERMATH_DIPLOMATIC_ADVANTAGE =
+            new HashSet<String>();
+    static {
+        AFTERMATH_DIPLOMATIC_ADVANTAGE.add("aftermath_diplomatic_advantage");
+        AFTERMATH_DIPLOMATIC_ADVANTAGE.add("de_am_diplomatic_advantage");
+    }
+
+    /** B5-0990: true when cardId is a Negotiated Surrender aftermath. */
+    public static boolean isNegotiatedSurrender(String cardId) {
+        return cardId != null && AFTERMATH_NEGOTIATED_SURRENDER.contains(cardId);
+    }
+
+    /** B5-1051: true when cardId is a Diplomatic Advantage aftermath. */
+    public static boolean isDiplomaticAdvantage(String cardId) {
+        return cardId != null && AFTERMATH_DIPLOMATIC_ADVANTAGE.contains(cardId);
+    }
+
+    /**
+     * B5-0990: aftermath dispatch, called by the AFTERMATH play site in
+     * GameController right after state.attachAftermath. Negotiated Surrender:
+     * resolution rotates every committed fleet, so "the loser may keep one
+     * fleet from being rotated" is implemented as restoring one rotated fleet
+     * the loser committed; the Influence (and the Deluxe draw) belong to the
+     * LOSER, so the effect fires on the played-upon target only when that
+     * target actually lost — never on a won one (rulebook Won/Lost conditions,
+     * audit D1). The play itself is gated by RulesEngine.canPlayAftermath
+     * before dispatch; this method only lands the effect.
+     */
+    public static void applyAftermathEffect(GameState state, Conflict conflict,
+                                            AftermathCard am, Player target,
+                                            Player winner) {
+        if (state == null || conflict == null || am == null
+                || target == null || winner == null) return;
+        if (AFTERMATH_NEGOTIATED_SURRENDER.contains(am.getId())) {
+            if (target != winner) {
+                restoreOneCommittedFleet(state, conflict, target, am);
+                target.gainInfluence(1);
+                state.log(target.getName() + " gains 1 influence ("
+                        + am.getTitle() + ").");
+                if ("de_am_negotiated_surrender".equals(am.getId())) {
+                    target.drawCards(1);
+                    state.log(target.getName() + " draws 1 card ("
+                            + am.getTitle() + " Deluxe).");
+                }
+            }
+            return;
+        }
+        if (AFTERMATH_DIPLOMATIC_ADVANTAGE.contains(am.getId())) {
+            if (target == winner) {
+                target.gainInfluence(2);
+                state.log(target.getName() + " gains 2 influence ("
+                        + am.getTitle() + ").");
+                target.drawCards(1);
+                state.log(target.getName() + " draws 1 card ("
+                        + am.getTitle() + ").");
+            }
+        }
+    }
+
+    /** B5-0990: keep-one-fleet-from-rotating — restore the first fleet the
+     *  loser committed that resolution rotated. Logged no-op when the loser
+     *  committed no fleet (nothing to keep). */
+    private static void restoreOneCommittedFleet(GameState state, Conflict conflict,
+                                                 Player loser, AftermathCard am) {
+        for (Card c : conflict.getCommittedCards(loser)) {
+            if (c instanceof FleetCard && c.isRotated()) {
+                c.unrotate();
+                state.log(loser.getName() + " keeps " + c.getTitle()
+                        + " from being rotated (" + am.getTitle() + ").");
+                return;
+            }
+        }
+        state.log(loser.getName() + " keeps no fleet from being rotated ("
+                + am.getTitle() + "; no fleet committed).");
+    }
+
     /** Agenda effect when played: fleet-wide Military bonus agendas. */
     public static void applyAgendaOnPlay(GameState state, Player p, AgendaCard agenda) {
         if (AGENDA_FLEET_PLUS1.contains(agenda.getId())) {
@@ -434,6 +547,42 @@ public final class CardEffects {
         if (agenda == null || agenda.isFaceDown()) return 0;
         Integer bonus = (Integer) AGENDA_DIPLOMACY_WIN.get(agenda.getId());
         return bonus == null ? 0 : bonus.intValue();
+    }
+
+    /**
+     * B5-1045: true when the card is a Diplomacy Aftermath — an Aftermath whose
+     * Play Conditions require a Diplomacy conflict. Read off the same trigger
+     * token the model already uses in AftermathCard.isEligible, so this adds no
+     * new vocabulary: DIPLOMACY_PARTICIPANT, WON_DIPLOMACY and LOST_DIPLOMACY
+     * are the three trigger forms in the data (6 records per set).
+     */
+    public static boolean isDiplomacyAftermath(AftermathCard card) {
+        return card != null
+                && card.getTriggerCondition().contains("DIPLOMACY");
+    }
+
+    /**
+     * B5-1045: true when p's agenda in play bars p from playing Diplomacy
+     * Aftermath cards (de_agenda_total_war's deluxe-only restriction).
+     * A face-down agenda has no effect until revealed (B5-0364, as at
+     * applyAgendaStartOfRound); the premiere twin never carries the
+     * restriction, so this returns false for it unconditionally.
+     */
+    public static boolean agendaBarsDiplomacyAftermath(Player p) {
+        if (p == null) return false;
+        AgendaCard agenda = p.getAgenda();
+        if (agenda == null || agenda.isFaceDown()) return false;
+        return AGENDA_BANS_DIPLOMACY_AFTERMATH.contains(agenda.getId());
+    }
+
+    /**
+     * B5-1045: the play-legality predicate for the deluxe restriction, called
+     * from RulesEngine.canPlayAftermath. Kept as one method so the play gate
+     * reads the rule rather than re-deriving it, and so the premiere path
+     * returns false here by the absence of its id from the table.
+     */
+    public static boolean isBannedByAgenda(Player p, AftermathCard card) {
+        return isDiplomacyAftermath(card) && agendaBarsDiplomacyAftermath(p);
     }
 
     /** Location income bonus from held location enhancements (startRound). */
@@ -532,6 +681,7 @@ public final class CardEffects {
         DAMAGE_ON_ATTACK.add("de_enh_mines");
         DAMAGE_ON_ATTACK.add("enh_energy_mines");
         DAMAGE_ON_ATTACK.add("de_enh_energy_mines");
+        // B5-1301: enh_mines_rt is the B5-0556 Mines Round-Trip fixture id (built in HeadlessConformanceTest), not a card record - do not census-flag as dead.
         DAMAGE_ON_ATTACK.add("enh_mines_rt");
     }
 

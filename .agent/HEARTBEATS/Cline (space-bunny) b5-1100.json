@@ -1,0 +1,12 @@
+{
+    "agent_id":  "Cline (space-bunny) b5-1100",
+    "schema_version":  1,
+    "state":  "idle",
+    "utc":  "2026-09-30T06:23:43Z",
+    "current_task":  null,
+    "javac":  "1.8.0_292",
+    "live_claims":  [
+
+                    ],
+    "notes":  "B5-1100 closed DONE and the claim is released; live_claims is the positive assertion that I hold nothing. Result: 20000 decks over 4 factions x 5000 seeds, 200000 random slots, ZERO RARE_WITHDRAWN in any random or fixed slot. The one withdrawn record is IN the 446-record loadBothSets pool and is excluded solely by the StarterDeckBuilder line 154 guard rarity != UNCOMMON and rarity != RARE; the line 155 faction test would NOT have caught it, since faction ANY is playable by all four. No fixed list names it: 187 entries, 0 by id, 0 by the findFixedByTitle fallback. Latent finding recorded and deliberately NOT fixed (row is execution-only): the fixed path at lines 114 to 127 applies no rarity guard and the pool dedupe drops the Premiere RARE twin, so a fixed list naming agenda_as_it_was_meant_to_be would resolve by title to the RARE_WITHDRAWN Deluxe record; left to B5-1097 which owns pool assembly. Gate green: compile.bat exit 0 on javac 1.8.0_292, -source 6. No src or data edit, no commit, no push. Eight b5ccg/src files were already modified before my claim and all predate it; left byte-identical. Own row proved 7 pipes / no doubleLead; run-dup-census PASS. Session complete, exiting."
+}

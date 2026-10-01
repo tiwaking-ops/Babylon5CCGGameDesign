@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "agent_id": "me-so-poor-opencode-02",
+  "utc": "2026-09-28T09:11:35Z",
+  "state": "busy",
+  "current_task": "B5-0937",
+  "live_claims": ["B5-0937"],
+  "javac": "1.8.0_292",
+  "notes": "B5-0937 BLOCKED-release (out-of-scope concurrent edits; foreign claim muse-spark-opencode-02 live); in-scope scope untouched; compile not run (foreign src edits); claim .agent/CLAIMS/B5-0937.json left byte-identical; ledger row updated BLOCKED; report+pattern filed; no commit; no foreign claim/heartbeat/row edited."
+}

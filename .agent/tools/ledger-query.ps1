@@ -41,9 +41,49 @@
   Manual fallback one-liner (capture-only rg, tolerates leading double pipe):
     rg -o --no-filename '^\|+\s*B5-[0-9]{4}[a-z]?\s*\|' .agent/TASK_LEDGER.md
 .PARAMETER Status
-  Filter on the status cell (default "OPEN"). Use "*" or "" for all rows.
-.PARAMETER TtlMinutes
-  Liveness window (default 30, per 00_BOOT step 2).
+  Filter on the status cell (default "OPEN"). Use "*", "" or "ALL" for all rows.
+  (B5-1010: ALL is a wildcard alias, not a literal status. Before this fix, ALL
+  fell through to a literal cell match, matched nothing, and exited 0 — an empty
+  result indistinguishable from a clean ledger, the worst failure mode for a
+  census instrument. An unrecognised value now fails loudly with exit 3 instead
+  of printing an empty table, keeping the B5-0777 principle: a census that could
+  not do its job must never report as a clean one. Exit 3 is deliberately
+  distinct from 0/1/2: 3 = could-not-interpret, never matched-nothing.)
+
+  B5-1017: the verdict cell is now LABELLED so no consumer can mistake a
+  reported age for an adjudicated one. The two liveness tools hold different,
+  each-defensible designs — this query REPORTS what the files say (a
+  forged-future started_utc prints its age, negative), while run-queue APPLIES
+  policy (refuses to offer on it). A claim more than 60 minutes ahead of the
+  sampled UTC clock is now UNKNOWN rather than LIVE; smaller skew remains
+  tolerated. What made that difference a defect was that
+  nothing on the page said so: a plain "LIVE" could mean "adjudicated live" or
+  "the arithmetic of an unverified timestamp". LIVE/STALE verdicts now carry a
+  [reported-age] label exactly when the claim's started_utc was accepted
+  unverified; UNSTEALABLE-policy verdicts (absent heartbeat, future-dated) are
+  printed with their policy reason as before. The crosscheck's Get-Word still
+  reads the leading token, so its comparisons are unchanged..PARAMETER TtlMinutes
+    Liveness window (default 30, per 00_BOOT step 2).
+
+B5-1020 (2026-09-30): content-exempt pipe classification. A non-7-pipe row whose
+excess pipes fall strictly inside a double-quoted span, a backtick span, or a row
+carrying an explicit in-row prior adjudication marker (the literal phrase
+"left intact", the convention the adjudicated rows themselves use) is reported as
+`exempt (<classes>)` in the defectReport column instead of `reportable`.
+
+  * The exempt class exists ONLY for pipes inside quoted or adjudicated spans.
+    A new free pipe in plain unquoted prose is STILL A DEFECT — there is no
+    operator, parenthetical, or bare-pipe exemption, because a detector that
+    exempts by row instead of by position would pass every other test.
+  * Span classes apply only when the span delimiters are PAIRED (even count on
+    the line); single-quote spans are deliberately NOT a class (apostrophes in
+    prose make them unsafe), and the classifier requires
+    pipeCount - exemptPipes == 7 EXACTLY — any leftover or over-strip stays
+    `reportable`. DoubleLead rows are never exempt: the lead-pipe repair duty is
+    independent of the count.
+  * Conservative toward reporting MORE: every ambiguity lands on `reportable`,
+    never on `exempt`. No exit code, threshold, TTL, verdict, or the 7-pipe
+    contract is changed by this classification.
 #>
 param(
     [string]$Status = "OPEN",
@@ -57,15 +97,42 @@ $claimsDir = Join-Path $repoRoot ".agent/CLAIMS"
 $hbDir = Join-Path $repoRoot ".agent/HEARTBEATS"
 $reportsDir = Join-Path $repoRoot ".agent/REPORTS"
 $now = [DateTime]::UtcNow
+$FutureTimestampToleranceMinutes = 60
 
 if (-not (Test-Path -LiteralPath $ledger)) { Write-Error "ledger not found: $ledger"; exit 2 }
 
 # --- row parsing: structured row-start cells only ---
 $rowRegex = [regex]'^(\|+)\s*(B5-[0-9]{4}[a-z]?)\s*\|([^|]*)'
-$statusFilter = if ($Status -eq "*" -or $Status -eq "") { $null } else { $Status }
+# B5-1010: wildcard handling. ALL (case-insensitive) joins "*" and "" as the
+# all-rows wildcard, ending the ALL-vs-* divergence two sessions observed and
+# deferred (B5-0998, 2026-09-29 verification pass). Any other value is matched
+# LITERALLY against the status cell — but only after being checked against the
+# vocabulary the ledger header and the live data actually use (OPEN, CLAIMED,
+# DONE, BLOCKED, VOID, SUPERSEDED). An unrecognised value exits 3 BEFORE any
+# table is printed, because an empty result must never be the tool's way of
+# saying "could not interpret": a census that silently returns nothing is
+# indistinguishable from a clean ledger. The vocabulary is stated, not inferred
+# at runtime, so a future status value added to the ledger without updating
+# this list fails LOUD here — which is the correct direction for a gate.
+$knownStatuses = @("OPEN", "CLAIMED", "DONE", "BLOCKED", "VOID", "SUPERSEDED")
+$statusFilter = $null
+if ($Status -eq "*" -or $Status -eq "") {
+    $statusFilter = $null
+} elseif ($Status -ieq "ALL") {
+    $statusFilter = $null
+} elseif ($knownStatuses -icontains $Status) {
+    $statusFilter = $knownStatuses | Where-Object { $_ -ieq $Status } | Select-Object -First 1
+} else {
+    Write-Output ("UNRECOGNISED STATUS FILTER '{0}': not a wildcard (star, empty, ALL) and not in the ledger status vocabulary [{1}]. Exiting 3 rather than printing an empty table, because an empty result must never mean could-not-interpret (B5-1010)." -f $Status, ($knownStatuses -join ", "))
+    exit 3
+}
 
 $rows = @()
-foreach ($line in [System.IO.File]::ReadAllLines($ledger)) {
+# B5-1002: encoding pinned to explicit UTF-8. The parameterless ReadAllLines
+# overload defaults to UTF-8 but names nothing, and a count whose instrument is
+# unnamed cannot be reproduced -- a naive Get-Content read of docs/DECISIONS.md
+# reports 1600 C1 marks where this read reports 0 on the same bytes.
+foreach ($line in [System.IO.File]::ReadAllLines($ledger, [System.Text.Encoding]::UTF8)) {
     $m = $rowRegex.Match($line)
     if (-not $m.Success) { continue }
     $leading = $m.Groups[1].Value
@@ -73,11 +140,51 @@ foreach ($line in [System.IO.File]::ReadAllLines($ledger)) {
     $st = $m.Groups[3].Value.Trim()
     if ($statusFilter -and $st -ne $statusFilter) { continue }
     $pipeCount = ([regex]::Matches($line, '\|')).Count
+    $isDouble = ($leading.Length -gt 1)
+
+    # B5-1020: content-exempt classification. See the header notes: quoted spans,
+    # backtick spans, and the explicit in-row prior-adjudication marker are the
+    # only classes; the exact-7 arithmetic backstop keeps every ambiguous row on
+    # `reportable`, and doubleLead rows are never exempt.
+    $exempt = $null
+    if ($pipeCount -gt 7 -and -not $isDouble) {
+        if ($line -match 'left intact') {
+            $exempt = "exempt (in-row prior adjudication marker)"
+        } else {
+            $n = $line.Length
+            $exemptSet = New-Object 'System.Collections.Generic.HashSet[int]'
+            $btCount = 0; $dqCount = 0
+            $btTotal = ([regex]::Matches($line, [regex]::Escape('`'))).Count
+            if ($btTotal -ge 2 -and ($btTotal % 2 -eq 0)) {
+                $inB = $false
+                for ($i = 0; $i -lt $n; $i++) {
+                    if ($line[$i] -eq '`') { $inB = -not $inB; continue }
+                    if ($inB -and $line[$i] -eq '|') { [void]$exemptSet.Add($i); $btCount++ }
+                }
+            }
+            $dqTotal = ([regex]::Matches($line, '"')).Count
+            if ($dqTotal -ge 2 -and ($dqTotal % 2 -eq 0)) {
+                $inQ = $false
+                for ($i = 0; $i -lt $n; $i++) {
+                    if ($line[$i] -eq '"') { $inQ = -not $inQ; continue }
+                    if ($inQ -and $line[$i] -eq '|') { [void]$exemptSet.Add($i); $dqCount++ }
+                }
+            }
+            if ($exemptSet.Count -gt 0 -and (($pipeCount - $exemptSet.Count) -eq 7)) {
+                $classes = @()
+                if ($btCount -gt 0) { $classes += 'backtick span' }
+                if ($dqCount -gt 0) { $classes += 'double-quoted span' }
+                if ($classes.Count -gt 0) { $exempt = "exempt (" + ($classes -join '; ') + ")" }
+            }
+        }
+    }
+
     $rows += [pscustomobject]@{
         Id        = $id
         Status    = $st
         Pipes     = $pipeCount
-        Double    = ($leading.Length -gt 1)
+        Double    = $isDouble
+        Exempt    = $exempt
     }
 }
 
@@ -102,17 +209,19 @@ if (Test-Path -LiteralPath $claimsDir) {
         # with it only because its catch body was empty.
         $cf = $_
         try {
-            $c = Get-Content -Raw -LiteralPath $cf.FullName | ConvertFrom-Json
+            $c = Get-Content -Raw -Encoding UTF8 -LiteralPath $cf.FullName | ConvertFrom-Json
             $started = $null
             if ($c.started_utc) {
                 try { $started = [DateTime]::Parse($c.started_utc).ToUniversalTime() } catch { $started = $null }
             }
             if (-not $started) { $started = $cf.LastWriteTimeUtc }
+            $futureSkew = (($started - $now).TotalMinutes -gt $FutureTimestampToleranceMinutes)
             $claims[$cf.BaseName] = [pscustomobject]@{
                 Owner   = $c.agent_id
                 Started = $started
                 FileT   = $cf.LastWriteTimeUtc
                 Bad     = $false
+                FutureSkew = $futureSkew
             }
         } catch {
             # An UNPARSEABLE claim is UNKNOWN, not UNCLAIMED (B5-0659). Dropping it
@@ -198,9 +307,10 @@ function Get-CensusSuppression {
     # .agent/run-queue.ps1. Two tools disagreeing about which rows are reportable
     # would recreate exactly the defect class this protocol exists to stop, and
     # .agent/tools/census-crosscheck.ps1 is the shipped instrument for proving they
-    # agree. NOTE: run-queue.ps1 is still TWO-signal and still falls back to claim
-    # age on a missing heartbeat, because .agent/CLAIMS/B5-0653.json holds a live
-    # claim on that function; reconciling it is seeded as B5-0660.
+    # agree. B5-0953: run-queue.ps1 now answers UNKNOWN and suppresses on a
+    # missing or unjoinable owner heartbeat exactly as this copy always has,
+    # so the B5-0649 claim-age fallback is retired and the B5-0660 seed that
+    # once tracked the divergence is closed by convergence.
     $sup = @{}
     if (-not (Test-Path -LiteralPath $claimsDir)) { return $sup }
     foreach ($f in (Get-ChildItem -LiteralPath $claimsDir -Filter "B5-*.json")) {
@@ -208,7 +318,7 @@ function Get-CensusSuppression {
         $owner = $null
         $started = $null
         try {
-            $c = Get-Content -Raw -LiteralPath $f.FullName | ConvertFrom-Json
+            $c = Get-Content -Raw -Encoding UTF8 -LiteralPath $f.FullName | ConvertFrom-Json
             $owner = $c.agent_id
             $ttl = $TtlMinutes
             if ($c.ttl_min) { $ttl = [int]$c.ttl_min }   # per-claim TTL wins, as in run-queue
@@ -240,15 +350,29 @@ foreach ($r in $rows) {
     $claimOrNull = $null
     if ($claims.ContainsKey($r.Id)) { $claimOrNull = $claims[$r.Id] }
 
-    $owner = "-"; $claimAge = "-"; $hbAge = "-"; $reportAge = "-"; $verdict = "-"; $reason = ""
+    $owner = "-"; $claimAge = "-"; $hbAge = "-"; $reportAge = "-"; $verdict = "-"; $reason = ""; $claimAgeNote = $null
     if ($claimOrNull) {
         if ($claimOrNull.Bad) {
             $claimAge = [math]::Round(($now - $claimOrNull.FileT).TotalMinutes, 1)
             $verdict = "UNKNOWN"
             $reason = "claim file present but unparseable; its mtime is still a usable signal, an unreadable signal is never LIVE"
         } else {
-        $owner = $claimOrNull.Owner
-        if ($owner) {
+            # B5-1017: record HOW the started_utc was accepted. A parseable,
+            # plausible timestamp is still an UNVERIFIED claim by the file's own
+            # author; a future-dated one is the known forgery/skew class. The
+            # three-signal NEWEST arithmetic below is identical either way — what
+            # changes is the label on the printed verdict, so a reader can tell
+            # "adjudicated from live signals" from "arithmetic over an unverified
+            # timestamp". A future skew beyond the shared tolerance is UNKNOWN,
+            # never LIVE; smaller skew is labelled and compared.
+            if ($claimOrNull.Started -gt $now) { $claimAgeNote = "reported-age:started_utc-is-future-dated" }
+            else { $claimAgeNote = "reported-age:started_utc-unverified" }
+            $owner = $claimOrNull.Owner
+        if ($claimOrNull.FutureSkew) {
+            $claimAge = [math]::Round(($now - $claimOrNull.Started).TotalMinutes, 1)
+            $verdict = "UNKNOWN"
+            $reason = "started_utc is " + [math]::Round(($claimOrNull.Started - $now).TotalMinutes, 1) + " minutes ahead of sampled UTC; exceeds " + $FutureTimestampToleranceMinutes + "-minute tolerance and is never LIVE"
+        } elseif ($owner) {
             $claimAge = [math]::Round(($now - $claimOrNull.Started).TotalMinutes, 1)
             $normOwner = Get-NormName $owner
             if (-not $heartbeats.ContainsKey($normOwner)) {
@@ -266,6 +390,7 @@ foreach ($r in $rows) {
                     $newestMin = [math]::Min($newestMin, [double]$reportAge)
                 }
                 $verdict = if ($newestMin -lt $TtlMinutes) { "LIVE" } else { "STALE" }
+                if ($claimAgeNote) { $reason = $claimAgeNote }   # B5-1017 label, never changes the arithmetic
             }
         } else {
             $verdict = "UNKNOWN"
@@ -281,7 +406,12 @@ foreach ($r in $rows) {
     # this column is a per-row DEFECT-REPORTABILITY report. They answer different
     # questions, and keeping them separate means the suppression rule cannot perturb
     # the liveness verdicts the shipped crosscheck already diffs.
-    $defect = if ($suppressed.ContainsKey($r.Id)) { "suppressed-live-claim" } else { "reportable" }
+    # B5-1020: claims-first suppression keeps precedence over the exempt class —
+    # a row mid-repair reads as a transient state and is re-censused after the
+    # claim releases, whatever its committed classification will be.
+    $defect = if ($suppressed.ContainsKey($r.Id)) { "suppressed-live-claim" }
+              elseif ($r.Exempt) { $r.Exempt }
+              else { "reportable" }
 
     # Compose the verdict cell once so an absent reason leaves no double space. The
     # rendered text is unchanged from the B5-0609 form ("LIVE [reason]"); only the
@@ -311,3 +441,22 @@ if ($supInView.Count -gt 0) {
 } else {
     Write-Output "-- CLAIMS-FIRST: 0 rows under a non-stale claim; every row above is reportable. --"
 }
+# B5-1020 exemption receipt: the exempt class exists only for pipes inside
+# quoted or adjudicated spans; a new free pipe in plain unquoted prose is still
+# a defect. Named here so the class cannot silently widen. The reportable count
+# excludes the exempt rows, so the two numbers cannot be misread as disjoint
+# halves of one set.
+$exemptInView = @($out | Where-Object { $_ -match '\| exempt \(' })
+$nonSevenReportable = @()
+foreach ($line in $out) {
+    if ($line -match '\| exempt \(') { continue }
+    $cells = $line -split ' \| '
+    if ([int]$cells[2] -ne 7) { $nonSevenReportable += $line }
+}
+Write-Output ("-- B5-1020: " + $exemptInView.Count + " row(s) content-exempt; " + $nonSevenReportable.Count + " further row(s) at a non-7 pipeCount remain reportable. A new free pipe in plain unquoted prose is still a defect. --")
+
+# B5-1002: encoding receipt. A census is a verdict with a receipt, and an
+# unnamed instrument cannot be reproduced, so this tool names its own: every
+# text read above is explicit UTF-8 (ledger via
+# [IO.File]::ReadAllLines(path, UTF8), claims via Get-Content -Encoding UTF8).
+Write-Output "-- ENCODING: UTF-8 (explicit) --"

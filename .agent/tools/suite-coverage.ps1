@@ -45,7 +45,12 @@ if (-not (Test-Path $Path)) {
     exit 2
 }
 
-$lines = [System.IO.File]::ReadAllLines($Path)
+# B5-1002: encoding pinned to explicit UTF-8. The curly-quote arms below
+# (U+201C/U+201D, U+2018/U+2019) only match when the bytes are decoded as
+# UTF-8; a host-default read turns them into mojibake the arms silently miss,
+# so the census would undercount toward a silently-zero result -- the exact
+# failure the header above says must stay visible.
+$lines = [System.IO.File]::ReadAllLines($Path, [System.Text.Encoding]::UTF8)
 
 $methodRegex = [System.Text.RegularExpressions.Regex]'^\s*(public|private)\s+static\s+void\s+([A-Za-z0-9_]+)\s*\('
 $checkRegex  = [System.Text.RegularExpressions.Regex]'(?<![A-Za-z0-9_])check\s*\('
@@ -125,6 +130,8 @@ $failedCount   = $failedSites.Count
 
 Write-Output "=== Suite coverage census (B5-0633) ==="
 Write-Output "file          : $Path"
+# B5-1002: encoding receipt -- the suite file above was read as explicit UTF-8.
+Write-Output "encoding      : UTF-8 (explicit; [IO.File]::ReadAllLines(path, UTF8))"
 Write-Output "check( sites  : $totalSites"
 Write-Output "parsed        : $parsedCount"
 Write-Output "UNPARSABLE    : $failedCount   <- must be visible; 0 is only correct if every site truly parses"

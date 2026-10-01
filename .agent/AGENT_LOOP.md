@@ -28,7 +28,12 @@ BOOT (once per session)
   - Get the OPEN census ONLY from the shared tool, never by reading or grepping
     the ledger:
       powershell -NoProfile -ExecutionPolicy Bypass -File .agent/run-queue.ps1 -DryRun
-      # bash equivalent: bash .agent/run-queue.sh -DryRun
+      # There is NO bash equivalent -- .agent/run-queue.sh has never existed in
+      # any commit (B5-1541). The command above is shell-agnostic: it names the
+      # powershell executable and a -File script, so it runs unchanged from
+      # PowerShell, Git Bash or cmd.exe. If your tool hands you a bash shell,
+      # that is a property of your tool, not of this repo -- see
+      # .agent/SHELL.knowledge.md.
     Manual fallback only if the tool is unavailable:
       rg -o '^\|+(?:\s*)(B5-\d+)(?:\s*\|)\s*\|/{0,1}OPEN' .agent/TASK_LEDGER.md
     Claims-first (B5-0657): the shared tools suppress rows under a live claim
