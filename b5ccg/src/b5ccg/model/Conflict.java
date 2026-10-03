@@ -132,8 +132,27 @@ public class Conflict {
 
     /** True when p is allowed to be a participant at all. B5-0376: war
      *  conflicts accept any player whose race is at war with the initiator's
-     *  race; regular conflicts consult the ConflictCard participation rules. */
+     *  race; regular conflicts consult the ConflictCard participation rules.
+     *
+     *  B5-1705: a player who has forfeited or surrendered has ceased play
+     *  (rulebook :454 "loses the game, and ceases play"; :817 "Pick up your
+     *  cards and go home") and may not join a conflict. The status gate sits
+     *  here, at the lowest shared predicate, so it covers every join path
+     *  at once: addParticipant, canCommitCard, RulesEngine's eligible-participant
+     *  scan (line ~1313) and the mandatory-participation enforcement loop.
+     *  The primary test is GameState.isPlayerActive, the same consolidated
+     *  definition used by the B5-1825 declaration gate, so the family shares
+     *  one meaning of "still playing". The Player-flag fallback covers the case
+     *  where the GameState back-reference is unwired: Player.gameState is only
+     *  ever set by an explicit setGameState call and is never populated by the
+     *  GameState constructor, so a hand-built Conflict can carry players with
+     *  a null back-reference. */
     public boolean canJoinConflict(Player p) {
+        if (p == null) return false;
+        GameState st = p.getGameState();
+        boolean stillPlaying = (st != null) ? st.isPlayerActive(p)
+                                            : (!p.hasForfeited() && !p.hasSurrendered());
+        if (!stillPlaying) return false;
         if (card == null) {
             // B5-0376: war conflict — accept any player at war with initiator
             if (p == initiator) return true;

@@ -1,6 +1,7 @@
 package b5ccg.model;
 
 import b5ccg.model.enums.*;
+import java.util.*;
 
 public class CharacterCard extends Card {
     private final int diplomacy;
@@ -24,6 +25,11 @@ public class CharacterCard extends Card {
     /** B5-0661: set on an asylum copy of an ambassador (AsylumCharacterCard).
      *  Asylum cards may not be elevated to the Inner Circle (rulebook :819). */
     private boolean inAsylum = false;
+
+    /** B5-1995: per-character mark counts. Keyed by MarkType.
+     *  Rulebook VI: marks attach to characters (or occasionally fleets/locations).
+     *  Marks on neutralized characters count toward faction totals. */
+    private final Map<MarkType, Integer> marks = new HashMap<MarkType, Integer>();
 
     public CharacterCard(String id, String title, String subtype,
                          Rarity rarity, Faction faction, CardSet cardSet,
@@ -56,6 +62,7 @@ public class CharacterCard extends Card {
     private Player owner;
 
     public void setOwner(Player p) { owner = p; }
+    public Player getOwner() { return owner; }
 
     /**
      * B5-0366: returns the printed (unmutated) stat. Enhancement bonuses live
@@ -131,5 +138,63 @@ public class CharacterCard extends Card {
         return new AsylumCharacterCard(newId, getTitle(), getSubtype(),
                 getRarity(), getFaction(), getCardSet(), getImageKey(), getText(),
                 getDiplomacy(), getIntrigue(), getPsi(), getLeadership(), this);
+    }
+
+    // ── B5-1995: Mark operations ──────────────────────────────────────────────
+
+    /** Returns the count of a specific mark type on this character. */
+    public int getMarkCount(MarkType type) {
+        Integer count = marks.get(type);
+        return count == null ? 0 : count.intValue();
+    }
+
+    /** Sets the count of a specific mark type on this character. */
+    public void setMarkCount(MarkType type, int count) {
+        if (count <= 0) {
+            marks.remove(type);
+        } else {
+            marks.put(type, Integer.valueOf(count));
+        }
+    }
+
+    /** Adds marks of a specific type to this character. Returns the new count. */
+    public int addMarks(MarkType type, int count) {
+        if (count <= 0) return getMarkCount(type);
+        int current = getMarkCount(type);
+        int next = current + count;
+        marks.put(type, Integer.valueOf(next));
+        return next;
+    }
+
+    /** Removes marks of a specific type from this character. Returns the new count (never negative). */
+    public int removeMarks(MarkType type, int count) {
+        if (count <= 0) return getMarkCount(type);
+        int current = getMarkCount(type);
+        int next = Math.max(0, current - count);
+        if (next == 0) {
+            marks.remove(type);
+        } else {
+            marks.put(type, Integer.valueOf(next));
+        }
+        return next;
+    }
+
+    /** Returns true if this character has at least one mark of the given type. */
+    public boolean hasMark(MarkType type) {
+        return getMarkCount(type) > 0;
+    }
+
+    /** Returns the total number of marks on this character across all types. */
+    public int getTotalMarks() {
+        int total = 0;
+        for (Integer count : marks.values()) {
+            total += count.intValue();
+        }
+        return total;
+    }
+
+    /** Returns an unmodifiable view of the marks map. */
+    public Map<MarkType, Integer> getMarks() {
+        return Collections.unmodifiableMap(marks);
     }
 }

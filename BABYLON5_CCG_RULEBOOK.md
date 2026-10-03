@@ -1,6 +1,10 @@
 ﻿# Babylon 5 Customizable Card Game — Rulebook (canonical reference copy)
 
-author_llm: Muse Spark (muse-spark-1.3-contributor-free)
+author_llm: {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
+assessor_llm:
+  - {name: "Kilo (kilo-auto/free)", version: "kilo-auto/free", passes: 1, last_pass: "2026-10-02", note: "edit: B5-1929 serialization only — the author_llm line was normalized from the parenthesized form AGENTS.md section 1 line 27 spells out into the flow-mapping form verify_task.py line 245 accepts; name and version strings copied verbatim, no rulebook body byte touched"}
+last_modified_by_llm: {name: "Kilo (kilo-auto/free)", version: "kilo-auto/free"}
+last_modified_date: "2026-10-02"
 
 Source: https://www.rulespal.com/babylon-5-ccg/rulebook
 Retrieved: 2026-09-21

@@ -11,7 +11,17 @@ public class GameAction {
         // B5-0370: card=attacker, targetCard=conflict participant being attacked.
         ATTACK_CONFLICT_PARTICIPANT,
         PLAY_AFTERMATH,
-        RECRUIT_CHARACTER,
+RECRUIT_CHARACTER,
+        // B5-2245 (rulebook :657): the rulebook's single "Sponsor a Supporting
+        // Card" action for the card types RECRUIT_CHARACTER does not cover —
+        // Enhancement, Location and Fleet. card = the sponsored card, leader =
+        // the Inner Circle member that rotates to sponsor it (:657 "Any
+        // character in the Inner Circle may rotate to bring a new supporting
+        // ... into play"). Separate from RECRUIT_CHARACTER because the two
+        // charge differently: :663 makes a different-race CHARACTER dearer
+        // while :664/:665 make a different-race card of any other type
+        // ILLEGAL, so one Type cannot carry both rules.
+        SPONSOR_CARD,
         BUILD_INFLUENCE,
         PROMOTE_CHARACTER,
         // B5-0371: rotate a character to heal, or a fleet/location to repair.
@@ -43,6 +53,15 @@ public class GameAction {
         // the discard round; the opponent gains 3 influence and receives an
         // asylum copy of the ambassador as a supporting character.
         SURRENDER,
+        // B5-1979: voluntary forfeit. Taken as an ACTION-phase action, it ends
+        // this player's participation immediately (loss) and awards victory to
+        // the opponent(s). Distinct from SURRENDER, which is a DRAW-phase
+        // negotiation that leaves the surrendering player merely out of play
+        // without the discard-to-discard ambassador loss this path performs,
+        // and distinct from the involuntary draw-deck forfeit that
+        // Player.drawCards sets when no Inner Circle character remains to
+        // discard (rulebook :460, "he must forfeit the game").
+        FORFEIT,
         PASS
     }
 
@@ -111,6 +130,12 @@ public class GameAction {
     /** B5-0321: promote ch into the Inner Circle, rotating the IC member leader. */
     public static GameAction promoteCharacter(CharacterCard ch, CharacterCard leader) {
         return new GameAction(Type.PROMOTE_CHARACTER, ch, null, leader);
+    }
+    /** B5-2245: leader rotates to sponsor card (Enhancement/Location/Fleet)
+     *  into play as a Supporting Card — the same leader/card field pair
+     *  PROMOTE_CHARACTER and LEAD_FLEET use, so no new GameAction field. */
+    public static GameAction sponsorCard(Card c, CharacterCard leader) {
+        return new GameAction(Type.SPONSOR_CARD, c, null, leader);
     }
     /** B5-0362: leader rotates to lead fleet — the pair rides the existing
      *  leader/card fields (card = fleet, leader = rotating character), no new
@@ -182,6 +207,13 @@ public class GameAction {
      *  surrendering player's ambassador as a supporting character. */
     public static GameAction surrender(Player target) {
         return new GameAction(Type.SURRENDER, null, target);
+    }
+
+    /** B5-1979: voluntary forfeit, legal during the ACTION phase. The player
+     *  is the actor, so no card and no target: forfeiting is a self-declared
+     *  loss and there is nothing to aim at. */
+    public static GameAction forfeit() {
+        return new GameAction(Type.FORFEIT, null, null);
     }
 
     // ── Accessors ────────────────────────────────────────────────────────────

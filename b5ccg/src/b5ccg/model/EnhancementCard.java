@@ -16,6 +16,9 @@ public class EnhancementCard extends Card {
     private String targetCardId = null;
     private String targetOwnerName = null;
 
+    /** B5-1995: per-enhancement mark counts. Keyed by MarkType. */
+    private final Map<MarkType, Integer> marks = new HashMap<MarkType, Integer>();
+
     public EnhancementCard(String id, String title, String subtype,
                            Rarity rarity, Faction faction, CardSet cardSet,
                            String imageKey, String text,
@@ -85,4 +88,62 @@ public class EnhancementCard extends Card {
 
     @Override
     public int getPrimaryStatValue(ConflictType type) { return 0; }
+
+    // ── B5-1995: Mark operations ──────────────────────────────────────────────
+
+    /** Returns the count of a specific mark type on this enhancement. */
+    public int getMarkCount(MarkType type) {
+        Integer count = marks.get(type);
+        return count == null ? 0 : count.intValue();
+    }
+
+    /** Sets the count of a specific mark type on this enhancement. */
+    public void setMarkCount(MarkType type, int count) {
+        if (count <= 0) {
+            marks.remove(type);
+        } else {
+            marks.put(type, Integer.valueOf(count));
+        }
+    }
+
+    /** Adds marks of a specific type to this enhancement. Returns the new count. */
+    public int addMarks(MarkType type, int count) {
+        if (count <= 0) return getMarkCount(type);
+        int current = getMarkCount(type);
+        int next = current + count;
+        marks.put(type, Integer.valueOf(next));
+        return next;
+    }
+
+    /** Removes marks of a specific type from this enhancement. Returns the new count (never negative). */
+    public int removeMarks(MarkType type, int count) {
+        if (count <= 0) return getMarkCount(type);
+        int current = getMarkCount(type);
+        int next = Math.max(0, current - count);
+        if (next == 0) {
+            marks.remove(type);
+        } else {
+            marks.put(type, Integer.valueOf(next));
+        }
+        return next;
+    }
+
+    /** Returns true if this enhancement has at least one mark of the given type. */
+    public boolean hasMark(MarkType type) {
+        return getMarkCount(type) > 0;
+    }
+
+    /** Returns the total number of marks on this enhancement across all types. */
+    public int getTotalMarks() {
+        int total = 0;
+        for (Integer count : marks.values()) {
+            total += count.intValue();
+        }
+        return total;
+    }
+
+    /** Returns an unmodifiable view of the marks map. */
+    public Map<MarkType, Integer> getMarks() {
+        return Collections.unmodifiableMap(marks);
+    }
 }

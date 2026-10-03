@@ -182,6 +182,59 @@ public final class CardEffects {
         ENH_LOCATION_INCOME.put("de_enh_exploitation", Integer.valueOf(1));
     }
 
+    // ── B5-1995: Agenda mark grants ─────────────────────────────────────────────
+    // Data: rulebook VI "E.g., the Agenda 'Servants of Order' provides the
+    // ambassador of the faction with 1 Vorlon Mark while the agenda is in play."
+    // Marks are purged when the agenda is discarded/replaced/blanked.
+    private static final Map<String, MarkGrant> AGENDA_MARK_GRANTS = new HashMap<String, MarkGrant>();
+    static {
+        // Servants of Order (both sets): 1 Vorlon Mark on ambassador while in play
+        AGENDA_MARK_GRANTS.put("agenda_servants_of_order",
+                new MarkGrant(MarkType.VORLON, 1, MarkGrant.Target.AMBASSADOR));
+        AGENDA_MARK_GRANTS.put("de_agenda_servants_of_order",
+                new MarkGrant(MarkType.VORLON, 1, MarkGrant.Target.AMBASSADOR));
+    }
+
+    /** Simple record for agenda mark grants. */
+    private static class MarkGrant {
+        enum Target { AMBASSADOR }
+        final MarkType type;
+        final int count;
+        final Target target;
+        MarkGrant(MarkType type, int count, Target target) {
+            this.type = type;
+            this.count = count;
+            this.target = target;
+        }
+    }
+
+    // ── B5-1995: Enhancement mark grants ───────────────────────────────────────
+    // Data: Vorlon Enhancement provides Vorlon marks while attached.
+    private static final Map<String, MarkGrant> ENHANCEMENT_MARK_GRANTS = new HashMap<String, MarkGrant>();
+    static {
+        // Vorlon Enhancement (both sets): 1 Vorlon Mark on attached character while in play
+        ENHANCEMENT_MARK_GRANTS.put("enh_vorlon_enhancement",
+                new MarkGrant(MarkType.VORLON, 1, MarkGrant.Target.AMBASSADOR));
+        ENHANCEMENT_MARK_GRANTS.put("de_enh_vorlon_enhancement",
+                new MarkGrant(MarkType.VORLON, 1, MarkGrant.Target.AMBASSADOR));
+    }
+
+    // ── B5-1995: Event mark grants ──────────────────────────────────────────────
+    // Data: Contact with Shadows/Vorlons provide permanent marks.
+    private static final Map<String, MarkGrant> EVENT_MARK_GRANTS = new HashMap<String, MarkGrant>();
+    static {
+        // Contact with Shadows: 1 Shadow Mark on target character (permanent)
+        EVENT_MARK_GRANTS.put("event_contact_with_shadows",
+                new MarkGrant(MarkType.SHADOW, 1, MarkGrant.Target.AMBASSADOR));
+        EVENT_MARK_GRANTS.put("de_event_contact_with_shadows",
+                new MarkGrant(MarkType.SHADOW, 1, MarkGrant.Target.AMBASSADOR));
+        // Contact with Vorlons: 1 Vorlon Mark on target character (permanent)
+        EVENT_MARK_GRANTS.put("event_contact_with_vorlons",
+                new MarkGrant(MarkType.VORLON, 1, MarkGrant.Target.AMBASSADOR));
+        EVENT_MARK_GRANTS.put("de_event_contact_with_vorlons",
+                new MarkGrant(MarkType.VORLON, 1, MarkGrant.Target.AMBASSADOR));
+    }
+
     // ── Public entry points ──────────────────────────────────────────────────
 
     /** Plays an Event card for p. Unknown ids keep the generic draw-1 floor. */
@@ -207,6 +260,8 @@ public final class CardEffects {
             state.log(card.getTitle() + ": all players gain " + all + " influence.");
             did = true;
         }
+        // B5-1995: apply event mark grants (permanent marks)
+        applyEventMarkGrants(state, p, card);
         if (!did) {
             p.drawCards(1);
             state.log(p.getName() + " plays " + card.getTitle()
@@ -352,6 +407,8 @@ public final class CardEffects {
                 state.log(p.getName() + " holds " + card.getTitle()
                         + " (no character target in play).");
             }
+            // B5-1995: apply enhancement mark grants
+            applyEnhancementMarkGrants(state, p, card, target);
             return;
         }
 
@@ -422,6 +479,49 @@ public final class CardEffects {
                         + loser.getName() + " (" + conflict.getCard().getTitle() + ").");
             }
         }
+
+        // B5-1966: conflict-type generic effects (PSI and INTRIGUE)
+        // These apply to all conflicts of the given type, in addition to
+        // any card-specific effects above.
+        ConflictType type = conflict.getConflictType();
+        if (type == ConflictType.PSI) {
+            // PSI: loser discards hand down to 3 cards
+            applyPsiLoserEffect(state, conflict, loser);
+        } else if (type == ConflictType.INTRIGUE) {
+            // INTRIGUE: winner steals 1 agenda from loser
+            applyIntrigueWinnerEffect(state, conflict, winner, loser);
+        }
+    }
+
+    /** PSI conflict loser effect: discard hand down to 3 cards. */
+    private static void applyPsiLoserEffect(GameState state, Conflict conflict,
+                                            Player loser) {
+        List<Card> hand = loser.getHand();
+        if (hand.size() <= 3) return;
+        int toDiscard = hand.size() - 3;
+        for (int i = 0; i < toDiscard; i++) {
+            // Discard from end of hand (arbitrary selection per rulebook)
+            Card c = hand.remove(hand.size() - 1);
+            loser.getDeck().discard(c);
+        }
+        state.log(loser.getName() + " discards " + toDiscard
+                + " card(s) due to PSI conflict loss ("
+                + conflict.getCard().getTitle() + ").");
+    }
+
+    /** INTRIGUE conflict winner effect: steal 1 agenda from loser. */
+    private static void applyIntrigueWinnerEffect(GameState state, Conflict conflict,
+                                                  Player winner, Player loser) {
+        AgendaCard loserAgenda = loser.getAgenda();
+        if (loserAgenda == null) return;
+        // Winner takes the agenda; loser loses it
+        loser.setAgenda(null);
+        // The agenda goes to the winner's hand per rulebook "steal"
+        winner.addToHand(loserAgenda);
+        state.log(winner.getName() + " steals agenda \""
+                + loserAgenda.getTitle() + "\" from "
+                + loser.getName() + " ("
+                + conflict.getCard().getTitle() + ").");
     }
 
     // ── Aftermaths: card id → dispatched effect ────────────────────────────
@@ -443,9 +543,52 @@ public final class CardEffects {
         AFTERMATH_DIPLOMATIC_ADVANTAGE.add("de_am_diplomatic_advantage");
     }
 
+    // ── B5-2249: core-20 frequency expansion (Sets 1-5) ────────────────────────
+    private static final Set<String> AFTERMATH_UNITED_FRONT =
+            new HashSet<String>();
+    static {
+        AFTERMATH_UNITED_FRONT.add("aftermath_united_front");
+        AFTERMATH_UNITED_FRONT.add("de_am_united_front");
+    }
+
+    private static final Set<String> AFTERMATH_DRAW_TWO_INTRIGUE =
+            new HashSet<String>();
+    static {
+        AFTERMATH_DRAW_TWO_INTRIGUE.add("aftermath_exploit_opportunities");
+        AFTERMATH_DRAW_TWO_INTRIGUE.add("de_am_exploit_opportunities");
+        AFTERMATH_DRAW_TWO_INTRIGUE.add("aftermath_successful_manipulation");
+        AFTERMATH_DRAW_TWO_INTRIGUE.add("de_am_successful_manipulation");
+    }
+
+    private static final Set<String> AFTERMATH_HIDDEN_AGENT =
+            new HashSet<String>();
+    static {
+        AFTERMATH_HIDDEN_AGENT.add("aftermath_hidden_agent");
+        AFTERMATH_HIDDEN_AGENT.add("de_am_hidden_agent");
+    }
+
+    private static final Set<String> AFTERMATH_REFUGEES =
+            new HashSet<String>();
+    static {
+        AFTERMATH_REFUGEES.add("aftermath_refugees");
+        AFTERMATH_REFUGEES.add("de_am_refugees");
+    }
+
+    private static final Set<String> AFTERMATH_RISE_TO_POWER =
+            new HashSet<String>();
+    static {
+        AFTERMATH_RISE_TO_POWER.add("aftermath_rise_to_power");
+        AFTERMATH_RISE_TO_POWER.add("de_am_rise_to_power");
+    }
+
     /** B5-0990: true when cardId is a Negotiated Surrender aftermath. */
     public static boolean isNegotiatedSurrender(String cardId) {
         return cardId != null && AFTERMATH_NEGOTIATED_SURRENDER.contains(cardId);
+    }
+
+    /** B5-0990: true when the Negotiated Surrender is the deluxe version (draws 1 card). */
+    private static boolean isDeluxeNegotiatedSurrender(String cardId) {
+        return "de_am_negotiated_surrender".equals(cardId);
     }
 
     /** B5-1051: true when cardId is a Diplomatic Advantage aftermath. */
@@ -453,46 +596,507 @@ public final class CardEffects {
         return cardId != null && AFTERMATH_DIPLOMATIC_ADVANTAGE.contains(cardId);
     }
 
+    /** B5-2249: true when cardId is a United Front aftermath. */
+    public static boolean isUnitedFront(String cardId) {
+        return cardId != null && AFTERMATH_UNITED_FRONT.contains(cardId);
+    }
+
+    /** B5-2249: true when cardId is a Draw Two Intrigue aftermath. */
+    public static boolean isDrawTwoIntrigue(String cardId) {
+        return cardId != null && AFTERMATH_DRAW_TWO_INTRIGUE.contains(cardId);
+    }
+
+    /** B5-2249: true when cardId is a Hidden Agent aftermath. */
+    public static boolean isHiddenAgent(String cardId) {
+        return cardId != null && AFTERMATH_HIDDEN_AGENT.contains(cardId);
+    }
+
+    /** B5-2249: true when cardId is a Refugees aftermath. */
+    public static boolean isRefugees(String cardId) {
+        return cardId != null && AFTERMATH_REFUGEES.contains(cardId);
+    }
+
+    /** B5-2249: true when cardId is a Rise to Power aftermath. */
+    public static boolean isRiseToPower(String cardId) {
+        return cardId != null && AFTERMATH_RISE_TO_POWER.contains(cardId);
+    }
+
+    // ── B5-2249: core-20 frequency expansion (Sets 6-10) ────────────────────────
+    private static final Set<String> AFTERMATH_WAR_HERO =
+            new HashSet<String>();
+    static {
+        AFTERMATH_WAR_HERO.add("aftermath_war_hero");
+        AFTERMATH_WAR_HERO.add("de_am_war_hero");
+    }
+
+    private static final Set<String> AFTERMATH_APPROVAL_OF_THE_GREY =
+            new HashSet<String>();
+    static {
+        AFTERMATH_APPROVAL_OF_THE_GREY.add("aftermath_approval_of_the_grey");
+        AFTERMATH_APPROVAL_OF_THE_GREY.add("de_am_approval_of_the_grey");
+    }
+
+    private static final Set<String> AFTERMATH_FOCUS_YOUR_EFFORTS =
+            new HashSet<String>();
+    static {
+        AFTERMATH_FOCUS_YOUR_EFFORTS.add("aftermath_focus_your_efforts");
+        AFTERMATH_FOCUS_YOUR_EFFORTS.add("de_am_focus_your_efforts");
+    }
+
+    private static final Set<String> AFTERMATH_GLORY =
+            new HashSet<String>();
+    static {
+        AFTERMATH_GLORY.add("aftermath_glory");
+        AFTERMATH_GLORY.add("de_am_glory");
+    }
+
+    private static final Set<String> AFTERMATH_RETRIBUTION =
+            new HashSet<String>();
+    static {
+        AFTERMATH_RETRIBUTION.add("aftermath_retribution");
+        AFTERMATH_RETRIBUTION.add("de_am_retribution");
+    }
+
+    /** B5-2249: true when cardId is a War Hero aftermath. */
+    public static boolean isWarHero(String cardId) {
+        return cardId != null && AFTERMATH_WAR_HERO.contains(cardId);
+    }
+
+    /** B5-2249: true when cardId is an Approval of the Grey aftermath. */
+    public static boolean isApprovalOfTheGrey(String cardId) {
+        return cardId != null && AFTERMATH_APPROVAL_OF_THE_GREY.contains(cardId);
+    }
+
+    /** B5-2249: true when cardId is a Focus Your Efforts aftermath. */
+    public static boolean isFocusYourEfforts(String cardId) {
+        return cardId != null && AFTERMATH_FOCUS_YOUR_EFFORTS.contains(cardId);
+    }
+
+    /** B5-2249: true when cardId is a Glory aftermath. */
+    public static boolean isGlory(String cardId) {
+        return cardId != null && AFTERMATH_GLORY.contains(cardId);
+    }
+
+    /** B5-2249: true when cardId is a Retribution aftermath. */
+    public static boolean isRetribution(String cardId) {
+        return cardId != null && AFTERMATH_RETRIBUTION.contains(cardId);
+    }
+
+    // ── B5-2249: core-20 frequency expansion (Sets 11-15) ───────────────────────
+    private static final Set<String> AFTERMATH_REVERSE_ADVANCES =
+            new HashSet<String>();
+    static {
+        AFTERMATH_REVERSE_ADVANCES.add("aftermath_reverse_advances");
+        AFTERMATH_REVERSE_ADVANCES.add("de_am_reverse_advances");
+    }
+
+    private static final Set<String> AFTERMATH_OPPONENT_LOSE_ONE_INF =
+            new HashSet<String>();
+    static {
+        AFTERMATH_OPPONENT_LOSE_ONE_INF.add("aftermath_assigning_blame");
+        AFTERMATH_OPPONENT_LOSE_ONE_INF.add("de_am_assigning_blame");
+        AFTERMATH_OPPONENT_LOSE_ONE_INF.add("aftermath_loss_of_face");
+        AFTERMATH_OPPONENT_LOSE_ONE_INF.add("de_am_loss_of_face");
+        AFTERMATH_OPPONENT_LOSE_ONE_INF.add("aftermath_disenchantment");
+        AFTERMATH_OPPONENT_LOSE_ONE_INF.add("de_am_disenchantment");
+    }
+
+    private static final Set<String> AFTERMATH_OPPONENT_LOSE_TWO_INF =
+            new HashSet<String>();
+    static {
+        AFTERMATH_OPPONENT_LOSE_TWO_INF.add("aftermath_despair");
+        AFTERMATH_OPPONENT_LOSE_TWO_INF.add("de_am_despair");
+        AFTERMATH_OPPONENT_LOSE_TWO_INF.add("aftermath_public_apology");
+        AFTERMATH_OPPONENT_LOSE_TWO_INF.add("de_am_public_apology");
+    }
+
+    private static final Set<String> AFTERMATH_CRISIS_OF_SELF =
+            new HashSet<String>();
+    static {
+        AFTERMATH_CRISIS_OF_SELF.add("aftermath_crisis_of_self");
+        AFTERMATH_CRISIS_OF_SELF.add("de_am_crisis_of_self");
+    }
+
+    private static final Set<String> AFTERMATH_HEAL_FACE_DOWN =
+            new HashSet<String>();
+    static {
+        AFTERMATH_HEAL_FACE_DOWN.add("aftermath_lamentations");
+        AFTERMATH_HEAL_FACE_DOWN.add("de_am_lamentations");
+        AFTERMATH_HEAL_FACE_DOWN.add("aftermath_in_the_line_of_duty");
+        AFTERMATH_HEAL_FACE_DOWN.add("de_am_in_the_line_of_duty");
+    }
+
+    private static final Set<String> AFTERMATH_BATTLE_TESTED =
+            new HashSet<String>();
+    static {
+        AFTERMATH_BATTLE_TESTED.add("aftermath_battle_tested");
+        AFTERMATH_BATTLE_TESTED.add("de_am_battle_tested");
+    }
+
+    private static final Set<String> AFTERMATH_RESCUE =
+            new HashSet<String>();
+    static {
+        AFTERMATH_RESCUE.add("aftermath_rescue");
+        AFTERMATH_RESCUE.add("de_am_rescue");
+    }
+
+    private static final Set<String> AFTERMATH_MARTYR =
+            new HashSet<String>();
+    static {
+        AFTERMATH_MARTYR.add("aftermath_martyr");
+        AFTERMATH_MARTYR.add("de_am_martyr");
+    }
+
+    /** B5-2249: true when cardId is a Reverse Advances aftermath. */
+    public static boolean isReverseAdvances(String cardId) {
+        return cardId != null && AFTERMATH_REVERSE_ADVANCES.contains(cardId);
+    }
+
+    /** B5-2249: true when cardId is an Opponent Lose One Influence aftermath. */
+    public static boolean isOpponentLoseOneInf(String cardId) {
+        return cardId != null && AFTERMATH_OPPONENT_LOSE_ONE_INF.contains(cardId);
+    }
+
+    /** B5-2249: true when cardId is an Opponent Lose Two Influence aftermath. */
+    public static boolean isOpponentLoseTwoInf(String cardId) {
+        return cardId != null && AFTERMATH_OPPONENT_LOSE_TWO_INF.contains(cardId);
+    }
+
+    /** B5-2249: true when cardId is a Crisis of Self aftermath. */
+    public static boolean isCrisisOfSelf(String cardId) {
+        return cardId != null && AFTERMATH_CRISIS_OF_SELF.contains(cardId);
+    }
+
+    /** B5-2249: true when cardId is a Heal Face Down aftermath. */
+    public static boolean isHealFaceDown(String cardId) {
+        return cardId != null && AFTERMATH_HEAL_FACE_DOWN.contains(cardId);
+    }
+
+    /** B5-2249: true when cardId is a Battle Tested aftermath. */
+    public static boolean isBattleTested(String cardId) {
+        return cardId != null && AFTERMATH_BATTLE_TESTED.contains(cardId);
+    }
+
+    /** B5-2249: true when cardId is a Rescue aftermath. */
+    public static boolean isRescue(String cardId) {
+        return cardId != null && AFTERMATH_RESCUE.contains(cardId);
+    }
+
+    /** B5-2249: true when cardId is a Martyr aftermath. */
+    public static boolean isMartyr(String cardId) {
+        return cardId != null && AFTERMATH_MARTYR.contains(cardId);
+    }
+
+    // ── B5-2249: core-20 frequency expansion — effect dispatch ─────────────────
     /**
-     * B5-0990: aftermath dispatch, called by the AFTERMATH play site in
-     * GameController right after state.attachAftermath. Negotiated Surrender:
-     * resolution rotates every committed fleet, so "the loser may keep one
-     * fleet from being rotated" is implemented as restoring one rotated fleet
-     * the loser committed; the Influence (and the Deluxe draw) belong to the
-     * LOSER, so the effect fires on the played-upon target only when that
-     * target actually lost — never on a won one (rulebook Won/Lost conditions,
-     * audit D1). The play itself is gated by RulesEngine.canPlayAftermath
-     * before dispatch; this method only lands the effect.
+     * Applies the specific effect for a dispatched aftermath card.
+     * Called from GameController after eligibility (triggerCondition) is verified.
+     * The 'target' is the player on whom the aftermath is played (selected by
+     * selectAftermathTarget), and 'winner' is the conflict winner.
      */
     public static void applyAftermathEffect(GameState state, Conflict conflict,
-                                            AftermathCard am, Player target,
-                                            Player winner) {
-        if (state == null || conflict == null || am == null
-                || target == null || winner == null) return;
-        if (AFTERMATH_NEGOTIATED_SURRENDER.contains(am.getId())) {
-            if (target != winner) {
-                restoreOneCommittedFleet(state, conflict, target, am);
-                target.gainInfluence(1);
-                state.log(target.getName() + " gains 1 influence ("
-                        + am.getTitle() + ").");
-                if ("de_am_negotiated_surrender".equals(am.getId())) {
-                    target.drawCards(1);
-                    state.log(target.getName() + " draws 1 card ("
-                            + am.getTitle() + " Deluxe).");
+                                            AftermathCard am, Player target, Player winner) {
+        if (state == null || conflict == null || am == null || target == null) return;
+        String amId = am.getId();
+        if (amId == null) return;
+
+        // Negotiated Surrender (B5-0990): "Play after a Military conflict. The loser may keep one fleet from being rotated. Gain 1 Influence."
+        // target is the loser who played the aftermath.
+        // Deluxe version also draws 1 card.
+        // If target is the winner (should not happen via canPlayAftermath gate), effect is a no-op.
+        if (isNegotiatedSurrender(amId)) {
+            if (target == winner) {
+                // Winner cannot benefit from Negotiated Surrender
+                return;
+            }
+            // Restore one committed fleet that was rotated
+            for (Card c : conflict.getCommittedCards(target)) {
+                if (c instanceof FleetCard && c.isRotated()) {
+                    c.unrotate();
+                    state.log(target.getName() + " keeps " + c.getTitle()
+                            + " from being rotated (" + am.getTitle() + ").");
+                    break;
                 }
+            }
+            target.gainInfluence(1);
+            state.log(target.getName() + " gains 1 influence (" + am.getTitle() + ").");
+            // Deluxe version: loser also draws 1 card
+            if (isDeluxeNegotiatedSurrender(amId)) {
+                target.drawCards(1);
+                state.log(target.getName() + " draws 1 card (deluxe " + am.getTitle() + ").");
             }
             return;
         }
-        if (AFTERMATH_DIPLOMATIC_ADVANTAGE.contains(am.getId())) {
-            if (target == winner) {
-                target.gainInfluence(2);
-                state.log(target.getName() + " gains 2 influence ("
-                        + am.getTitle() + ").");
-                target.drawCards(1);
-                state.log(target.getName() + " draws 1 card ("
-                        + am.getTitle() + ").");
-            }
+
+        // Diplomatic Advantage (B5-1051): "Play after winning a Diplomacy conflict. Gain 2 Influence and draw 1 card."
+        // target is the winner.
+        if (isDiplomaticAdvantage(amId)) {
+            target.gainInfluence(2);
+            target.drawCards(1);
+            state.log(target.getName() + " gains 2 influence and draws 1 card (" + am.getTitle() + ").");
+            return;
         }
+
+        // United Front: "Play after winning a Diplomacy conflict. Gain 1 Influence and draw 1 card."
+        if (isUnitedFront(amId)) {
+            target.gainInfluence(1);
+            target.drawCards(1);
+            state.log(target.getName() + " gains 1 influence and draws 1 card (" + am.getTitle() + ").");
+            return;
+        }
+
+        // Exploit Opportunities / Successful Manipulation: "Play after winning an Intrigue conflict. Draw 2 cards."
+        if (isDrawTwoIntrigue(amId)) {
+            target.drawCards(2);
+            state.log(target.getName() + " draws 2 cards (" + am.getTitle() + ").");
+            return;
+        }
+
+        // Hidden Agent: "Play after winning an Intrigue conflict. Look at one opponent's hand and take 1 card of your choice."
+        if (isHiddenAgent(amId)) {
+            // Find an opponent (not target) to steal from
+            Player opponent = null;
+            for (Player p : state.getPlayers()) {
+                if (p != target && p.getHand().size() > 0) {
+                    opponent = p;
+                    break;
+                }
+            }
+            if (opponent != null) {
+                // Take the first card from opponent's hand (AI/human choice would be more complex)
+                Card stolen = opponent.getHand().remove(0);
+                target.getHand().add(stolen);
+                state.log(target.getName() + " takes " + stolen.getTitle() + " from " + opponent.getName() + " (" + am.getTitle() + ").");
+            } else {
+                state.log(target.getName() + " has no opponent with cards to take (" + am.getTitle() + ").");
+            }
+            return;
+        }
+
+        // Refugees: "Play after winning a Military conflict. Gain 1 Influence for each Location card you have in play."
+        if (isRefugees(amId)) {
+            int locCount = target.getLocations().size();
+            if (locCount > 0) {
+                target.gainInfluence(locCount);
+                state.log(target.getName() + " gains " + locCount + " influence from " + locCount + " location(s) (" + am.getTitle() + ").");
+            } else {
+                state.log(target.getName() + " has no locations in play (" + am.getTitle() + ").");
+            }
+            return;
+        }
+
+        // Rise to Power: "Play after winning a Military conflict. Gain 2 Influence."
+        if (isRiseToPower(amId)) {
+            target.gainInfluence(2);
+            state.log(target.getName() + " gains 2 influence (" + am.getTitle() + ").");
+            return;
+        }
+
+        // War Hero: "Play after winning a Military conflict. One of your characters gains +2 Leadership permanently."
+        if (isWarHero(amId)) {
+            CharacterCard best = null;
+            int bestLead = -1;
+            // Check ambassador
+            if (target.getAmbassador() != null) {
+                target.getAmbassador().setOwner(target);
+                int lead = target.getAmbassador().getPrimaryStatValue(ConflictType.MILITARY);
+                if (lead > bestLead) { bestLead = lead; best = target.getAmbassador(); }
+            }
+            // Check inner circle
+            for (CharacterCard ch : target.getInnerCircle()) {
+                ch.setOwner(target);
+                int lead = ch.getPrimaryStatValue(ConflictType.MILITARY);
+                if (lead > bestLead) { bestLead = lead; best = ch; }
+            }
+            if (best != null) {
+                // Grant permanent +2 Leadership via attached bonus
+                target.grantBonus(StatBonus.attached(amId, StatKey.LEADERSHIP, 2,
+                        best.getId(), Expiry.WHILE_IN_PLAY, state.getRoundNumber()));
+                state.log(target.getName() + "'s " + best.getTitle() + " gains +2 Leadership (" + am.getTitle() + ").");
+            } else {
+                state.log(target.getName() + " has no characters to enhance (" + am.getTitle() + ").");
+            }
+            return;
+        }
+
+        // Approval of the Grey: "Minbari only. Play after winning any conflict. Gain 1 Influence and heal one face-down character."
+        if (isApprovalOfTheGrey(amId)) {
+            target.gainInfluence(1);
+            // Heal one face-down character in inner circle
+            CharacterCard healed = null;
+            for (CharacterCard ch : target.getInnerCircle()) {
+                if (ch.isFaceDown()) {
+                    ch.heal();
+                    target.markInnerCircleHealed(ch);
+                    healed = ch;
+                    break;
+                }
+            }
+            if (healed != null) {
+                state.log(target.getName() + " gains 1 influence and heals " + healed.getTitle() + " (" + am.getTitle() + ").");
+            } else {
+                state.log(target.getName() + " gains 1 influence; no face-down character to heal (" + am.getTitle() + ").");
+            }
+            return;
+        }
+
+        // Focus Your Efforts: "Play after winning any conflict. Move one card from your discard pile to your hand."
+        if (isFocusYourEfforts(amId)) {
+            Deck deck = target.getDeck();
+            if (deck != null && deck.getDiscardPile() != null && !deck.getDiscardPile().isEmpty()) {
+                Card retrieved = deck.getDiscardPile().remove(deck.getDiscardPile().size() - 1);
+                target.getHand().add(retrieved);
+                state.log(target.getName() + " retrieves " + retrieved.getTitle() + " from discard (" + am.getTitle() + ").");
+            } else {
+                state.log(target.getName() + " has no cards in discard pile (" + am.getTitle() + ").");
+            }
+            return;
+        }
+
+        // Glory: "Play after winning a Diplomacy or Military conflict. Gain 2 Influence."
+        if (isGlory(amId)) {
+            target.gainInfluence(2);
+            state.log(target.getName() + " gains 2 influence (" + am.getTitle() + ").");
+            return;
+        }
+
+        // Retribution: "Play after winning any conflict. The loser must rotate one of their Inner Circle characters."
+        // The target here is the loser (since the effect applies to the loser)
+        if (isRetribution(amId)) {
+            // Find a non-rotated Inner Circle character of the target (loser) to rotate
+            CharacterCard toRotate = null;
+            if (target.getAmbassador() != null && !target.getAmbassador().isRotated()) {
+                toRotate = target.getAmbassador();
+            } else {
+                for (CharacterCard ch : target.getInnerCircle()) {
+                    if (!ch.isRotated()) { toRotate = ch; break; }
+                }
+            }
+            if (toRotate != null) {
+                toRotate.rotate();
+                state.log(target.getName() + " rotates " + toRotate.getTitle() + " (" + am.getTitle() + ").");
+            } else {
+                state.log(target.getName() + " has no ready Inner Circle character to rotate (" + am.getTitle() + ").");
+            }
+            return;
+        }
+
+        // Reverse Advances: "Play after losing a Diplomacy or Intrigue conflict. Negate the winner's Influence gain."
+        // The target is the loser (player who played the aftermath), winner is the conflict winner
+        if (isReverseAdvances(amId)) {
+            if (winner != null) {
+                // The winner's influence gain from this conflict should be negated
+                // Since the gain already happened, we deduct it
+                // The standard conflict winner gain is 1 influence (per rulebook)
+                winner.loseInfluence(1);
+                state.log(winner.getName() + " loses 1 influence (negated by " + target.getName() + "'s " + am.getTitle() + ").");
+            }
+            return;
+        }
+
+        // Opponent Lose One Influence (Assigning Blame): "Play after losing any conflict. One opponent loses 1 Influence."
+        // The target is an opponent (the winner)
+        if (isOpponentLoseOneInf(amId)) {
+            target.loseInfluence(1);
+            state.log(target.getName() + " loses 1 influence (" + am.getTitle() + ").");
+            return;
+        }
+
+        // Opponent Lose Two Influence (Despair): "Play on an opponent after they lose any conflict. That opponent loses 2 Influence."
+        if (isOpponentLoseTwoInf(amId)) {
+            target.loseInfluence(2);
+            state.log(target.getName() + " loses 2 influence (" + am.getTitle() + ").");
+            return;
+        }
+
+        // Crisis of Self: "Play on an opponent after they lose a conflict. That opponent must discard 2 cards."
+        if (isCrisisOfSelf(amId)) {
+            int n = Math.min(2, target.getHand().size());
+            for (int i = 0; i < n; i++) {
+                Card c = target.getHand().remove(target.getHand().size() - 1);
+                if (c != null) target.getDeck().discard(c);
+            }
+            if (n > 0) {
+                state.log(target.getName() + " discards " + n + " card(s) (" + am.getTitle() + ").");
+            } else {
+                state.log(target.getName() + " has no cards to discard (" + am.getTitle() + ").");
+            }
+            return;
+        }
+
+        // Heal Face Down (Lamentations / In the Line of Duty): "Heal one face-down character."
+        if (isHealFaceDown(amId)) {
+            CharacterCard healed = null;
+            // Check ambassador first
+            if (target.getAmbassador() != null && target.getAmbassador().isFaceDown()) {
+                target.getAmbassador().heal();
+                target.markInnerCircleHealed(target.getAmbassador());
+                healed = target.getAmbassador();
+            } else {
+                // Check inner circle
+                for (CharacterCard ch : target.getInnerCircle()) {
+                    if (ch.isFaceDown()) {
+                        ch.heal();
+                        target.markInnerCircleHealed(ch);
+                        healed = ch;
+                        break;
+                    }
+                }
+            }
+            if (healed != null) {
+                state.log(target.getName() + " heals " + healed.getTitle() + " (" + am.getTitle() + ").");
+            } else {
+                state.log(target.getName() + " has no face-down character to heal (" + am.getTitle() + ")..");
+            }
+            return;
+        }
+
+        // Battle Tested: "Play after participating in a Military conflict. One of your characters gains +1 Leadership permanently."
+        if (isBattleTested(amId)) {
+            CharacterCard best = null;
+            int bestLead = -1;
+            if (target.getAmbassador() != null) {
+                target.getAmbassador().setOwner(target);
+                int lead = target.getAmbassador().getPrimaryStatValue(ConflictType.MILITARY);
+                if (lead > bestLead) { bestLead = lead; best = target.getAmbassador(); }
+            }
+            for (CharacterCard ch : target.getInnerCircle()) {
+                ch.setOwner(target);
+                int lead = ch.getPrimaryStatValue(ConflictType.MILITARY);
+                if (lead > bestLead) { bestLead = lead; best = ch; }
+            }
+            if (best != null) {
+                target.grantBonus(StatBonus.attached(amId, StatKey.LEADERSHIP, 1,
+                        best.getId(), Expiry.WHILE_IN_PLAY, state.getRoundNumber()));
+                state.log(target.getName() + "'s " + best.getTitle() + " gains +1 Leadership (" + am.getTitle() + ").");
+            } else {
+                state.log(target.getName() + " has no characters to enhance (" + am.getTitle() + ").");
+            }
+            return;
+        }
+
+        // Rescue: "Play after a Military conflict. Return one rotated fleet to unrotated state."
+        if (isRescue(amId)) {
+            for (FleetCard fl : target.getFleets()) {
+                if (fl.isRotated()) {
+                    fl.unrotate();
+                    state.log(target.getName() + " unrotates " + fl.getTitle() + " (" + am.getTitle() + ").");
+                    return;
+                }
+            }
+            state.log(target.getName() + " has no rotated fleet to rescue (" + am.getTitle() + ").");
+            return;
+        }
+
+        // Martyr: "Play after any conflict in which one of your characters was discarded. Gain 3 Influence."
+        if (isMartyr(amId)) {
+            target.gainInfluence(3);
+            state.log(target.getName() + " gains 3 influence (" + am.getTitle() + ").");
+            return;
+        }
+
+        // Unknown dispatched id — should not happen if dispatch guard is correct
+        state.log("WARNING: no effect implementation for dispatched aftermath " + amId);
     }
 
     /** B5-0990: keep-one-fleet-from-rotating — restore the first fleet the
@@ -512,6 +1116,186 @@ public final class CardEffects {
                 + am.getTitle() + "; no fleet committed).");
     }
 
+    // ── B5-2002: AFTERMATH trigger evaluation at phase boundaries ────────────
+    //
+    // The gap this closes, stated precisely. Every AFTERMATH record carries a
+    // triggerCondition (117 of 117, 14 distinct values), and the rulebook makes
+    // those values PLAY conditions: rulebook :592 "Each aftermath card lists
+    // Play Conditions and may only be played when these conditions are met",
+    // :594 WON = the initiator won, :595 LOST = the initiator lost, :603
+    // Participant widens targeting to Supported/Opposed/Attacked factions,
+    // :422 the Won/Lost test is the INITIATOR's outcome, not the target's.
+    //
+    // Before this section the triggerCondition was decoded in two places and
+    // nowhere at a phase boundary:
+    //   1. RulesEngine.canPlayAftermath -> AftermathCard.isEligible, which is a
+    //      correct gate but is consulted only at PLAY time, from caller-supplied
+    //      booleans.
+    //   2. GameController.applySimpleAftermathEffect:1028-1034, which re-reads
+    //      the play-condition string as if it were the effect ("if it contains
+    //      WON then gain 1 Influence"). That is the defect B5-2249 recorded
+    //      ("the fallback re-reads play conditions as effects"): a play
+    //      condition is a gate, not a magnitude, so the fallback paid a WON
+    //      card 1 influence regardless of what the card text actually says.
+    //
+    // This section adds the missing third thing — a trigger EVALUATOR that runs
+    // at a phase boundary, derives the situation from the resolved conflict
+    // instead of from caller-supplied booleans, gates on the trigger, and fires
+    // only the id-keyed registered effect. The trigger gates; it never invents
+    // an effect. That is the whole point of keeping the vocabulary decode in
+    // AftermathCard.isEligible and calling it rather than re-parsing it here.
+
+    /**
+     * B5-2002: the just-resolved conflict situation an aftermath trigger is
+     * evaluated against. Immutable, and constructed only from a resolved
+     * conflict plus its winner, so the Won/Lost booleans cannot be
+     * mis-derived by a caller the way the 6-arg play gate leaves them open to.
+     *
+     * A trigger is ALWAYS read from the initiator's perspective (rulebook :422
+     * "Aftermath cards that list 'Won' or 'Lost' as part of their card type
+     * refer to whether the Initiator succeeded or failed in the conflict", and
+     * :580 which repeats it for multi-side conflicts). That is why this type
+     * exposes no per-player outcome: there is only one outcome in question.
+     */
+    public static final class AftermathTrigger {
+
+        private final Conflict conflict;
+        private final Player   winner;
+
+        private AftermathTrigger(Conflict resolved, Player won) {
+            this.conflict = resolved;
+            this.winner   = won;
+        }
+
+        /**
+         * B5-2002: the boundary situation. Returns null when either input is
+         * null or the conflict is not resolved — an absent situation is
+         * UNKNOWN, never "trigger met", which is the same UNKNOWN-is-never-a-
+         * positive rule the heartbeat schema records as failure 3.
+         */
+        public static AftermathTrigger at(Conflict resolved, Player won) {
+            if (resolved == null || won == null || !resolved.isResolved()) return null;
+            return new AftermathTrigger(resolved, won);
+        }
+
+        public Conflict getConflict()      { return conflict; }
+        public Player   getWinner()        { return winner; }
+        public Player   getInitiator()     { return conflict.getInitiator(); }
+
+        /** Rulebook :422 / :580 — the initiator's outcome, not the target's. */
+        public boolean  initiatorWon() {
+            return conflict.getInitiator() == winner;
+        }
+
+        /** The initiator commits to its own conflict, so this is normally true;
+         *  read from the conflict rather than assumed. */
+        public boolean  initiatorParticipated() {
+            return conflict.getParticipants().contains(conflict.getInitiator());
+        }
+
+        public ConflictType conflictType()  { return conflict.getConflictType(); }
+    }
+
+    /**
+     * B5-2002: true when the aftermath's Play Conditions are met by this
+     * boundary situation. Delegates to AftermathCard.isEligible so the token
+     * vocabulary has exactly one decoder; the 14 values present in the data
+     * (LOST, MILITARY_PARTICIPANT, WON, PARTICIPANT, WON_MILITARY,
+     * WON_INTRIGUE, DIPLOMACY_PARTICIPANT, INTRIGUE_PARTICIPANT,
+     * LOST_DIPLOMACY, LOST_INTRIGUE, LOST_MILITARY, WON_DIPLOMACY, ANY,
+     * WON_PARTICIPANT) are all covered by that method's contains-tests.
+     *
+     * An absent situation (null trigger) is never met.
+     */
+    public static boolean triggerMet(AftermathCard am, AftermathTrigger t) {
+        if (am == null || t == null) return false;
+        return am.isEligible(t.initiatorWon(), t.initiatorParticipated(),
+                             t.conflictType());
+    }
+
+    /**
+     * B5-2002: true when cardId has an id-keyed effect registered below. This
+     * is the single authoritative membership test for the dispatch table.
+     *
+     * It exists because the same 20-term OR chain is written out again at
+     * GameController:903-923, and a 20-term disjunction has no property that a
+     * new entry cannot be forgotten by. That duplicate is left in place: the
+     * fix is a one-line substitution at a GameController call site, and
+     * GameController.java is not in this row's declared scope. Until a row
+     * claims it, adding a 21st effect below is what will silently not be
+     * dispatched on the AI aftermath path — recorded as a finding, not fixed
+     * across a scope boundary.
+     */
+    public static boolean hasRegisteredEffect(String cardId) {
+        if (cardId == null) return false;
+        return isNegotiatedSurrender(cardId)   || isDiplomaticAdvantage(cardId)
+            || isUnitedFront(cardId)           || isDrawTwoIntrigue(cardId)
+            || isHiddenAgent(cardId)           || isRefugees(cardId)
+            || isRiseToPower(cardId)           || isWarHero(cardId)
+            || isApprovalOfTheGrey(cardId)     || isFocusYourEfforts(cardId)
+            || isGlory(cardId)                 || isRetribution(cardId)
+            || isReverseAdvances(cardId)       || isOpponentLoseOneInf(cardId)
+            || isOpponentLoseTwoInf(cardId)    || isCrisisOfSelf(cardId)
+            || isHealFaceDown(cardId)          || isBattleTested(cardId)
+            || isRescue(cardId)                || isMartyr(cardId);
+    }
+
+    /**
+     * B5-2002: the phase-boundary trigger evaluation entry point. Walks every
+     * aftermath currently in play (GameState's attachedAftermaths registry,
+     * keyed by target), gates each on its Play Conditions, and fires the
+     * registered id-keyed effect for the ones whose conditions this boundary
+     * satisfies. Returns the number of effects fired.
+     *
+     * alreadyResolved is the conflict whose aftermath resolution ALREADY ran
+     * at this boundary, or null when none did. GameController resolves the
+     * active conflict's aftermaths in the same AFTERMATH phase it sets, so
+     * passing that conflict here is what keeps this evaluator from paying a
+     * second time for an effect already applied — a double-fire is not a
+     * subtle regression, it is a doubled payout. Identity, not the phase
+     * constant, is the reliable test here: B5-2163 measured that GamePhase
+     * AFTERMATH is entered at two unrelated boundaries (GameController:55
+     * round aftermath and :647 conflict aftermath), so the phase alone cannot
+     * distinguish "just resolved a conflict" from "wrapping the round".
+     *
+     * A gated-in card with no registered effect is a LOUD no-op, never a
+     * silent pass and never a fallback that re-reads the play condition as an
+     * effect — the B5-2249 defect this section exists partly to end.
+     */
+    public static int fireAttachedAftermathTriggers(GameState state,
+                                                    AftermathTrigger t,
+                                                    Conflict alreadyResolved) {
+        if (state == null || t == null) return 0;
+        if (t.getConflict() == alreadyResolved) return 0;
+
+        int fired = 0;
+        int gatedOut = 0;
+        int unregistered = 0;
+        for (Player target : state.getPlayers()) {
+            for (AftermathCard am : state.getAttachedAftermaths(target)) {
+                if (am == null) continue;
+                if (!triggerMet(am, t)) { gatedOut++; continue; }
+                if (!hasRegisteredEffect(am.getId())) {
+                    unregistered++;
+                    state.log("WARNING: B5-2002 aftermath trigger met for "
+                              + am.getId() + " on " + target.getName()
+                              + " but no effect is registered — no payout."
+                              + " (phase " + state.getPhase() + ")");
+                    continue;
+                }
+                applyAftermathEffect(state, t.getConflict(), am, target,
+                                     t.getWinner());
+                fired++;
+            }
+        }
+        if (fired > 0 || unregistered > 0) {
+            state.log("B5-2002 trigger evaluation at phase " + state.getPhase()
+                      + ": " + fired + " fired, " + gatedOut
+                      + " gated out, " + unregistered + " met but unregistered.");
+        }
+        return fired;
+    }
+
     /** Agenda effect when played: fleet-wide Military bonus agendas. */
     public static void applyAgendaOnPlay(GameState state, Player p, AgendaCard agenda) {
         if (AGENDA_FLEET_PLUS1.contains(agenda.getId())) {
@@ -521,6 +1305,8 @@ public final class CardEffects {
             state.log(p.getName() + ": " + agenda.getTitle()
                     + " grants all own fleets +1 Military.");
         }
+        // B5-1995: grant marks from agenda (persist while agenda is face-up)
+        applyAgendaMarkGrants(state, p, agenda);
     }
 
     /** Agenda effect at the start of each round (call from startRound). */
@@ -538,6 +1324,112 @@ public final class CardEffects {
         p.gainInfluence(inf.intValue());
         state.log(p.getName() + " gains " + inf + " influence from agenda "
                 + agenda.getTitle() + ".");
+    }
+
+    /**
+     * B5-2251: lifts the WHILE_IN_PLAY stat bonuses an agenda granted while it
+     * was in play. applyAgendaOnPlay registers those bonuses keyed by the
+     * agenda's own id, so removal is by source and touches nothing else the
+     * owner holds.
+     *
+     * Why this exists: a WHILE_IN_PLAY bonus has no round boundary to expire
+     * on. Player.sweepBonusExpiries only removes END_OF_TURN and
+     * START_OF_NEXT_OWNER_TURN bonuses, so a fleet-wide +1 Military granted by
+     * an agenda survived the agenda itself leaving play — the +1 outlived its
+     * own printed text and was still being paid out by
+     * FleetCard.getEffectiveMilitary long after DISCARD_AGENDA or
+     * REPLACE_AGENDA had emptied the agenda slot. Every leave-play path for an
+     * agenda must call this alongside removeAgendaMarkGrants.
+     */
+    public static int removeAgendaBonuses(Player p, AgendaCard agenda) {
+        if (p == null || agenda == null) return 0;
+        return p.removeBonusesBySource(agenda.getId());
+    }
+
+    /** B5-1995: Applies mark grants from an agenda that is face-up in play. */
+    public static void applyAgendaMarkGrants(GameState state, Player p, AgendaCard agenda) {
+        if (agenda == null || agenda.isFaceDown()) return;
+        MarkGrant grant = AGENDA_MARK_GRANTS.get(agenda.getId());
+        if (grant == null) return;
+        if (grant.target == MarkGrant.Target.AMBASSADOR) {
+            CharacterCard ambassador = p.getAmbassador();
+            if (ambassador != null) {
+                int added = p.addMarksToCharacter(ambassador, grant.type, grant.count);
+                if (added > 0) {
+                    state.log(p.getName() + "'s " + agenda.getTitle()
+                            + " grants " + added + " " + grant.type + " mark(s) to ambassador "
+                            + ambassador.getTitle() + ".");
+                }
+            }
+        }
+    }
+
+    /** B5-1995: Removes mark grants from an agenda that is being discarded/replaced/blanked. */
+    public static void removeAgendaMarkGrants(GameState state, Player p, AgendaCard agenda) {
+        if (agenda == null) return;
+        MarkGrant grant = AGENDA_MARK_GRANTS.get(agenda.getId());
+        if (grant == null) return;
+        if (grant.target == MarkGrant.Target.AMBASSADOR) {
+            CharacterCard ambassador = p.getAmbassador();
+            if (ambassador != null) {
+                int purged = p.purgeMarkFromCharacter(ambassador, grant.type);
+                if (purged > 0) {
+                    state.log(p.getName() + "'s " + agenda.getTitle()
+                            + " is removed; " + purged + " " + grant.type
+                            + " mark(s) purged from ambassador " + ambassador.getTitle() + ".");
+                }
+            }
+        }
+    }
+
+    /** B5-1995: Applies mark grants from an enhancement that is attached. */
+    private static void applyEnhancementMarkGrants(GameState state, Player p, EnhancementCard enh, CharacterCard target) {
+        if (enh == null || target == null) return;
+        MarkGrant grant = ENHANCEMENT_MARK_GRANTS.get(enh.getId());
+        if (grant == null) return;
+        if (grant.target == MarkGrant.Target.AMBASSADOR && target == p.getAmbassador()) {
+            int added = p.addMarksToCharacter(target, grant.type, grant.count);
+            if (added > 0) {
+                state.log(p.getName() + "'s " + enh.getTitle()
+                        + " grants " + added + " " + grant.type + " mark(s) to " + target.getTitle() + ".");
+            }
+        }
+    }
+
+    /** B5-1995: Removes mark grants from an enhancement that is being detached/discarded. */
+    public static void removeEnhancementMarkGrants(GameState state, Player p, EnhancementCard enh) {
+        if (enh == null) return;
+        MarkGrant grant = ENHANCEMENT_MARK_GRANTS.get(enh.getId());
+        if (grant == null) return;
+        if (grant.target == MarkGrant.Target.AMBASSADOR) {
+            CharacterCard ambassador = p.getAmbassador();
+            if (ambassador != null) {
+                int purged = p.purgeMarkFromCharacter(ambassador, grant.type);
+                if (purged > 0) {
+                    state.log(p.getName() + "'s " + enh.getTitle()
+                            + " is removed; " + purged + " " + grant.type
+                            + " mark(s) purged from " + ambassador.getTitle() + ".");
+                }
+            }
+        }
+    }
+
+    /** B5-1995: Applies mark grants from an event (permanent marks). */
+    private static void applyEventMarkGrants(GameState state, Player p, Card card) {
+        if (card == null) return;
+        MarkGrant grant = EVENT_MARK_GRANTS.get(card.getId());
+        if (grant == null) return;
+        if (grant.target == MarkGrant.Target.AMBASSADOR) {
+            CharacterCard ambassador = p.getAmbassador();
+            if (ambassador != null) {
+                int added = p.addMarksToCharacter(ambassador, grant.type, grant.count);
+                if (added > 0) {
+                    state.log(p.getName() + " plays " + card.getTitle()
+                            + " granting " + added + " " + grant.type + " mark(s) to ambassador "
+                            + ambassador.getTitle() + ".");
+                }
+            }
+        }
     }
 
     /** Extra influence when the agenda owner wins a Diplomacy conflict. */

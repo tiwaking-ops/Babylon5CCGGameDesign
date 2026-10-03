@@ -7,9 +7,10 @@ provenance:
   assessor_llm:
     - {name: "opencode (big-pickle-free)", version: "big-pickle-free", passes: 1, last_pass: "2026-09-27", note: "edit: qualified the bare .agent/00_BOOT.md in the status line, the string an unattended agent copied verbatim and resolved against the repository root (B5-0693)"}
     - {name: "Muse Spark", version: "muse-spark-1.3-contributor-free", passes: 1, last_pass: "2026-09-27", note: "merge: port 8 governance fixes from prompt review, keep status/why/no-commit"}
-  last_modified_by_llm: {name: "Muse Spark", version: "muse-spark-1.3-contributor-free"}
+    - {name: "Hermes (stealth-space-bunny-alpha) 1733", version: "stealth-space-bunny-alpha", passes: 1, last_pass: "2026-10-02", note: "edit: LOOP step 5 gains the B5-1733 bare-cmdlet detector and the annotation convention it depends on, so the B5-1541 shell trap is a gate rather than a memory (B5-1733)"}
+  last_modified_by_llm: {name: "Hermes (stealth-space-bunny-alpha) 1733", version: "stealth-space-bunny-alpha"}
   created_date: "2026-09-27"
-  last_modified_date: "2026-09-27"
+  last_modified_date: "2026-10-02"
 ---
 
 # AGENT_LOOP
@@ -75,10 +76,19 @@ LOOP until STOP
      b5ccg/src-java8-archive/ is frozen. No external libs without human approval.
      Log the change in docs/DECISIONS.md.
   5. Every row you write takes a single leading pipe and exactly 7 pipes, with no
-     "|" character inside any note cell. After writing, run the duplicate-id census:
-       (Select-String -Path .agent/TASK_LEDGER.md -Pattern '^\|+\s*(B5-[0-9]{4}[a-z]?)\s*\|' -AllMatches).Matches |
-         ForEach-Object { $_.Groups[1].Value } | Group-Object | Where-Object Count -gt 1
-     Empty output is the pass condition. Prove pipes with the shipped detector:
+     "|" character inside any note cell. After writing, run the duplicate-id census
+     through the shipped wrapper -- the ONLY documented form (B5-1541). The inline
+     Select-String one-liner is withdrawn, not deprecated: it is PowerShell syntax
+     with no powershell prefix, so an agent whose only shell is bash copies it
+     verbatim and gets "Select-String: command not found". A gate an agent cannot
+     execute is not a gate:
+       powershell -NoProfile -ExecutionPolicy Bypass -File .agent/tools/run-dup-census.ps1
+     Exit 0 clean, 1 duplicate found, 2 ledger missing or unreadable. **The exit
+     code is the contract and stdout carries an allowed banner; "Empty output is
+     the pass condition" was withdrawn as wrong on 2026-10-01 (B5-1732), which
+     measured a clean ledger printing 3 stdout lines at exit 0 and a one-duplicate
+     fixture printing 4 at exit 1.** Judge the exit code. Prove pipes with the
+     shipped detector:
        powershell -NoProfile -ExecutionPolicy Bypass -File .agent/tools/ledger-query.ps1 -Status "*"
      Your row must read pipeCount 7 / doubleLead no (your own just-written row
      under your own claim is judged directly; any other suppressed-live-claim
@@ -86,6 +96,16 @@ LOOP until STOP
      row byte-identical and renumber YOURS to a NON-ADJACENT id -- never into the
      slot they just vacated, which deadlocks. A duplicate id silently drops a task,
      because status is keyed by id and the last row wins.
+  5a. If you edited any `.agent/*.md`, run the B5-1541 bare-cmdlet detector --
+     the shell trap is a gate now, not a memory (B5-1733):
+       powershell -NoProfile -ExecutionPolicy Bypass -File .agent/tools/detect-bare-powershell-cmdlet.ps1
+     Exit 0 clean, 1 a bare PowerShell cmdlet sits in instruction position, 2
+     root unreadable (a false pass, never read as clean). It fires only on a
+     fenced line that BEGINS with the cmdlet AND is followed by a parameter, `{`
+     or `.`, so prose naming a cmdlet does not fire. A deliberate counter-example
+     keeps the bare line and annotates it `# FAILS` (or `# b5-1733 exempt`); that
+     annotation IS the exemption, and .agent/SHELL.knowledge.md line 66 is the
+     live example. On exit 1, fix the COMMAND -- never edit the detector.
   6. Run compile.bat/sh (JDK 8, -source 6). On red, mark the task BLOCKED with the
      log excerpt, release your claim, and STOP that item only.
   7. Finish in order: update the .agent/TASK_LEDGER.md row, append the

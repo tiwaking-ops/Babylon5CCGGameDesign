@@ -32,6 +32,11 @@ public class GameState {
     // one-named-per-target guard itself is unchanged.
     private final Map<Player, List<AftermathCard>> attachedAftermaths = new LinkedHashMap<Player, List<AftermathCard>>();
 
+    // B5-1997: sustained actions registry — effects that persist across rounds
+    // while the source card remains rotated. Keyed by source card ID for
+    // efficient lookup when checking if a card is sustaining an action.
+    private final Map<String, SustainedAction> sustainedActions = new LinkedHashMap<String, SustainedAction>();
+
     private final List<String> log = new ArrayList<String>();
 
     public boolean isStationSourceFired() { return stationSourceFired; }
@@ -267,14 +272,28 @@ public class GameState {
         if (amount <= 0) return;
         CivilWarState cws = civilWarOfRace(loser.getFaction());
         if (cws != null && cws.getPhase() == CivilWarState.Phase.CIVIL_WAR) {
-            loser.loseInfluence(amount);
+            if (isPlayerActive(loser)) {
+                loser.loseInfluence(amount);
+            }
             return;
         }
         List<Player> racePlayers = playersOfRace(loser.getFaction());
         for (Player p : racePlayers) {
-            p.loseInfluence(amount);
+            if (isPlayerActive(p)) {
+                p.loseInfluence(amount);
+            }
         }
     }
+
+    /**
+     * Returns true if the player is still active in the game (has not forfeited
+     * and has not surrendered). Consolidates the forfeited/surrendered check
+     * used in multiple locations.
+     */
+    public boolean isPlayerActive(Player p) {
+        return p != null && !p.hasForfeited() && !p.hasSurrendered();
+    }
+
     public boolean        isAtWar(Faction a, Faction b)   { return tensionMatrix.isAtWar(a, b); }
     public boolean isAtWar(Faction faction) {
         // true when faction is at war with any other faction
@@ -350,6 +369,68 @@ public class GameState {
      * boundary frees every attached name. Direct calls are idempotent.
      */
     public void clearAttachedAftermaths() { attachedAftermaths.clear(); }
+
+    // ── Sustained actions (B5-1997) ───────────────────────────────────────────
+    /**
+     * Registers a new sustained action. Returns false if the source card is
+     * already sustaining an action (one sustained action per source card).
+     */
+    public boolean registerSustainedAction(SustainedAction action) {
+        if (action == null || action.getSourceCard() == null) return false;
+        String sourceId = action.getSourceCard().getId();
+        if (sustainedActions.containsKey(sourceId)) return false;
+        sustainedActions.put(sourceId, action);
+        return true;
+    }
+
+    /** Returns the sustained action for the given source card ID, or null. */
+    public SustainedAction getSustainedAction(String sourceCardId) {
+        return sustainedActions.get(sourceCardId);
+    }
+
+    /** True when the given card is currently sustaining an action. */
+    public boolean isSustaining(Card sourceCard) {
+        if (sourceCard == null || sourceCard.getId() == null) return false;
+        return sustainedActions.containsKey(sourceCard.getId());
+    }
+
+    /**
+     * Ends the sustained action for the given source card. Returns the
+     * removed action, or null if none was registered.
+     */
+    public SustainedAction endSustainedAction(Card sourceCard) {
+        if (sourceCard == null || sourceCard.getId() == null) return null;
+        return sustainedActions.remove(sourceCard.getId());
+    }
+
+    /** Clears all sustained actions (called at game end). */
+    public void clearAllSustainedActions() { sustainedActions.clear(); }
+
+    /**
+     * B5-2248: true when some live sustained action of the given type is
+     * TARGETING this card.
+     *
+     * <p>Needed because the registry is keyed by SOURCE card id, so
+     * {@link #getSustainedAction(String)} and {@link #isSustaining(Card)} can
+     * only answer questions about the card doing the sustaining, never about
+     * the card receiving the bonus. Rulebook :492 makes that distinction load
+     * bearing: an assistant's ability bonus lasts only while the assistant
+     * remains rotated, so the round-boundary reset has to know whether a
+     * bonus it is about to drop was actually sustained by somebody.
+     *
+     * <p>Identity, not id, is the comparison: the registry holds the live card
+     * objects, and a caller asking about a card it is holding must get the
+     * same answer the sustaining path registered.
+     */
+    public boolean hasSustainedActionTargeting(Card target, SustainedActionType type) {
+        if (target == null || type == null) return false;
+        for (SustainedAction sa : sustainedActions.values()) {
+            if (sa != null && sa.getType() == type && sa.getTargetCard() == target) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     // ── Contingencies in play (B5-0394) ─────────────────────────────────────
     /** Returns all face-down contingencies placed by the given player. */

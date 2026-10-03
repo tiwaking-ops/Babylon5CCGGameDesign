@@ -99,6 +99,87 @@ public class RulesEngine {
         }
     }
 
+    // ── Enhancement attachment / detachment (B5-1977) ─────────────────────────
+    //
+    // Rulebook :510 — "Enhancement cards remain in play so long as the game
+    // entity they modify remains in play. They are discarded if the card they
+    // modify is discarded." and :846 — cards "discarded from play" include
+    // "supporting characters who have been neutralized and any aftermaths or
+    // enhancements attached to that character."
+    //
+    // CardEffects.applyPlayEnhancement (B5-0468/B5-0506) already GRANTS the
+    // attached bonuses; what nothing did was lift them when the character they
+    // modify leaves play. Both attachment spellings are honoured here:
+    //   1. the explicit B5-0468 opponent target (EnhancementCard.targetCardId),
+    //   2. the self-target path, which selects bestCharacter(p) inside
+    //      CardEffects and therefore leaves targetCardId null on the card. That
+    //      attachment is recorded only in the bonus registry as an ATTACHED
+    //      StatBonus whose sourceCardId is the enhancement and whose
+    //      targetCardId is the character, so the registry IS the record and is
+    //      read back here rather than second-guessed with a new field.
+
+    /** Returns every enhancement held by ANY player that modifies {@code ch}.
+     *  Matching is by card id (explicit opponent target) or by an ATTACHED
+     *  registry bonus sourced by the enhancement and keyed to the character.
+     *  Returns an empty list, never null. */
+    public List<EnhancementCard> enhancementsAttachedTo(GameState state, CharacterCard ch) {
+        List<EnhancementCard> attached = new ArrayList<EnhancementCard>();
+        if (state == null || ch == null || ch.getId() == null) return attached;
+        for (Player holder : state.getPlayers()) {
+            for (EnhancementCard enh : holder.getEnhancements()) {
+                if (isAttachedTo(state, enh, ch) && !attached.contains(enh)) {
+                    attached.add(enh);
+                }
+            }
+        }
+        return attached;
+    }
+
+    private boolean isAttachedTo(GameState state, EnhancementCard enh, CharacterCard ch) {
+        if (enh == null) return false;
+        if (ch.getId().equals(enh.getTargetCardId())) return true;   // B5-0468 seam
+        for (Player r : state.getPlayers()) {
+            for (StatBonus b : r.getBonuses()) {
+                if (b.scope == BonusScope.ATTACHED
+                        && enh.getId().equals(b.sourceCardId)
+                        && ch.getId().equals(b.targetCardId)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * B5-1977: discards every enhancement modifying {@code ch} and lifts the
+     * bonuses it granted, from whichever player holds it and to whichever
+     * player's registry they were granted into (the B5-0468 opponent-targeted
+     * case grants into the TARGET owner's registry, not the holder's).
+     * Returns how many enhancements were discarded. Safe to call for a
+     * character no enhancement modifies: returns 0 and logs nothing.
+     */
+    public int detachEnhancementsFromCharacter(GameState state, CharacterCard ch) {
+        if (state == null || ch == null) return 0;
+        int detached = 0;
+        // Snapshot first: the sweep mutates the holders' enhancement lists.
+        List<EnhancementCard> attached =
+                new ArrayList<EnhancementCard>(enhancementsAttachedTo(state, ch));
+        for (EnhancementCard enh : attached) {
+            Player holder = null;
+            for (Player candidate : state.getPlayers()) {
+                if (candidate.getEnhancements().remove(enh)) { holder = candidate; break; }
+            }
+            // B5-1995: remove mark grants from the detached enhancement
+            CardEffects.removeEnhancementMarkGrants(state, holder != null ? holder : ch.getOwner(), enh);
+            for (Player r : state.getPlayers()) r.removeBonusesBySource(enh.getId());
+            if (holder != null && holder.getDeck() != null) holder.getDeck().discard(enh);
+            state.log(enh.getTitle() + " is discarded (" + ch.getTitle()
+                    + " discarded from play; rulebook :510).");
+            detached++;
+        }
+        return detached;
+    }
+
     // ── Build Influence action ────────────────────────────────────────────────
 
     /** Returns true when player p may Build Influence:
@@ -160,6 +241,31 @@ public class RulesEngine {
         return base + p.getInnerCircle().size();
     }
 
+    /**
+     * B5-1999 (rulebook §IV "Group Cards", :496): groups are Supporting Cards
+     * and "may not be promoted to the Inner Circle". The same sentence governs
+     * fleets (:500) and locations (:504). The CharacterCard-typed canPromote
+     * below could never receive a GroupCard, so this Card-typed gate states
+     * the rule in the rulebook's own terms instead of leaving it implied by a
+     * Java signature: the promotion COST for a group is not a number, it is a
+     * refusal. Callers holding a bare Card (the controller's PROMOTE_CHARACTER
+     * branch reads one) use this form; a group is refused before any cost is
+     * computed, so promotionCost is never reached for one.
+     *
+     * Note the row premise said groups "act as one unit for conflicts" and
+     * carry "promotion costs of member personalities". Both are the opposite of
+     * the printed rule — :496 says groups have no abilities and may never be
+     * promoted, and the participant vocabulary (:434, :607) is fleet and
+     * character only. The rulebook governs; see DECISIONS.
+     */
+    public boolean canPromote(Player p, Card c) {
+        if (c instanceof GroupCard)  return false;   // :496
+        if (c instanceof FleetCard)  return false;   // :500
+        if (c instanceof LocationCard) return false; // :504
+        if (!(c instanceof CharacterCard)) return false;
+        return canPromote(p, (CharacterCard) c);
+    }
+
     /** Returns true when p may promote ch into the Inner Circle now:
      *  ch is a ready supporting character, an unrotated Inner Circle member
      *  exists to rotate, and p can afford promotionCost. */
@@ -196,9 +302,103 @@ public class RulesEngine {
         leader.rotate();
         p.recruitToInnerCircle(ch);
 
+        // B5-2245: the logged cost is the `cost` local, NOT a second
+        // promotionCost(p, ch) call. promotionCost reads innerCircle.size(), and
+        // recruitToInnerCircle has already grown it by one, so the re-read
+        // reported cost+1 — the log contradicted the amount actually charged by
+        // exactly the IC term that makes promotion cost what it does. The
+        // charge was always right; only the record of it was wrong, which is
+        // worse than useless here because this line is the audit trail.
         state.log(p.getName() + " promotes " + ch.getTitle()
                   + " to the Inner Circle (" + leader.getTitle() + " rotates, cost "
-                  + promotionCost(p, ch) + "); IC now " + p.getInnerCircle().size());
+                  + cost + " = " + (cost - p.getInnerCircle().size()) + " listed + "
+                  + (p.getInnerCircle().size() - 1) + " per existing IC member"
+                  + "); IC now " + p.getInnerCircle().size());
+    }
+
+    // ── Group cards (B5-1999; rulebook §IV "Group Cards", :496) ─────────────
+
+    /**
+     * B5-1999: the sponsorship cost of bringing a GROUP into play.
+     *
+     * Rulebook :657 ("Any character in the Inner Circle may rotate to bring a
+     * new supporting Character, Enhancement, Group, Location or Fleet into
+     * play from your hand ... Your faction must apply the required influence
+     * cost listed on the sponsored card") fixes the cost at the card's LISTED
+     * cost. There is deliberately no double-cost term and no Inner-Circle-size
+     * term here, and that is a rulebook distinction rather than an omission:
+     *
+     *   - the double-cost rule belongs to CHARACTERS (§IV:484 "Sponsoring
+     *     loyal or neutral characters requires applying their listed influence
+     *     cost. Sponsoring characters loyal to a different race requires
+     *     applying double the character's listed influence cost"). Its sibling
+     *     rules restate the same shape for fleets (:500) and locations (:504).
+     *   - a group with a race in its Card Type is RESTRICTED, not dearer:
+     *     :496 "Only the player controlling the race listed as part of the Card
+     *     Type may bring a restricted card into play." So the race check is an
+     *     absolute legality gate (canSponsorGroup), never a multiplier — which
+     *     also matches :1034, where a faction may sponsor "groups, enhancements
+     *     and agendas which are not restricted to a race, though not Human
+     *     groups which are non-Psi Corps groups".
+     *
+     * The Inner-Circle-size promotion term (:484) belongs to promotion, and a
+     * group cannot be promoted at all — see canPromote(Player, Card).
+     */
+    public int groupSponsorshipCost(GroupCard gr) {
+        return (gr == null) ? 0 : Math.max(0, gr.getCost());
+    }
+
+    /**
+     * B5-1999: may p bring group gr into play as a Supporting Card now?
+     * Three gates, in rulebook order:
+     *   1. in hand (:657 "from your hand");
+     *   2. the influence cost is affordable (:657 "must apply the required
+     *      influence cost ... or this action may not be performed");
+     *   3. race restriction — an absolute refusal, not a doubled cost (:496).
+     *
+     * The Limited rule (:496 "Groups are limited unless otherwise specified",
+     * Glossary :1166 "If a second copy of a limited card is determined to be in
+     * play ... the additional copy is discarded") is a post-play resolution of
+     * an already-bad board state rather than a play-time gate, so it is NOT
+     * checked here: refusing the play would leave the player holding a card he
+     * may never legally play. See discardLimitedGroupCopies.
+     */
+    public boolean canSponsorGroup(Player p, GroupCard gr) {
+        if (p == null || gr == null) return false;
+        if (!p.getHand().contains(gr)) return false;
+        if (p.getAppliedPool() < groupSponsorshipCost(gr)) return false;
+        return gr.getFaction().isPlayableBy(p.getFaction());   // :496 absolute
+    }
+
+    /**
+     * B5-1999: can this card be committed to the conflict as a participant?
+     *
+     * Rulebook :496 gives groups no abilities, and the participant vocabulary is
+     * fleet-and-character only: :434 "Any fleet that supports, opposes or attacks
+     * during a conflict becomes a 'participant fleet'. Any character who
+     * supports, opposes, attacks, or leads a fleet that participates during a
+     * conflict becomes a 'participant character'", and :607 defines "Participant
+     * Character" identically. A group's printed effects ("Rotate this Group
+     * during any Military conflict. Add 2 to your Military total") are a
+     * rotate-for-effect on the card's controller's total, NOT a commitment of
+     * the group itself — which is why the group contributes 0 and must not
+     * appear among the committed cards.
+     *
+     * B5-1999 measured this red first: an OPEN conflict (no participation
+     * filter) and a WAR conflict (ConflictCard absent, so no filters at all)
+     * both accepted a GroupCard commit and then reported isParticipantCard
+     * true for it.
+     *
+     * SCOPE NOTE, deliberate: Conflict.canCommitCard is the participation
+     * authority and lives in model/, which is outside this row's claimed scope
+     * (engine/ plus model/GroupCard.java). This gate is therefore expressed in
+     * engine/ and must be consulted by every engine commit path; closing it at
+     * the model layer too is the natural follow-up and is recorded in the
+     * report rather than done here.
+     */
+    public boolean canParticipateInConflict(Card c) {
+        if (c instanceof GroupCard) return false;   // :496 / :434 / :607
+        return true;
     }
 
     // ── Recruit (sponsor) a supporting character (B5-0323) ────────────────
@@ -252,6 +452,158 @@ public class RulesEngine {
     public boolean canRecruit(Player p, CharacterCard ch) {
         if (ch == null || !p.getHand().contains(ch)) return false;
         return p.getAppliedPool() >= sponsorCost(p, ch).getAmount();
+    }
+
+    // ── Sponsor: listed cost, refuse when short, deduct on success ───────────
+    //
+    // B5-2245. Rulebook :657 defines ONE action — "Any character in the Inner
+    // Circle may rotate to bring a new supporting Character, Enhancement,
+    // Group, Location or Fleet into play from your hand. ... Your faction must
+    // apply the required influence cost listed on the sponsored card being
+    // brought into play or this action may not be performed."
+    //
+    // Before this section the rulebook's single Sponsor action was split across
+    // three paths that disagreed about what it costs, and the card types the
+    // rulebook names were not all covered by any of them:
+    //   - Character  -> RECRUIT_CHARACTER, cost correct (doubling :663, assistant
+    //     discount :492), but NO Inner-Circle rotation is checked.
+    //   - Group      -> canSponsorGroup, listed cost + absolute race gate.
+    //   - Enhancement / Location / Fleet -> reachable only via PLAY_CARD's
+    //     generic path, which charges the bare listed cost with no race
+    //     restriction and no rotation.
+    // So an other-race restricted enhancement or a hostile-race location could
+    // be brought into play for its listed cost when the rulebook refuses it
+    // outright (:665 "only the player controlling that race may play such
+    // cards"). That is the payment defect this row names.
+    //
+    // The two cost terms are NOT interchangeable, and conflating them is the
+    // trap: :663 makes a different-race CHARACTER dearer (double), while :664
+    // and :665 make a different-race card of any OTHER type ILLEGAL (an
+    // absolute refusal, never a doubled price). A single "off-race multiplier"
+    // cannot express both, so this method keeps them apart by card type.
+
+    /**
+     * B5-2245: what p pays to sponsor card c under rulebook :657 — the listed
+     * influence cost, less the ambassador's assistant sponsor discount
+     * (:492 "allow your ambassador, later that turn, to apply 1 influence less
+     * than usual when sponsoring a card", which is scoped to "a card" and not
+     * to characters), floored at 0.
+     *
+     * Character and Group delegate to the paths that already encode their
+     * extra rules, so there is one cost per type rather than two that can
+     * drift. There is deliberately NO Inner-Circle term here: :657 charges the
+     * listed cost for sponsorship, while :669 adds "one additional influence for
+     * each character that is already a member" for PROMOTION only. A sponsor
+     * cost carrying an IC term would overcharge every sponsorship.
+     */
+    public int sponsorshipCost(Player p, Card c) {
+        if (p == null || c == null) return 0;
+        if (c instanceof CharacterCard) {
+            return sponsorCost(p, (CharacterCard) c).getAmount();
+        }
+        if (c instanceof GroupCard) {
+            return groupSponsorshipCost((GroupCard) c);
+        }
+        return Math.max(0, c.getCost() - p.getSponsorDiscount());
+    }
+
+    /** The listed cost before any assistant discount, for the consumption
+     *  bookkeeping in executeSponsorCard. */
+    public int sponsorshipListedCost(Card c) {
+        return (c == null) ? 0 : Math.max(0, c.getCost());
+    }
+
+    /** True when p has an unrotated, unneutralized Inner Circle character able
+     *  to sponsor — rulebook :657 "Any character in the Inner Circle may
+     *  rotate to bring a new supporting [card] into play". The ambassador counts
+     *  as an Inner Circle member (rulebook :488). */
+    public boolean hasReadySponsor(Player p) {
+        if (p == null) return false;
+        for (CharacterCard ic : p.getInnerCircle()) {
+            if (!ic.isRotated() && ic.canActAfterNeutralization()) return true;
+        }
+        return false;
+    }
+
+    /**
+     * B5-2245: may p sponsor card c into play as a Supporting Card now?
+     * Gates in rulebook order:
+     *   1. the card type is one the rulebook names (:657);
+     *   2. it is in hand (:657 "from your hand");
+     *   3. a ready Inner Circle member exists to rotate (:657);
+     *   4. the race restriction, which for every type but characters is an
+     *      ABSOLUTE refusal rather than a doubled price (:664 restricted
+     *      enhancements, :665 "only the player controlling that race may play
+     *      such cards"). A character loyal to another race is deliberately NOT
+     *      refused here — :663 makes it dearer instead;
+     *   5. affordability (:657 "or this action may not be performed").
+     *
+     * This does NOT replace canRecruit or canSponsorGroup, which remain the
+     * gates for the RECRUIT_CHARACTER and PLAY_CARD paths; it is the gate for
+     * the sponsorship of the card types that had none.
+     */
+    public boolean canSponsorCard(Player p, Card c) {
+        if (p == null || c == null) return false;
+        if (!(c instanceof EnhancementCard || c instanceof LocationCard
+                || c instanceof FleetCard)) return false;
+        if (!p.getHand().contains(c)) return false;
+        if (!hasReadySponsor(p)) return false;
+        if (!c.getFaction().isPlayableBy(p.getFaction())) return false;   // :664 / :665 absolute
+        return p.getAppliedPool() >= sponsorshipCost(p, c);
+    }
+
+    /**
+     * B5-2245: sponsors card c for p. Refuses when short, and deducts on
+     * success — the two halves of :657's "must apply the required influence
+     * cost ... or this action may not be performed".
+     *
+     * Order matters and is the point of this method: the cost is applied BEFORE
+     * anything moves, so a refusal leaves the hand, the Inner Circle and the
+     * influence pool exactly as they were. Player.applyInfluence already refuses
+     * without deducting when the pool is short, so the refund case cannot arise.
+     */
+    public void executeSponsorCard(Player p, Card c, CharacterCard leader,
+                                    GameState state) {
+        if (p == null || state == null || c == null) return;
+        if (!canSponsorCard(p, c)) {
+            state.log(p.getName() + " cannot sponsor "
+                      + c.getTitle() + " (not in hand, no ready Inner Circle member, restricted race, or not enough applied influence).");
+            return;
+        }
+        if (leader == null || !p.getInnerCircle().contains(leader)
+                || leader.isRotated() || !leader.canActAfterNeutralization()) {
+            state.log(p.getName() + " cannot sponsor " + c.getTitle()
+                      + " with that Inner Circle member.");
+            return;
+        }
+
+        int listed = sponsorshipListedCost(c);
+        int cost   = sponsorshipCost(p, c);
+        if (!p.applyInfluence(cost)) {
+            state.log(p.getName() + " cannot apply enough influence to sponsor "
+                      + c.getTitle() + ".");
+            return;
+        }
+        int discounted = listed - cost;
+        if (discounted > 0) {
+            p.consumeSponsorDiscount(discounted);
+            state.log(p.getName() + " sponsors at an assistant discount ("
+                      + cost + " instead of " + listed + ").");
+        }
+
+        leader.rotate();
+        p.removeFromHand(c);
+        if (c instanceof EnhancementCard) {
+            CardEffects.applyPlayEnhancement(state, p, (EnhancementCard) c);
+        } else if (c instanceof LocationCard) {
+            p.getLocations().add((LocationCard) c);
+            state.log(p.getName() + " sponsors location " + c.getTitle() + ".");
+        } else if (c instanceof FleetCard) {
+            p.getFleets().add((FleetCard) c);
+            state.log(p.getName() + " sponsors fleet " + c.getTitle() + ".");
+        }
+        state.log(p.getName() + " sponsors " + c.getTitle() + " for " + cost
+                  + " influence (" + leader.getTitle() + " rotates).");
     }
 
     // ── Agenda lifecycle (B5-0364; rulebook :520/:719, B5-0345 Tier-1 #3) ───
@@ -371,6 +723,10 @@ public class RulesEngine {
                         CharacterCard ch = (CharacterCard) c;
                         if (p.getSupportingRole().contains(ch)) {
                             p.getSupportingRole().remove(ch);
+                            // B5-1977 (rulebook :510/:846): enhancements
+                            // modifying a character discarded from play are
+                            // discarded with it.
+                            detachEnhancementsFromCharacter(state, ch);
                             p.getDeck().discard(ch);
                             state.log(p.getName() + ": " + ch.getTitle()
                                       + " discarded (supporting role loss).");
@@ -384,6 +740,42 @@ public class RulesEngine {
         // location capture, and tension increment.
         if (conflict.isWarConflict()) {
             resolveWarOutcome(conflict, winner, state);
+        }
+
+        // B5-1923: card-specific loser outcome (discard, influence loss, steal)
+        // belongs to resolution itself, not to whichever caller remembers it:
+        // GameController applied it after resolveConflict while every headless
+        // caller silently skipped it, so engine resolution never produced the
+        // rulebook loser penalties (B5-1032 WRONG #2: Bio-Weapon discard-2 never
+        // fired). Single primary loser, selected exactly as the controller did:
+        // the initiator when the initiator lost, else the first non-winner
+        // participant. War conflicts exit early inside applyConflictOutcome on
+        // their null card, exactly as before.
+        Player primaryLoser = null;
+        if (conflict.getInitiator() != winner) {
+            primaryLoser = conflict.getInitiator();
+        } else {
+            for (Player q : conflict.getParticipants()) {
+                if (q != winner) { primaryLoser = q; break; }
+            }
+        }
+        if (primaryLoser != null) {
+            CardEffects.applyConflictOutcome(state, conflict, winner, primaryLoser);
+        }
+
+        // B5-2251: an agenda in play that grants a Diplomacy-win bonus pays it
+        // here, in resolution itself. It was applied in GameController after
+        // resolveConflict returned, so it was UI-only: every headless
+        // resolution — the conformance suite, the probes, the replay harness —
+        // silently skipped a rulebook bonus. Same defect class and the same
+        // fix as B5-1923 above.
+        if (conflict.getConflictType() == ConflictType.DIPLOMACY) {
+            int agendaBonus = CardEffects.agendaDiplomacyWinBonus(winner);
+            if (agendaBonus > 0) {
+                winner.gainInfluence(agendaBonus);
+                state.log(winner.getName() + " gains " + agendaBonus
+                        + " influence from agenda (Diplomacy win).");
+            }
         }
 
         return winner;
@@ -492,11 +884,20 @@ public class RulesEngine {
     /**
      * Returns true when p may declare a war conflict now: p has an action
      * remaining, has not passed, has not initiated any conflict this turn
-     * (one-conflict-per-turn gate), and p's faction is at war with at least
+     * (one-conflict-per-turn gate), has neither forfeited nor surrendered
+     * (B5-1825), and p's faction is at war with at least
      * one other faction. Proposal §3.2.
      */
     public boolean canDeclareWarConflict(Player p, GameState state) {
         if (p.isPassed()) return false;
+        // B5-1825: a player who has forfeited or surrendered has ceased play
+        // (rulebook :454 "loses the game, and ceases play"; :817 "Pick up your
+        // cards and go home") and may not start a war conflict. The B5-1609
+        // audit measured both statuses returning true here with the faction held
+        // constant. Uses the existing consolidated GameState.isPlayerActive
+        // check rather than re-testing the two flags, so this gate, and the
+        // B5-1705 / B5-1706 siblings, share one definition of "still playing".
+        if (!state.isPlayerActive(p)) return false;
         if (p.getActionsLeft() <= 0) return false;
         if (state.hasInitiatedConflictThisTurn(p)) return false;
         return state.isAtWar(p.getFaction());
@@ -564,7 +965,7 @@ public class RulesEngine {
         Player lastStanding = null;
         int remaining = 0;
         for (Player p : state.getPlayers()) {
-            if (p.hasForfeited()) continue;
+            if (!state.isPlayerActive(p)) continue;
             remaining++;
             lastStanding = p;
         }
@@ -580,7 +981,7 @@ public class RulesEngine {
         int activeRemaining = 0;
         Player lastActive = null;
         for (Player p : state.getPlayers()) {
-            if (p.hasForfeited() || p.hasSurrendered()) continue;
+            if (!state.isPlayerActive(p)) continue;
             activeRemaining++;
             lastActive = p;
         }
@@ -876,6 +1277,79 @@ public class RulesEngine {
         }
     }
 
+    // ── B5-1979: voluntary forfeit ───────────────────────────────────────────
+
+    /**
+     * B5-1979: returns true when p may voluntarily forfeit right now.
+     *
+     * Legality, in the order tested:
+     *  - the phase is ACTION. This is the row's gate: forfeiting is a choice
+     *    made mid-turn, not a draw-round negotiation (that is SURRENDER, which
+     *    canSurrender gates on GamePhase.DRAW) and not a consequence of the
+     *    draw (that is the involuntary path in Player.drawCards).
+     *  - the game is not already over.
+     *  - p is still playing (neither forfeited nor surrendered), read through
+     *    the consolidated GameState.isPlayerActive so this gate and the
+     *    B5-1825 war-conflict gate share one definition of "still playing".
+     *  - at least one OTHER player is still active. A forfeit that leaves no
+     *    opponent standing has no victory to award; checkVictory would return
+     *    null and the forfeiting player would simply exit with the game
+     *    undecided, which is not the "immediate loss, victory to the opponent"
+     *    contract this row states.
+     */
+    public boolean canForfeit(Player p, GameState state) {
+        if (p == null || state == null) return false;
+        if (state.getPhase() != GamePhase.ACTION) return false;
+        if (state.isGameOver()) return false;
+        if (!state.isPlayerActive(p)) return false;
+        for (Player q : state.getPlayers()) {
+            if (q != p && state.isPlayerActive(q)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * B5-1979: execute a voluntary forfeit.
+     *
+     * (1) Mark the player forfeited, which is what every existing
+     *     hasForfeited() reader already honours, so this needs no new state:
+     *     isPlayerActive, activePlayersCount, checkVictory's last-standing
+     *     check and the station/tiebreak win conditions all exclude the player
+     *     from here on (RulesEngine.java:682, :698, :774, :861, :877).
+     * (2) Log the forfeit. The player also picks up their cards and leaves:
+     *     the ambassador is discarded to the discard pile rather than retained,
+     *     which is what distinguishes a forfeit from an unconditional
+     *     surrender (B5-0661), where the ambassador survives and an asylum
+     *     copy of it is handed to the winner (rulebook :819).
+     * (3) Award victory, but ONLY when this forfeit actually left a sole
+     *     survivor. In a two-player game that is the opponent. In a game with
+     *     three or more players still standing, the forfeit removes one player
+     *     and the game continues -- awarding a win here would hand victory to
+     *     every remaining player and end a game the row does not say is over.
+     *     checkVictory is the single authority for "is somebody winning now"
+     *     and is reused rather than reimplemented, so this path can never
+     *     disagree with the end-of-action check at GameController.java:167.
+     *
+     * Returns the winner if the forfeit ended the game, else null.
+     */
+    public Player executeForfeit(Player p, GameState state) {
+        p.setHasForfeited(true);
+        CharacterCard amb = p.getAmbassador();
+        if (amb != null) {
+            p.getInnerCircle().remove(amb);
+            Deck deck = p.getDeck();
+            if (deck != null) deck.discard(amb);
+            p.setAmbassador(null);
+            state.log(p.getName() + " picks up their cards; the ambassador is lost.");
+        }
+        state.log(p.getName() + " forfeits the game.");
+        Player winner = checkVictory(state);
+        if (winner != null) {
+            state.log("Forfeit leaves " + winner.getName() + " the sole survivor.");
+        }
+        return winner;
+    }
+
     // ── Legality checks ──────────────────────────────────────────────────────
 
     public boolean canInitiateConflict(Player p, ConflictCard c, GameState state) {
@@ -998,6 +1472,24 @@ public class RulesEngine {
         return true;
     }
 
+    // ── B5-1994: legal-target validation ─────────────────────────────────────
+
+    /** B5-1994: legal-target validation for card play. */
+    public boolean isLegalTarget(Player p, Card card, Card target) {
+        if (p == null || card == null) return false;
+        // Rivalry probe: requires two IC characters
+        if ("Rivalry".equalsIgnoreCase(card.getTitle())) {
+            int icCount = 0;
+            for (CharacterCard ch : p.getInnerCircle()) {
+                if (ch != p.getAmbassador()) {
+                    icCount++;
+                }
+            }
+            return icCount >= 2;
+        }
+        return true;
+    }
+
     // ── Join conflict action (B5-0322) ─────────────────────────────────────────
 
     /** Returns true when p may join the active conflict on the given side:
@@ -1066,6 +1558,12 @@ public class RulesEngine {
         Player targetOwner = ownerOfCard(target, conflict);
         if (targetOwner == null || targetOwner.getFaction() == p.getFaction()) return false;
         if (attacker.getPrimaryStatValue(conflict.getConflictType()) <= 0) return false;
+        // B5-1999: a group has no ability (:496) and is never a participant
+        // (:434/:607), so it can never be the attacking card either. Stated
+        // explicitly because the stat gate above would already refuse it (a
+        // group reads 0 for every conflict type) — this names the reason at
+        // the site that makes it true.
+        if (!canParticipateInConflict(attacker)) return false;
         return conflict.canCommitCard(p, attacker);
     }
 
@@ -1212,6 +1710,174 @@ public class RulesEngine {
         p.grantSponsorDiscount(1);
         state.log(ch.getTitle() + " assists " + amb.getTitle()
                   + " (sponsor 1 influence cheaper this turn).");
+    }
+
+    // ── Sustained actions (B5-1997; rulebook III "Sustained Actions") ─────────
+
+    /**
+     * Checks whether a rotate-to-boost action can be sustained.
+     * Per rulebook III: "To be sustainable, an action must have no other cost
+     * besides rotating a card - there should be no influence cost, no marks
+     * need to be purged, etc. In addition, the action should provide a bonus
+     * to a card's ability. However, any effect which states that it lasts
+     * while a card remains rotated can be sustained."
+     */
+    public boolean canSustainAction(Player p, Card sourceCard, Card targetCard,
+                                    SustainedActionType type) {
+        if (p == null || sourceCard == null || targetCard == null) return false;
+        // Source must be controlled by player
+        boolean controlsSource = false;
+        if (sourceCard instanceof CharacterCard) {
+            CharacterCard ch = (CharacterCard) sourceCard;
+            controlsSource = p.getInnerCircle().contains(ch) || p.getSupportingRole().contains(ch)
+                    || (p.getAmbassador() != null && p.getAmbassador().equals(ch));
+        } else if (sourceCard instanceof FleetCard) {
+            controlsSource = p.getFleets().contains(sourceCard);
+        } else if (sourceCard instanceof GroupCard) {
+            controlsSource = p.getGroups().contains(sourceCard);
+        }
+        if (!controlsSource) return false;
+        // Source must be ready and able to act
+        if (sourceCard.isRotated() || sourceCard.isFaceDown()) return false;
+        if (sourceCard instanceof CharacterCard) {
+            CharacterCard ch = (CharacterCard) sourceCard;
+            if (!ch.canActAfterNeutralization()) return false;
+        }
+        // Target must be controlled by player (for bonuses to own cards)
+        boolean controlsTarget = false;
+        if (targetCard instanceof CharacterCard) {
+            controlsTarget = p.getInnerCircle().contains(targetCard)
+                    || p.getSupportingRole().contains(targetCard)
+                    || (p.getAmbassador() != null && p.getAmbassador().equals(targetCard));
+        } else if (targetCard instanceof FleetCard) {
+            controlsTarget = p.getFleets().contains(targetCard);
+        } else if (targetCard instanceof GroupCard) {
+            controlsTarget = p.getGroups().contains(targetCard);
+        }
+        if (!controlsTarget) return false;
+        // Target must be face-up and not neutralized (for it to receive bonus)
+        if (targetCard.isFaceDown()) return false;
+        // Type-specific checks
+        if (type == SustainedActionType.LEADERSHIP_BOOST) {
+            if (!(sourceCard instanceof CharacterCard)) return false;
+            if (!(targetCard instanceof FleetCard)) return false;
+            FleetCard fl = (FleetCard) targetCard;
+            if (fl.getLeader() != null) return false;
+            CharacterCard ch = (CharacterCard) sourceCard;
+            if (ch.getLeadership() <= 0) return false;
+        } else if (type == SustainedActionType.ASSISTANT_BONUS) {
+            if (!(sourceCard instanceof CharacterCard)) return false;
+            if (!(targetCard instanceof CharacterCard)) return false;
+            CharacterCard assistant = (CharacterCard) sourceCard;
+            CharacterCard ambassador = (CharacterCard) targetCard;
+            if (p.getAmbassador() == null || !p.getAmbassador().equals(ambassador)) return false;
+            if (!p.getSupportingRole().contains(assistant)) return false;
+        }
+        return true;
+    }
+
+    /**
+     * Begins a sustained action by rotating the source card and registering
+     * the sustained action in the game state.
+     */
+    public void beginSustainedAction(Player p, Card sourceCard, Card targetCard,
+                                     SustainedActionType type, GameState state) {
+        if (!canSustainAction(p, sourceCard, targetCard, type)) {
+            state.log(p.getName() + " cannot begin sustained action: "
+                      + (sourceCard == null ? "(null)" : sourceCard.getTitle())
+                      + " -> " + (targetCard == null ? "(null)" : targetCard.getTitle()));
+            return;
+        }
+        sourceCard.rotate();
+        SustainedAction action = new SustainedAction(sourceCard, targetCard, type,
+                p, state.getRoundNumber());
+        if (state.registerSustainedAction(action)) {
+            // Apply the immediate effect based on type
+            if (type == SustainedActionType.LEADERSHIP_BOOST) {
+                FleetCard fl = (FleetCard) targetCard;
+                CharacterCard ch = (CharacterCard) sourceCard;
+                fl.setLeader(ch);
+                state.log(ch.getTitle() + " leads " + fl.getTitle()
+                          + " (sustained: Military now " + fl.getEffectiveMilitary() + ").");
+            } else if (type == SustainedActionType.ASSISTANT_BONUS) {
+                CharacterCard amb = (CharacterCard) targetCard;
+                amb.setAssistantBonus(true);
+                state.log(sourceCard.getTitle() + " assists " + amb.getTitle()
+                          + " (sustained: +1 Diplomacy/Intrigue/Leadership while rotated).");
+            } else {
+                state.log(sourceCard.getTitle() + " begins sustained action on "
+                          + targetCard.getTitle() + " (" + type + ").");
+            }
+        } else {
+            // Rollback rotation if registration failed
+            sourceCard.unrotate();
+            state.log(p.getName() + " tried to sustain but source already sustaining.");
+        }
+    }
+
+    /**
+     * Ends a sustained action explicitly. The source card is unrotated and
+     * the sustained action is removed from the registry.
+     */
+    public void endSustainedAction(Player p, Card sourceCard, GameState state) {
+        if (sourceCard == null) return;
+        SustainedAction action = state.endSustainedAction(sourceCard);
+        if (action != null) {
+            sourceCard.unrotate();
+            // Clear the effect based on type
+            if (action.getType() == SustainedActionType.LEADERSHIP_BOOST) {
+                if (action.getTargetCard() instanceof FleetCard) {
+                    FleetCard fl = (FleetCard) action.getTargetCard();
+                    fl.setLeader(null);
+                }
+            } else if (action.getType() == SustainedActionType.ASSISTANT_BONUS) {
+                if (action.getTargetCard() instanceof CharacterCard) {
+                    CharacterCard amb = (CharacterCard) action.getTargetCard();
+                    amb.setAssistantBonus(false);
+                }
+            }
+            state.log(p.getName() + " ends sustained action: "
+                      + sourceCard.getTitle() + " no longer sustaining.");
+        }
+    }
+
+    /** Returns true if the given source card is currently sustaining an action. */
+    public boolean isSustaining(Card sourceCard, GameState state) {
+        return state.isSustaining(sourceCard);
+    }
+
+    /** Clears all sustained actions for a player (used at game end). */
+    public void clearPlayerSustainedActions(Player p, GameState state) {
+        // Find all sustained actions controlled by this player
+        java.util.List<String> toRemove = new java.util.ArrayList<String>();
+        if (p.getAmbassador() != null && state.isSustaining(p.getAmbassador())) {
+            toRemove.add(p.getAmbassador().getId());
+        }
+        for (CharacterCard ch : p.getInnerCircle()) {
+            if (state.isSustaining(ch)) toRemove.add(ch.getId());
+        }
+        for (CharacterCard ch : p.getSupportingRole()) {
+            if (state.isSustaining(ch)) toRemove.add(ch.getId());
+        }
+        for (FleetCard fl : p.getFleets()) {
+            if (state.isSustaining(fl)) toRemove.add(fl.getId());
+        }
+        for (GroupCard gr : p.getGroups()) {
+            if (state.isSustaining(gr)) toRemove.add(gr.getId());
+        }
+        for (String id : toRemove) {
+            Card c = findCardById(p, id);
+            if (c != null) endSustainedAction(p, c, state);
+        }
+    }
+
+    private Card findCardById(Player p, String id) {
+        if (p.getAmbassador() != null && id.equals(p.getAmbassador().getId())) return p.getAmbassador();
+        for (CharacterCard ch : p.getInnerCircle()) if (id.equals(ch.getId())) return ch;
+        for (CharacterCard ch : p.getSupportingRole()) if (id.equals(ch.getId())) return ch;
+        for (FleetCard fl : p.getFleets()) if (id.equals(fl.getId())) return fl;
+        for (GroupCard gr : p.getGroups()) if (id.equals(gr.getId())) return gr;
+        return null;
     }
 
     // ── Rotate-for-effect (B5-0366; B5-0345 Tier-2 #5, rulebook §IV) ────────────
@@ -1366,6 +2032,236 @@ public class RulesEngine {
         return true;
     }
 
+    // ── B5-2281: initiative order (rulebook :350-:352) + mercenary tie-break ──
+    //
+    // Rulebook :739 decides mercenary control by "the faction which applied the
+    // most influence during the turn (bids are cumulative)" and says NOTHING
+    // about equal totals. B5-0395 resolved that silence conservatively: a tie
+    // crowned nobody (the D12 discipline). This block replaces that reading
+    // with a tie-break, on the authority of the row, and the change is recorded
+    // in docs/DECISIONS.md so it can be reversed in one place.
+    //
+    // WHY INITIATIVE ORDER IS THE RIGHT KEY rather than an invented one: :352
+    // is the repo's canonical statement of seat precedence ("the player with
+    // the lowest Influence Rating must act first during each round"), so a
+    // tie broken "in initiative order" needs no new rule at all -- it reuses
+    // the one the READY round already runs.
+    //
+    // WHY IT IS FROZEN AT READY AND NOT RECOMPUTED AT THE MERCENARY PHASE:
+    // :350-:352 makes "Determine Initiative" STEP 3 of the READY round and says
+    // "Initiative order for the turn is now determined". Recomputing it at
+    // MERCENARY would let a mid-turn influence GAIN silently reorder the
+    // tie-break, so the same bids could resolve two ways depending on when the
+    // key was read. The order is therefore frozen in startRound (the READY
+    // hook) and held for the turn, which MER-TIE check MERTB-04 pins.
+    //
+    // DUPLICATION, NAMED NOT HIDDEN: MainWindow.initiativeKeyCompare and
+    // StartingGameFlowModel.actsBefore each hold their own copy of the :352
+    // chain. This is the third, and it is the only one the ENGINE plays by.
+    // Collapsing the three is a ui-scope row, out of this row's fence.
+    private List<Player> initiativeOrder;
+    private GameState   initiativeState;
+
+    /**
+     * Rulebook :352 ordering key: NEGATIVE when {@code a} acts BEFORE {@code b},
+     * i.e. when {@code a} has the LOWER initiative and acts first.
+     *
+     * Influence Rating first. On a tie :352 says the player with the highest
+     * Diplomacy on his ambassador "wins (acts last)", so within a tie the
+     * LOWER ability acts earlier; the same applies in turn to Intrigue, Psi and
+     * then Leadership. Abilities are read through getEffectiveStat, so a
+     * rotation/damage/bonus state cannot make the displayed order disagree with
+     * the order played by -- the same reading StartingGameFlowModel.ability uses.
+     *
+     * Returns 0 when the chain is exhausted, which is the signal that :352's
+     * final step applies: "If two players are still tied, determine initiative
+     * order between them randomly."
+     */
+    static int compareInitiativeKey(Player a, Player b) {
+        if (a == null || b == null) return (a == b) ? 0 : (a == null ? -1 : 1);
+        int c = a.getInfluence() - b.getInfluence();
+        if (c != 0) return c;
+        c = ambassadorAbility(a, StatKey.DIPLOMACY) - ambassadorAbility(b, StatKey.DIPLOMACY);
+        if (c != 0) return c;
+        c = ambassadorAbility(a, StatKey.INTRIGUE) - ambassadorAbility(b, StatKey.INTRIGUE);
+        if (c != 0) return c;
+        c = ambassadorAbility(a, StatKey.PSI) - ambassadorAbility(b, StatKey.PSI);
+        if (c != 0) return c;
+        return ambassadorAbility(a, StatKey.LEADERSHIP)
+             - ambassadorAbility(b, StatKey.LEADERSHIP);
+    }
+
+    /** The ambassador ability :352 ranks, 0 when the seat has none or it is
+     *  face down (a hidden ambassador has no readable ability to rank). */
+    private static int ambassadorAbility(Player p, StatKey stat) {
+        if (p == null) return 0;
+        CharacterCard amb = p.getAmbassador();
+        if (amb == null || amb.isFaceDown()) return 0;
+        return amb.getEffectiveStat(stat);
+    }
+
+    /**
+     * True when {@code a} acts BEFORE {@code b} in rulebook :352 order, i.e.
+     * {@code a} holds the lower initiative. Public because the MERCENARY
+     * tie-break and its conformance witness both need to ask the question the
+     * engine plays by; the sort below is built from it so there is one
+     * comparator, not two that can drift.
+     */
+    public static boolean actsBefore(Player a, Player b) {
+        if (a == b) return false;
+        int c = compareInitiativeKey(a, b);
+        if (c != 0) return c < 0;
+        return a.getName().compareTo(b.getName()) < 0;
+    }
+
+    /**
+     * The seats in the order they act, index 0 acting FIRST (lowest initiative,
+     * rulebook :352). Unmodifiable; empty for a null state.
+     *
+     * The residual :352 step ("determine initiative order between them
+     * randomly") is resolved here by seat NAME order rather than a random draw,
+     * for two reasons: a random draw would make the mercenary phase
+     * irreproducible, and ReplayRecorder/B5-51975 exist to replay a game and
+     * compare it against the recorded run. StartingGameFlowModel.actsBefore
+     * makes the same substitution for the same reason, so the order this
+     * freezes and the order the setup flow displays cannot disagree.
+     */
+    public List<Player> determineInitiativeOrder(GameState state) {
+        List<Player> ordered = new ArrayList<Player>();
+        if (state == null) return Collections.unmodifiableList(ordered);
+        for (Player p : state.getPlayers()) {
+            if (p != null) ordered.add(p);
+        }
+        Collections.sort(ordered, new Comparator<Player>() {
+            @Override public int compare(Player a, Player b) {
+                return actsBefore(a, b) ? -1 : (actsBefore(b, a) ? 1 : 0);
+            }
+        });
+        return Collections.unmodifiableList(ordered);
+    }
+
+    /** The order frozen for the current turn, or an empty list before any
+     *  READY round has run. Never null. */
+    public List<Player> getInitiativeOrder() {
+        if (initiativeOrder != null && initiativeState != null) return initiativeOrder;
+        return Collections.emptyList();
+    }
+
+    /** The frozen order for {@code state}, computing it on first use so a
+     *  caller that never drove the READY round still gets a DEFINED order
+     *  rather than silently resolving every tie by seat order instead. */
+    private List<Player> initiativeOrderFor(GameState state) {
+        if (state == null) return Collections.emptyList();
+        if (initiativeState != state || initiativeOrder == null) {
+            initiativeState = state;
+            initiativeOrder = determineInitiativeOrder(state);
+        }
+        return initiativeOrder;
+    }
+
+    /**
+     * B5-2281: resolve control of every offered mercenary for the MERCENARY
+     * phase (rulebook :739). Cumulative per-player bids, the strictly highest
+     * total controls, and a tie is BROKEN IN INITIATIVE ORDER (:352) and
+     * announced, naming every tied seat and the step that decided it.
+     *
+     * Two departures from the B5-0395 reading, both deliberate and both
+     * recorded in docs/DECISIONS.md:
+     * <ul>
+     *   <li>a tie no longer crowns nobody;</li>
+     *   <li>a forfeited or surrendered seat cannot take control, read through
+     *       the consolidated GameState.isPlayerActive so this phase and every
+     *       checkVictory path share ONE definition of "still playing"
+     *       (B5-1705/B5-1706/B5-1825 precedent). A seat that has left the game
+     *       is logged as excluded rather than dropped in silence.</li>
+     * </ul>
+     * A 0 bid is NOT a bid, so a table where nobody bid produces an empty
+     * result rather than a tie between everyone.
+     *
+     * <p>Returns a fresh LinkedHashMap in offer order; callers may iterate it
+     * while the phase runs. This method is the ENGINE's authority for mercenary
+     * control. It does not write GameState's mercenaryControllers, because
+     * that map has exactly one writer (GameState.resolveMercenaries, a
+     * model-scope method this row's engine fence does not reach); see the
+     * divergence witness in the MER-TIE conformance section.
+     */
+    public Map<Card, Player> resolveMercenaryControl(GameState state) {
+        Map<Card, Player> resolved = new LinkedHashMap<Card, Player>();
+        if (state == null) return resolved;
+        List<Player> order = initiativeOrderFor(state);
+        for (Card merc : state.getMercenaryOffers()) {
+            if (merc == null) continue;
+            int best = 0;
+            List<Player> tied = new ArrayList<Player>();
+            for (Player p : order) {
+                if (p == null) continue;
+                if (!state.isPlayerActive(p)) {
+                    if (state.getMercenaryBid(merc, p) > 0) {
+                        state.log("MERCENARY " + merc.getTitle() + ": " + p.getName()
+                                + " bid " + state.getMercenaryBid(merc, p)
+                                + " but has left the game (forfeited or"
+                                + " surrendered), so the bid does not reach"
+                                + " control.");
+                    }
+                    continue;
+                }
+                int bid = state.getMercenaryBid(merc, p);
+                if (bid <= 0) continue;              // a 0 bid is not a bid
+                if (bid > best) {
+                    best = bid;
+                    tied.clear();
+                    tied.add(p);
+                } else if (bid == best) {
+                    tied.add(p);
+                }
+            }
+            if (tied.isEmpty()) continue;            // nobody bid: nobody controls
+            Player winner = tied.get(0);             // tied[] is walked in initiative order
+            resolved.put(merc, winner);
+            if (tied.size() > 1) logMercenaryTie(state, merc, best, tied, winner, order);
+        }
+        return resolved;
+    }
+
+    /**
+     * The "loudly" half of B5-2281. A tie resolved by an invented rule is the
+     * kind of outcome a player must be able to audit after the fact, so the
+     * line names the mercenary, the shared total, EVERY tied seat, the step
+     * that separated them, and says so when the :352 chain was exhausted and
+     * seat name order decided instead.
+     */
+    private void logMercenaryTie(GameState state, Card merc, int total,
+                                 List<Player> tied, Player winner,
+                                 List<Player> order) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("MERCENARY TIE on ").append(merc.getTitle()).append(" at ")
+          .append(total).append(" influence: ");
+        for (int i = 0; i < tied.size(); i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(tied.get(i).getName());
+        }
+        sb.append(". Rulebook :739 names no tie-break, so initiative order")
+          .append(" (rulebook :352, lowest first) decides: ");
+        int rank = order.indexOf(winner);
+        sb.append(winner.getName()).append(" acts ")
+          .append(rank < 0 ? "first" : ("" + (rank + 1) + " of " + order.size()))
+          .append(" and takes control.");
+        boolean residual = false;
+        for (int i = 0; i < tied.size(); i++) {
+            if (tied.get(i) != winner
+                    && compareInitiativeKey(tied.get(i), winner) == 0) {
+                residual = true;
+                break;
+            }
+        }
+        if (residual) {
+            sb.append(" The :352 ability chain could not separate them, so seat")
+              .append(" name order stood in for its final \"determine initiative")
+              .append(" order between them randomly\" step.");
+        }
+        state.log(sb.toString());
+    }
+
     // ── Round start ──────────────────────────────────────────────────────────
 
     public void startRound(GameState state) {
@@ -1373,20 +2269,84 @@ public class RulesEngine {
             p.resetNeutralizedTurnLocks();
             p.restoreAppliedPool();
             p.resetActions();
-            if (p.getAmbassador() != null) p.getAmbassador().unrotate();
-            for (CharacterCard ch : p.getInnerCircle())  ch.unrotate();
-            for (CharacterCard ch : p.getSupportingRole()) ch.unrotate();
-            // B5-0339: assistant effects expire with the round — the ability
-            // bonus lasts while the assistant remains rotated, and the
-            // sponsor discount dies with the turn.
-            for (CharacterCard ch : p.getInnerCircle())     ch.setAssistantBonus(false);
-            for (CharacterCard ch : p.getSupportingRole())  ch.setAssistantBonus(false);
-            p.consumeSponsorDiscount(p.getSponsorDiscount());
-            for (FleetCard fl : p.getFleets()) {
-                fl.unrotate();
-                fl.setLeader(null);   // B5-0337: the leadership relation expires each round
+
+            // Unrotate ambassador unless sustaining
+            if (p.getAmbassador() != null && !state.isSustaining(p.getAmbassador())) {
+                p.getAmbassador().unrotate();
             }
-            for (GroupCard  gr : p.getGroups())          gr.unrotate();
+
+            // B5-2248: an assistant's ability bonus lasts only while the
+            // assistant remains rotated (rulebook :492). Unrotating the
+            // assistant above is NOT sufficient on its own, because the flag
+            // lives on the ambassador rather than on the assistant: before
+            // this, a one-turn +1 survived the round boundary and kept
+            // boosting Diplomacy/Intrigue/Leadership with nobody rotated to
+            // pay for it. Cleared here unless a live sustained
+            // ASSISTANT_BONUS action is still targeting this ambassador,
+            // which rulebook :492 explicitly permits ("An ability bonus
+            // conferred by an ambassador's assistant may be sustained").
+            if (p.getAmbassador() != null
+                    && !state.hasSustainedActionTargeting(p.getAmbassador(),
+                            SustainedActionType.ASSISTANT_BONUS)) {
+                p.getAmbassador().setAssistantBonus(false);
+            }
+
+            // Unrotate Inner Circle characters unless sustaining
+            for (CharacterCard ch : p.getInnerCircle()) {
+                if (!state.isSustaining(ch)) {
+                    ch.unrotate();
+                } else {
+                    // Sustained action continues — keep rotated, do not clear
+                    // assistant bonus if it's a sustained assistant action
+                    SustainedAction sa = state.getSustainedAction(ch.getId());
+                    if (sa == null || sa.getType() != SustainedActionType.ASSISTANT_BONUS) {
+                        ch.setAssistantBonus(false);
+                    }
+                }
+            }
+
+            // Unrotate Supporting Role characters unless sustaining
+            for (CharacterCard ch : p.getSupportingRole()) {
+                if (!state.isSustaining(ch)) {
+                    ch.unrotate();
+                } else {
+                    SustainedAction sa = state.getSustainedAction(ch.getId());
+                    if (sa == null || sa.getType() != SustainedActionType.ASSISTANT_BONUS) {
+                        ch.setAssistantBonus(false);
+                    }
+                }
+            }
+
+            // Sponsor discount always expires (not a sustained action)
+            p.consumeSponsorDiscount(p.getSponsorDiscount());
+
+            // Unrotate fleets unless sustaining (fleets don't typically sustain,
+            // but the rulebook allows any "effect which states that it lasts
+            // while a card remains rotated" to be sustained)
+            for (FleetCard fl : p.getFleets()) {
+                if (!state.isSustaining(fl)) {
+                    fl.unrotate();
+                }
+                // Fleet leadership: clear unless the leader is sustaining a
+                // leadership action on this fleet
+                if (fl.getLeader() != null) {
+                    boolean leaderSustaining = state.isSustaining(fl.getLeader())
+                            && state.getSustainedAction(fl.getLeader().getId()) != null
+                            && state.getSustainedAction(fl.getLeader().getId()).getType() == SustainedActionType.LEADERSHIP_BOOST
+                            && fl.equals(state.getSustainedAction(fl.getLeader().getId()).getTargetCard());
+                    if (!leaderSustaining) {
+                        fl.setLeader(null);
+                    }
+                }
+            }
+
+            // Unrotate groups unless sustaining
+            for (GroupCard gr : p.getGroups()) {
+                if (!state.isSustaining(gr)) {
+                    gr.unrotate();
+                }
+            }
+
             p.collectLocationIncome();
             CardEffects.applyAgendaStartOfRound(state, p);
             int enhIncome = CardEffects.enhancementLocationIncomeBonus(p);
@@ -1399,6 +2359,13 @@ public class RulesEngine {
         // B5-0395: mercenary control is per-turn — bids and controllers die
         // with the round; the offer list (a game-setup surface) persists.
         state.clearMercenaryState();
+        // B5-2281: rulebook :350-:352 makes "Determine Initiative" STEP 3 of
+        // the READY round, which startRound implements. Freeze it HERE, after
+        // the restore/income loop above and after the bid wipe, so the order
+        // the MERCENARY phase breaks ties with is the order the READY round
+        // published -- and cannot be reordered later in the turn by a gain.
+        initiativeState = state;
+        initiativeOrder = determineInitiativeOrder(state);
         state.log("=== Round " + state.getRoundNumber() + " begins ===");
     }
 
@@ -1450,5 +2417,592 @@ public class RulesEngine {
         for (Player p : state.getPlayers()) {
             p.drawCards(1);
         }
+    }
+
+// ── Draw Round (rulebook III. "The Draw Round" :440-:465) ─────────────────
+    /**
+     * B5-1998: the rulebook Draw Round as a single round-lifecycle step.
+     * Five steps, in the rulebook's own order:
+     *
+     *   1. Discard all neutralized supporting cards (NOT neutralized Inner
+     *      Circle cards).
+     *   2. Players may discard as many cards from hand as they wish. That is
+     *      a player choice, so the engine exposes it as
+     *      {@link #discardFromHand(Player, int, GameState)} and applies no
+     *      automatic discard here.
+     *   3. Every player draws one free card. This step does NOT reshuffle
+     *      from the discard pile: "Players who draw through their entire play
+     *      deck are considered to be out of new options and may not reshuffle
+     *      their discards or draw" (:447). A player whose draw pile is empty
+     *      discards one non-ambassador Inner Circle character instead, and a
+     *      player who cannot forfeits — both already implemented by
+     *      {@link Player#drawCards(int)}.
+     *   4. Each player with influence remaining may draw another card for
+     *      every 3 influence applied, from the per-turn applied pool.
+     *   5. Victory conditions are checked.
+     *
+     * <p>Note for the record: the B5-1998 ledger row asked for this step to
+     * "share B5-1982's empty-deck reshuffle-from-discard approach". The
+     * rulebook is canonical (AGENTS.md section 2) and forbids the reshuffle in
+     * this specific step, so the reshuffle stays in AFTERMATH only. The
+     * interpretation is logged in docs/DECISIONS.md.
+     *
+     * @return the winner if step 5 finds one, else null.
+     */
+    public Player drawRound(GameState state) {
+        // Step 1 — discard neutralized supporting cards.
+        for (Player p : state.getPlayers()) discardNeutralizedSupporting(p, state);
+        // Step 2 is player-elected; see discardFromHand.
+        // Step 3 — one free card each, no reshuffle.
+        for (Player p : state.getPlayers()) {
+            if (p.hasForfeited() || p.hasSurrendered()) continue;
+            int before = p.getHand().size();
+            p.drawCards(1);
+            if (p.getHand().size() > before) {
+                state.log(p.getName() + " draws a free card (draw round step 3).");
+            }
+        }
+        // Step 4 — buy more cards at 3 influence each.
+        for (Player p : state.getPlayers()) buyMoreCards(p, state);
+        // Step 5 — check victory conditions.
+        return checkVictory(state);
+    }
+
+    /**
+     * B5-1998: Draw Round step 1 — discards every neutralized supporting
+     * card. Neutralized Inner Circle characters are explicitly NOT discarded
+     * (rulebook :443).
+     */
+    private void discardNeutralizedSupporting(Player p, GameState state) {
+        if (p.hasForfeited()) return;
+        List<CharacterCard> supporting = p.getSupportingRole();
+        List<CharacterCard> doomed = new ArrayList<CharacterCard>();
+        for (CharacterCard ch : supporting) {
+            if (ch != null && ch.isNeutralized()) doomed.add(ch);
+        }
+        for (CharacterCard ch : doomed) {
+            supporting.remove(ch);
+            // B5-1977 (rulebook :510/:846): a neutralized supporting
+            // character leaves play with its attached enhancements.
+            detachEnhancementsFromCharacter(state, ch);
+            p.getDeck().discard(ch);
+            state.log(p.getName() + " discards neutralized supporting card "
+                    + ch.getTitle() + " (draw round step 1).");
+        }
+    }
+
+    /**
+     * B5-1998: Draw Round step 2 — discards up to {@code n} cards from the
+     * player's hand face-up next to their draw deck. Discarding is elective
+     * ("may discard as many cards as they wish"), so the caller passes the
+     * count; the trailing cards are taken deterministically so tests are
+     * repeatable. Returns the number actually discarded.
+     */
+    public int discardFromHand(Player p, int n, GameState state) {
+        if (p == null || n <= 0) return 0;
+        List<Card> hand = p.getHand();
+        int discarded = 0;
+        while (discarded < n && !hand.isEmpty()) {
+            Card toDiscard = hand.remove(hand.size() - 1);
+            p.getDeck().discard(toDiscard);
+            state.log(p.getName() + " discards " + toDiscard.getTitle()
+                    + " from hand (draw round step 2).");
+            discarded++;
+        }
+        return discarded;
+    }
+
+    /**
+     * B5-1998: Draw Round step 4 — a player may draw another card for every
+     * 3 influence applied. The applied pool is the per-turn pool already used
+     * by Build Influence, so a turn's unspent pool is what funds the purchase.
+     * Cards come from step 3's rule: no reshuffle from the discard pile.
+     * Returns the number of cards bought.
+     */
+    public int buyMoreCards(Player p, GameState state) {
+        if (p == null || p.hasForfeited() || p.hasSurrendered()) return 0;
+        int bought = 0;
+        while (p.applyInfluence(3)) {
+            int before = p.getHand().size();
+            p.drawCards(1);
+            if (p.getHand().size() > before) bought++;
+        }
+        if (bought > 0) {
+            state.log(p.getName() + " buys " + bought
+                    + " card(s) at 3 influence each (draw round step 4).");
+        }
+        return bought;
+    }
+
+    // ── AFTERMATH phase ────────────────────────────────────────────────────────
+    /**
+     * B5-1982: AFTERMATH phase card draw — each player draws 2 cards, then
+     * discards down to 7. Empty deck reshuffles from discard pile (unlike the
+     * Draw Round which forbids the reshuffle, per rulebook :447).
+     */
+    public void aftermathPhase(GameState state) {
+        for (Player p : state.getPlayers()) {
+            if (p.hasForfeited() || p.hasSurrendered()) continue;
+            // Draw 2 cards with reshuffle from discard pile
+            drawWithReshuffle(p, 2, state);
+            // Discard down to 7
+            discardDownTo(p, 7, state);
+        }
+    }
+
+    /** Draws n cards, reshuffling discard pile into draw pile when empty. */
+    private void drawWithReshuffle(Player p, int n, GameState state) {
+        Deck deck = p.getDeck();
+        if (deck == null) return;
+        for (int i = 0; i < n; i++) {
+            Card c = deck.draw();
+            if (c == null) {
+                // Reshuffle discard pile into draw pile
+                deck.recycleDiscard();
+                c = deck.draw();
+            }
+            if (c != null) {
+                p.addToHand(c);
+                state.log(p.getName() + " draws " + c.getTitle() + " (aftermath).");
+            }
+        }
+    }
+
+    /** Discards random cards from hand until hand size <= maxHandSize. */
+    private void discardDownTo(Player p, int maxHandSize, GameState state) {
+        List<Card> hand = p.getHand();
+        while (hand.size() > maxHandSize) {
+            // Discard the last card (deterministic for testing; AI can override)
+            Card toDiscard = hand.remove(hand.size() - 1);
+            p.getDeck().discard(toDiscard);
+            state.log(p.getName() + " discards " + toDiscard.getTitle() + " (aftermath hand limit).");
+        }
+    }
+
+    // ── B5-1995: Mark operations ──────────────────────────────────────────────
+
+    /**
+     * Adds marks of a specific type to a character. Enforces Shadow/Vorlon
+     * mutual exclusion (rulebook VI). Returns the number of marks added.
+     */
+    public int addMarksToCharacter(GameState state, Player p, CharacterCard target, MarkType type, int count) {
+        if (p == null || target == null || count <= 0) return 0;
+        if (!p.canGainMark(type)) {
+            if (state != null) state.log(p.getName() + " cannot gain " + type + " marks (opposing marks present).");
+            return 0;
+        }
+        int added = target.addMarks(type, count);
+        if (added > 0 && state != null) {
+            state.log(p.getName() + " gains " + added + " " + type + " mark(s) on " + target.getTitle() + ".");
+        }
+        return added;
+    }
+
+    /**
+     * Adds marks of a specific type to a fleet. Enforces Shadow/Vorlon
+     * mutual exclusion (rulebook VI). Returns the number of marks added.
+     */
+    public int addMarksToFleet(GameState state, Player p, FleetCard target, MarkType type, int count) {
+        if (p == null || target == null || count <= 0) return 0;
+        if (!p.canGainMark(type)) {
+            if (state != null) state.log(p.getName() + " cannot gain " + type + " marks (opposing marks present).");
+            return 0;
+        }
+        int added = target.addMarks(type, count);
+        if (added > 0 && state != null) {
+            state.log(p.getName() + " gains " + added + " " + type + " mark(s) on " + target.getTitle() + ".");
+        }
+        return added;
+    }
+
+    /**
+     * Adds marks of a specific type to a location. Enforces Shadow/Vorlon
+     * mutual exclusion (rulebook VI). Returns the number of marks added.
+     */
+    public int addMarksToLocation(GameState state, Player p, LocationCard target, MarkType type, int count) {
+        if (p == null || target == null || count <= 0) return 0;
+        if (!p.canGainMark(type)) {
+            if (state != null) state.log(p.getName() + " cannot gain " + type + " marks (opposing marks present).");
+            return 0;
+        }
+        int added = target.addMarks(type, count);
+        if (added > 0 && state != null) {
+            state.log(p.getName() + " gains " + added + " " + type + " mark(s) on " + target.getTitle() + ".");
+        }
+        return added;
+    }
+
+    /**
+     * Purges marks of a specific type from all cards in a faction.
+     * Rulebook VI: "If a character is cut off from a source of a mark
+     * (for example, if a faction switches agendas or if an aftermath or
+     * enhancement is discarded or blanked) then that character must purge
+     * a mark of that type."
+     * Returns the total number of marks purged.
+     */
+    public int purgeMarks(GameState state, Player p, MarkType type) {
+        if (p == null) return 0;
+        int purged = p.purgeMarks(type);
+        if (purged > 0 && state != null) {
+            state.log(p.getName() + " purges " + purged + " " + type + " mark(s) (source cut off).");
+        }
+        return purged;
+    }
+
+    /**
+     * Purges one mark of a specific type from a specific character.
+     * Returns the number of marks purged (0 or 1).
+     */
+    public int purgeMarkFromCharacter(GameState state, Player p, CharacterCard target, MarkType type) {
+        if (p == null || target == null) return 0;
+        int purged = target.removeMarks(type, 1);
+        if (purged > 0 && state != null) {
+            state.log(p.getName() + " purges 1 " + type + " mark from " + target.getTitle() + ".");
+        }
+        return purged;
+    }
+
+    /**
+     * Checks if a faction has at least the required number of marks of a type.
+     * Used for card play requirements (e.g., "requires 3 Vorlon marks").
+     */
+    public boolean hasRequiredMarks(Player p, MarkType type, int required) {
+        if (p == null) return false;
+        return p.getTotalMarks(type) >= required;
+    }
+
+    /**
+     * Returns the total count of a mark type for a faction.
+     */
+    public int getTotalMarks(Player p, MarkType type) {
+        if (p == null) return 0;
+        return p.getTotalMarks(type);
+    }
+
+    // ── B5-1970: AgendaCard voting phase (rulebook §Votes :789-:797) ─────────
+    //
+    // This block is the VOTING-PHASE surface only. It opens the session,
+    // decides who may vote, records each ambassador's ballot, and charges
+    // the influence a card's vote costs. It deliberately does NOT decide
+    // whether the measure passed: the one-more-Yes-than-No rule, the League
+    // tie-break and unplayed-race abstention are B5-1993's `resolveCouncilVote`
+    // (that row fences this one and names them), and the player-facing ballot
+    // is B5-2004's. Building the tally here too would give the queue two
+    // authorities for one rule. countAgendaVotes() exposes the raw counts so
+    // B5-1993 reads one source rather than re-deriving it.
+    //
+    // SCOPE DEPENDENCY (recorded, not worked around): the row asks for a new
+    // GamePhase.AGENDA_VOTE between ACTION and CONFLICT_RESOLUTION, but
+    // GamePhase is an enum in b5ccg/src/b5ccg/model/enums/ and this claim's
+    // scope is engine/RulesEngine.java alone, so the constant is not added
+    // here. The engine surface is deliberately phase-independent: it gates on
+    // its own open-session state, so a later model/-scoped row adds
+    // `AGENDA_VOTE` to the enum (after MERCENARY) and calls openAgendaVote /
+    // closeAgendaVote from the round driver with no change here. MERCENARY
+    // already occupies the ACTION -> CONFLICT_RESOLUTION slot, so the new
+    // constant goes after it.
+
+    /** The three ballots the Council may cast (rulebook :795: "each ambassador
+     *  must vote \"Yes\", \"No\", or \"Abstain\""). */
+    public enum AgendaVote { YES, NO, ABSTAIN }
+
+    /** The agenda whose measure is on the floor, or null when no vote is open. */
+    private AgendaCard agendaUnderVote = null;
+    /** Ballots cast so far, keyed by the voting player. Identity-keyed, never
+     *  index-keyed: the Council is the five races' ambassadors, not seat
+     *  order. */
+    private final Map<Player, AgendaVote> agendaVotes =
+            new HashMap<Player, AgendaVote>();
+
+    /** B5-1970: the head of the council (rulebook :795) — "If there is an Earth
+     *  Alliance ambassador to Babylon 5 in the game, that player \"heads\" the
+     *  council; if not, the player of the card which requires a vote \"heads\"
+     *  the council." The head calls the vote in whatever order he wishes, so
+     *  this is the ordering surface the UI (B5-2004) and the resolution
+     *  (B5-1993) both key on. Returns null when neither rule finds a head. */
+    public Player councilHead(AgendaCard requiring, GameState state) {
+        if (state == null) return null;
+        for (Player p : state.getPlayers()) {
+            if (p == null || !isEligibleAgendaVoter(p)) continue;
+            if (p.getFaction() == Faction.HUMAN) return p;
+        }
+        if (requiring != null) {
+            for (Player p : state.getPlayers()) {
+                if (p == null || !isEligibleAgendaVoter(p)) continue;
+                if (p.getAgenda() == requiring) return p;
+            }
+        }
+        return null;
+    }
+
+    /** A player may vote through their own ambassador (rulebook :793) and only
+     *  while still in the game: "Card status (such as being rotated or
+     *  neutralized) has no effect on an ambassador's ability to vote", so this
+     *  gate deliberately reads no card state. A forfeited or surrendered
+     *  player has ceased play (:454, :815) and cannot vote. */
+    public boolean isEligibleAgendaVoter(Player p) {
+        return p != null && !p.hasForfeited() && !p.hasSurrendered();
+    }
+
+    /** True when a measure on `ag` may be put to a vote right now. A hidden
+     *  (face-down) agenda is excluded: it "has no effect on play until
+     *  revealed" (:524), so it cannot put a measure to the Council. One vote
+     *  is open at a time — the Council has a single floor. */
+    public boolean canOpenAgendaVote(AgendaCard ag, GameState state) {
+        if (ag == null || state == null) return false;
+        if (ag.isFaceDown()) return false;
+        if (agendaUnderVote != null) return false;
+        return councilHead(ag, state) != null;
+    }
+
+    /** Opens the voting session for `ag`. No-op (and logged) when
+     *  canOpenAgendaVote is false, so a caller cannot put a hidden agenda or a
+     *  second measure to the Council. Returns true when the session opened. */
+    public boolean openAgendaVote(AgendaCard ag, GameState state) {
+        if (!canOpenAgendaVote(ag, state)) {
+            if (state != null && ag != null) {
+                state.log("Vote not called: " + ag.getTitle()
+                        + " cannot be put to the Council now.");
+            }
+            return false;
+        }
+        agendaUnderVote = ag;
+        agendaVotes.clear();
+        Player head = councilHead(ag, state);
+        if (head != null) {
+            state.log(head.getName() + " heads the council on the vote ("
+                    + ag.getTitle() + ").");
+        }
+        return true;
+    }
+
+    /** True while a measure is on the floor. */
+    public boolean isAgendaVoteOpen() {
+        return agendaUnderVote != null;
+    }
+
+    /** The agenda under vote, or null. */
+    public AgendaCard getAgendaUnderVote() {
+        return agendaUnderVote;
+    }
+
+    /** A ballot is legal when the session is open, the player is an eligible
+     *  voter, they have not already voted this session, and they can cover
+     *  `cost` influence from the APPLIED POOL (D9 discipline — the same pool
+     *  mercenary bidding spends, never the influence Rating).
+     *
+     *  <p>`cost` is a parameter, not a constant: the rulebook states no
+     *  generic price for calling a vote ("Some cards may also list other
+     *  requirements for a vote to succeed", :797), so the engine takes what
+     *  the calling card charges and callers with no stated cost pass 0. A
+     *  hard-coded 1 would invent a rule the rulebook does not contain. */
+    public boolean canCastAgendaVote(Player p, AgendaVote vote, int cost,
+                                     GameState state) {
+        if (vote == null || cost < 0) return false;
+        if (agendaUnderVote == null || state == null) return false;
+        if (!isEligibleAgendaVoter(p)) return false;
+        if (agendaVotes.containsKey(p)) return false;
+        return p.getAppliedPool() >= cost;
+    }
+
+    /** Records p's ballot and charges the cost. No-op returning false when
+     *  canCastAgendaVote is false; a second cast by the same player is
+     *  rejected, not overwritten, so a vote cannot be re-run by re-prompting
+     *  one player. Abstain is a real ballot and is recorded like any other —
+     *  unplayed races abstaining BY DEFAULT is B5-1993's rule to apply, not a
+     *  silent omission here. */
+    public boolean castAgendaVote(Player p, AgendaVote vote, int cost,
+                                  GameState state) {
+        if (!canCastAgendaVote(p, vote, cost, state)) return false;
+        agendaVotes.put(p, vote);
+        if (cost > 0 && !p.applyInfluence(cost)) {
+            // Defensive: canCastAgendaVote proved afford-now and nothing
+            // between the two calls can drain the pool (single-threaded
+            // controller). Logged loudly, never silently refunded.
+            System.err.println("B5-1970: vote by " + p.getName() + " could not be "
+                    + "charged " + cost + " despite legality checks — ballot stands, "
+                    + "pool unspent.");
+            return true;
+        }
+        state.log(p.getName() + " votes " + vote + " on \""
+                + agendaUnderVote.getTitle() + "\""
+                + (cost > 0 ? " (" + cost + " influence)." : "."));
+        return true;
+    }
+
+    /** The ballot p cast this session, or null if p has not voted. */
+    public AgendaVote getAgendaVote(Player p) {
+        if (p == null) return null;
+        return agendaVotes.get(p);
+    }
+
+    /** How many players cast `vote` this session. A raw count, never a verdict:
+     *  whether the measure passed is B5-1993's resolveCouncilVote. */
+    public int countAgendaVotes(AgendaVote vote) {
+        if (vote == null) return 0;
+        int n = 0;
+        for (AgendaVote cast : agendaVotes.values()) {
+            if (cast == vote) n++;
+        }
+        return n;
+    }
+
+    /** The ballots cast this session, as an unmodifiable snapshot. The live map
+     *  is never handed out: a caller mutating it would desynchronise the
+     *  counts from the session. */
+    public Map<Player, AgendaVote> getAgendaVotes() {
+        return Collections.unmodifiableMap(
+                new HashMap<Player, AgendaVote>(agendaVotes));
+    }
+
+    /** Closes the session and clears it. Callers resolve the measure through
+     *  B5-1993's resolveCouncilVote BEFORE calling this — closing discards
+     *  the ballots, so resolving afterwards would tally an empty council. */
+    public void closeAgendaVote(GameState state) {
+        if (agendaUnderVote == null) return;
+        if (state != null) {
+            state.log("The vote on \"" + agendaUnderVote.getTitle()
+                    + "\" is closed (" + agendaVotes.size() + " ballot(s) cast).");
+        }
+        agendaUnderVote = null;
+        agendaVotes.clear();
+    }
+
+    /** Drops any open session without logging — for round teardown and for a
+     *  new-round reset, where the previous measure's ballots are spent. */
+    public void resetAgendaVote() {
+        agendaUnderVote = null;
+        agendaVotes.clear();
+    }
+
+    // ── B5-1993: Council vote resolution (rulebook §VI Votes :789-:797) ─────────
+    /**
+     * Resolves the current Council vote per rulebook section VI.
+     * <p>
+     * The Council consists of five races (Earth/HUMAN, Minbari, Centauri, Narn,
+     * Vorlon) plus the League of Non-Aligned Worlds (NON_ALIGNED) which may cast
+     * one vote to break a tie. Each player in the game votes through their
+     * ambassador. Races not currently being played are considered part of the
+     * vote but abstain by default. A measure passes when there is at least one
+     * more "Yes" than "No" vote (Yes >= No + 1). The League's tie-breaking vote
+     * is applied only when Yes == No after all other votes are counted.
+     *
+     * @param state the game state (for logging and player enumeration)
+     * @return true if the measure passes, false otherwise
+     * @throws IllegalStateException if no vote session is open
+     */
+    public boolean resolveCouncilVote(GameState state) {
+        if (agendaUnderVote == null) {
+            throw new IllegalStateException("No agenda vote session is open");
+        }
+        if (state == null) {
+            throw new IllegalArgumentException("GameState must not be null");
+        }
+
+        // Council races that are always part of the vote (rulebook :791)
+        final Faction[] councilRaces = new Faction[] {
+            Faction.HUMAN, Faction.MINBARI, Faction.CENTAURI, Faction.NARN, Faction.VORLON
+        };
+
+        // Tally votes from players who cast ballots
+        int yes = 0;
+        int no = 0;
+        int abstain = 0;
+
+        for (Map.Entry<Player, AgendaVote> entry : agendaVotes.entrySet()) {
+            AgendaVote vote = entry.getValue();
+            if (vote == AgendaVote.YES) yes++;
+            else if (vote == AgendaVote.NO) no++;
+            else if (vote == AgendaVote.ABSTAIN) abstain++;
+        }
+
+        // Add default ABSTAIN for council races not represented by a player
+        // (rulebook :793: "Ambassadors from races not currently being played
+        // are considered to be part of the vote, but by default they abstain")
+        for (Faction race : councilRaces) {
+            boolean hasPlayer = false;
+            for (Player p : state.getPlayers()) {
+                if (p.getFaction() == race) {
+                    hasPlayer = true;
+                    break;
+                }
+            }
+            if (!hasPlayer) {
+                abstain++;
+            }
+        }
+
+        // League of Non-Aligned Worlds tie-break (rulebook :791:
+        // "the League of Non-Aligned worlds (acting as if it were a single race)
+        // may cast one vote to break any tie")
+        // The League votes only when Yes == No after all other votes.
+        // The League's vote is not pre-cast; it breaks the tie by voting Yes
+        // if that would make the measure pass, otherwise No.
+        // Since the rule says "may cast one vote to break any tie", we interpret
+        // this as: if Yes == No, the League votes Yes to pass the measure.
+        // If Yes != No, the League does not vote.
+        if (yes == no) {
+            yes++; // League breaks tie in favor of the measure
+            state.log("League of Non-Aligned Worlds breaks tie with Yes vote.");
+        }
+
+        boolean passed = (yes >= no + 1);
+
+        if (state != null) {
+            state.log("Council vote on \"" + agendaUnderVote.getTitle()
+                    + "\": Yes=" + yes + " No=" + no + " Abstain=" + abstain
+                    + (passed ? " — PASSED" : " — FAILED"));
+        }
+
+        return passed;
+    }
+
+    // ── B5-1996: inter-faction relationship states ───────────────────────────
+    /** The state book for one engine instance's game. Bound on first use so
+     *  that alliance and trade pacts persist across calls: handing out a
+     *  fresh book per call would make every query read an empty map and every
+     *  transition a no-op, which is the "absence of an error is not presence
+     *  of a value" failure. One RulesEngine serves one game, which is how
+     *  GameController and AIPlayer already hold it. */
+    private FactionStateBook factionStates;
+
+    /** Rulebook :801-803 "States": a pair's relationship is primarily its
+     *  tension, plus any additional relationships -- alliances, trade pacts,
+     *  war -- the races have entered. The at-war fact stays owned by the
+     *  TensionMatrix, so B5-0376's war resolution and every existing isAtWar
+     *  reader are untouched.
+     *
+     *  Returns null for a game this engine is not bound to, and for a second
+     *  distinct game: the book holds mutable relationship state and one
+     *  engine instance must not answer for two games at once. */
+    public FactionStateBook getFactionStates(GameState state) {
+        if (state == null) return null;
+        if (factionStates == null) factionStates = new FactionStateBook(state);
+        return factionStates.forSameGame(state) ? factionStates : null;
+    }
+
+    /** True when the pair is in the named state (rulebook :801-803). */
+    public boolean areInState(Faction a, Faction b, FactionState s, GameState state) {
+        FactionStateBook book = getFactionStates(state);
+        return book != null && book.isInState(a, b, s);
+    }
+
+    public boolean areAllied(Faction a, Faction b, GameState state) {
+        return areInState(a, b, FactionState.ALLIANCE, state);
+    }
+
+    public boolean areTrading(Faction a, Faction b, GameState state) {
+        return areInState(a, b, FactionState.TRADE_PACT, state);
+    }
+
+    /** Enter an alliance or a trade pact between two races. */
+    public boolean enterFactionState(Faction a, Faction b, FactionState s, GameState state) {
+        FactionStateBook book = getFactionStates(state);
+        return book != null && book.enterState(a, b, s);
+    }
+
+    public boolean exitFactionState(Faction a, Faction b, FactionState s, GameState state) {
+        FactionStateBook book = getFactionStates(state);
+        return book != null && book.exitState(a, b, s);
     }
 }

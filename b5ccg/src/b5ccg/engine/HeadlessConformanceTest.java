@@ -3,6 +3,11 @@ package b5ccg.engine;
 import b5ccg.ai.AIPlayer;
 import b5ccg.model.*;
 import b5ccg.model.enums.*;
+// B5-2287: engine importing ui. Normally a layering violation, accepted here
+// because DeckBuilderModel deliberately imports no Swing, which is the only
+// reason its rules are reachable from a headless suite at all. The alternative
+// was leaving the deck builder with no automated coverage.
+import b5ccg.ui.DeckBuilderModel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.lang.reflect.Method;
+import java.lang.reflect.Field;
 
 /**
  * B5-0308 — rulebook-conformance suite (headless).
@@ -92,6 +98,15 @@ import java.lang.reflect.Method;
  *     the ambassador sponsor 1 influence cheaper later that turn (B5-0339;
  *     rulebook Your Ambassador's Assistant). Both effects expire at the
  *     round boundary.
+ * CON-WIN Contingency placement opens an initiative-order reveal-or-pass
+ *     timing window that closes after consecutive passes (B5-2243; rulebook
+ *     "Playing Fast and Loose" / timing disputes).
+ * MER-TIE Mercenary tie-break (B5-2281; rulebook :739 silent on equal totals,
+ *     :350-:352 supplies the order). A tied cumulative bid is broken in
+ *     initiative order and announced; the order is frozen at the READY round
+ *     so a mid-turn gain cannot reorder a published tie-break; a 0 bid is not a
+ *     bid; a forfeited or surrendered seat cannot take control. Includes a
+ *     divergence witness against the model-scope strict resolver.
  *
  * Run after compile.bat / compile.sh:
  *   java -cp b5ccg/out b5ccg.engine.HeadlessConformanceTest
@@ -129,6 +144,29 @@ public class HeadlessConformanceTest {
         }
         p.setDeck(new Deck(filler));
         return p;
+    }
+
+    /**
+     * B5-2251: drives one GameAction through GameController's real dispatcher,
+     * with a no-op UI callback so no display is needed. Reflected because
+     * processAction is private; the pattern is testAgendaInstallLog's
+     * (B5-0464). Going through the dispatcher rather than calling the effect
+     * helper directly is the point: a helper call asserts the helper works,
+     * while a dispatcher call asserts the WIRING calls it.
+     */
+    private static void processActionThrough(GameState st, Player p, GameAction action) {
+        try {
+            java.lang.reflect.Method handler =
+                    GameController.class.getDeclaredMethod(
+                            "processAction", Player.class, GameAction.class);
+            handler.setAccessible(true);
+            handler.invoke(new GameController(st, new ArrayList<AIPlayer>(),
+                    new GameStateCallback() {
+                        public void accept(GameState gs) { }
+                    }), p, action);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static boolean logContains(GameState st, String needle) {
@@ -305,6 +343,100 @@ public class HeadlessConformanceTest {
         RulesEngine rules = new RulesEngine();
         check("D3", "engine path: WON_PSI rejected on a MILITARY conflict via canPlayAftermath",
                 !rules.canPlayAftermath(p, inHand, mil, true));
+    }
+
+    // ── B5-1966: PSI and INTRIGUE conflict-type generic effects ───────────────
+
+    private static void testPsiIntrigueConflictEffects() {
+        System.out.println("CEF (B5-1966): PSI and INTRIGUE conflict generic effects");
+        RulesEngine rules = new RulesEngine();
+
+        // PSI conflict: loser discards hand down to 3
+        Player psiWinner = player("PsiWin", Faction.NARN);
+        Player psiLoser = player("PsiLose", Faction.MINBARI);
+        GameState psiSt = state(psiWinner, psiLoser);
+        // Give loser 5 cards in hand
+        for (int i = 0; i < 5; i++) {
+            psiLoser.addToHand(event("psi_evt_" + i));
+        }
+        ConflictCard psiCard = new ConflictCard("conf_psi_test", "Psi Test",
+                "CONFLICT_PSI", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", ConflictType.PSI, 2);
+        Conflict psiConflict = new Conflict(psiCard, psiWinner);
+        psiConflict.commitCard(psiWinner, psiWinner.getAmbassador());
+        psiConflict.commitCard(psiLoser, psiLoser.getAmbassador());
+        psiConflict.resolve(psiWinner);
+
+        int handBefore = psiLoser.getHand().size();
+        CardEffects.applyConflictOutcome(psiSt, psiConflict, psiWinner, psiLoser);
+        int handAfter = psiLoser.getHand().size();
+        check("CEF", "PSI conflict: loser discards down to 3 cards",
+                handBefore == 5 && handAfter == 3
+                && psiLoser.getDeck().getDiscardPile().size() == 2);
+
+        // PSI conflict: loser with <= 3 cards discards nothing
+        Player psiWinner2 = player("PsiWin2", Faction.NARN);
+        Player psiLoser2 = player("PsiLose2", Faction.MINBARI);
+        GameState psiSt2 = state(psiWinner2, psiLoser2);
+        // Give loser 2 cards in hand
+        for (int i = 0; i < 2; i++) {
+            psiLoser2.addToHand(event("psi_evt2_" + i));
+        }
+        ConflictCard psiCard2 = new ConflictCard("conf_psi_test2", "Psi Test 2",
+                "CONFLICT_PSI", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", ConflictType.PSI, 2);
+        Conflict psiConflict2 = new Conflict(psiCard2, psiWinner2);
+        psiConflict2.commitCard(psiWinner2, psiWinner2.getAmbassador());
+        psiConflict2.commitCard(psiLoser2, psiLoser2.getAmbassador());
+        psiConflict2.resolve(psiWinner2);
+
+        int handBefore2 = psiLoser2.getHand().size();
+        CardEffects.applyConflictOutcome(psiSt2, psiConflict2, psiWinner2, psiLoser2);
+        int handAfter2 = psiLoser2.getHand().size();
+        check("CEF", "PSI conflict: loser with <= 3 cards discards nothing",
+                handBefore2 == 2 && handAfter2 == 2
+                && psiLoser2.getDeck().getDiscardPile().size() == 0);
+
+        // INTRIGUE conflict: winner steals agenda from loser
+        Player intrigueWinner = player("IntWin", Faction.CENTAURI);
+        Player intrigueLoser = player("IntLose", Faction.HUMAN);
+        GameState intSt = state(intrigueWinner, intrigueLoser);
+        AgendaCard stolenAgenda = new AgendaCard("agenda_stolen", "Stolen Agenda",
+                "AGENDA_MINOR", Rarity.RARE, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", false, "CONDITION_TEST");
+        intrigueLoser.setAgenda(stolenAgenda);
+        ConflictCard intCard = new ConflictCard("conf_int_test", "Intrigue Test",
+                "CONFLICT_INTRIGUE", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", ConflictType.INTRIGUE, 2);
+        Conflict intConflict = new Conflict(intCard, intrigueWinner);
+        intConflict.commitCard(intrigueWinner, intrigueWinner.getAmbassador());
+        intConflict.commitCard(intrigueLoser, intrigueLoser.getAmbassador());
+        intConflict.resolve(intrigueWinner);
+
+        CardEffects.applyConflictOutcome(intSt, intConflict, intrigueWinner, intrigueLoser);
+        check("CEF", "INTRIGUE conflict: winner steals agenda from loser",
+                intrigueLoser.getAgenda() == null
+                && intrigueWinner.getHand().contains(stolenAgenda));
+
+        // INTRIGUE conflict: loser with no agenda - nothing happens
+        Player intrigueWinner2 = player("IntWin2", Faction.CENTAURI);
+        Player intrigueLoser2 = player("IntLose2", Faction.HUMAN);
+        GameState intSt2 = state(intrigueWinner2, intrigueLoser2);
+        // Loser has no agenda
+        ConflictCard intCard2 = new ConflictCard("conf_int_test2", "Intrigue Test 2",
+                "CONFLICT_INTRIGUE", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", ConflictType.INTRIGUE, 2);
+        Conflict intConflict2 = new Conflict(intCard2, intrigueWinner2);
+        intConflict2.commitCard(intrigueWinner2, intrigueWinner2.getAmbassador());
+        intConflict2.commitCard(intrigueLoser2, intrigueLoser2.getAmbassador());
+        intConflict2.resolve(intrigueWinner2);
+
+        int handBeforeWinner = intrigueWinner2.getHand().size();
+        CardEffects.applyConflictOutcome(intSt2, intConflict2, intrigueWinner2, intrigueLoser2);
+        int handAfterWinner = intrigueWinner2.getHand().size();
+        check("CEF", "INTRIGUE conflict: loser with no agenda - no steal",
+                handBeforeWinner == handAfterWinner
+                && intrigueLoser2.getAgenda() == null);
     }
 
     // ── D8: deck-out penalty ─────────────────────────────────────────────────
@@ -495,7 +627,7 @@ public class HeadlessConformanceTest {
                 + "\"requiresTarget\":true,\"cardTypes\":[\"FLEET\"],"
                 + "\"perPlayerQuota\":{\"FLEET\":1}}},"
                 + "{\"id\":\"par_c2\",\"title\":\"Open\",\"type\":\"CONFLICT\","
-                + "\"conflictType\":\"DIPLOMACY\"},"
+                + "\"conflictType\":\"DIPLOMACY\",\"influenceReward\":1},"
                 + "{\"id\":\"par_f5\",\"title\":\"Picket One\",\"type\":\"FLEET\","
                 + "\"military\":2,\"fleetClass\":\"PICKET\"}]");
         ConflictCard loaded = (ConflictCard) parsed.get(0);
@@ -3782,6 +3914,298 @@ public class HeadlessConformanceTest {
                 dOwner.getInfluence() == dOwnerInf + 1);
     }
 
+    /**
+     * B5-2251 - AGO: ongoing agenda effects are honoured for the whole time the
+     * agenda is in play, at both query points the task names (startRound and
+     * conflict resolution), and stop when the agenda leaves play.
+     *
+     * Three defects this asserts, each read out of the code before it was fixed:
+     *   AGL-BONUS-STICK - a fleet-wide +1 Military is a WHILE_IN_PLAY bonus,
+     *       and sweepBonusExpiries only clears END_OF_TURN /
+     *       START_OF_NEXT_OWNER_TURN. Nothing lifted it when the agenda left
+     *       play, so the +1 outlived its own printed text.
+     *   AGO-REPLACE - REPLACE_AGENDA called applyAgendaMarkGrants alone, so a
+     *       replacement agenda was live in the slot and inert on the fleets.
+     *   AGO-DIPLO-WIN - the Diplomacy-win agenda bonus was applied in
+     *       GameController after resolveConflict returned, so every headless
+     *       resolution skipped it. AGO-D below drives resolution directly with
+     *       no UI in the path and is the regression gate for that.
+     *
+     * Every influence assertion is a DELTA against a baseline read immediately
+     * before the action. Player starts life holding influence (the constructor
+     * path grants the opening stock), so an absolute expectation here is a
+     * second, unrelated thing to break.
+     */
+    private static void testAgendaOngoingEffects() {
+        System.out.println("AGO (B5-2251): ongoing agenda effects — grant, replace, "
+                + "teardown, and headless Diplomacy-win");
+        RulesEngine rules = new RulesEngine();
+
+        // ── A: a sponsored agenda's ongoing bonus is live on the fleets ──────
+        Player owner = player("AGO-owner", Faction.NARN);
+        Player rival = player("AGO-rival", Faction.MINBARI);
+        GameState st = state(owner, rival);
+        FleetCard fleet = new FleetCard("ago_fleet", "AGO Fleet", "FLEET_NARN",
+                Rarity.COMMON, Faction.NARN, CardSet.PREMIERE, "x", "text", 4);
+        owner.getFleets().add(fleet);
+        // FACTION-scope bonuses are read through the fleet's own owner registry
+        // (FleetCard.getEffectiveMilitary), so the seam must be wired.
+        fleet.setOwner(owner);
+        int base = fleet.getEffectiveMilitary();
+
+        AgendaCard totalWar = new AgendaCard("agenda_total_war", "Total War",
+                "AGENDA", Rarity.RARE, Faction.ANY, CardSet.PREMIERE, "total_war",
+                "Ongoing: Your fleets gain +1 Military.", false,
+                "MILITARY_SUPREMACY");
+        owner.setAgenda(totalWar);
+        CardEffects.applyAgendaOnPlay(st, owner, totalWar);
+        check("AGO-A", "a sponsored agenda grants its ongoing +1 Military",
+                fleet.getEffectiveMilitary() == base + 1);
+
+        // AGL-BONUS-STICK: the teardown is the load-bearing half. A bonus has no
+        // round boundary, so nothing but an explicit lift stops it.
+        int lifted = CardEffects.removeAgendaBonuses(owner, totalWar);
+        check("AGO-B", "leaving play lifts exactly the bonus the agenda granted",
+                lifted == 1 && fleet.getEffectiveMilitary() == base);
+        check("AGO-B2", "a null agenda lifts nothing and does not throw",
+                CardEffects.removeAgendaBonuses(owner, null) == 0
+                        && fleet.getEffectiveMilitary() == base);
+
+        // ── C: the GameController paths — replace and discard ────────────────
+        // AGO-REPLACE. These drive processAction through reflection, the same
+        // way testAgendaInstallLog does, because the earlier version of this
+        // section called applyAgendaOnPlay DIRECTLY. That asserted the helper
+        // works rather than that the wiring calls it: deleting the
+        // applyAgendaOnPlay call from GameController's REPLACE_AGENDA branch
+        // left the section green. A check that cannot see the defect it names
+        // is not a gate, so both paths below go through the real dispatcher.
+        Player gp = player("AGO-gc", Faction.NARN);
+        player("AGO-gc2", Faction.MINBARI);
+        GameState gst = state(gp, player("AGO-gc2", Faction.MINBARI));
+        FleetCard gFleet = new FleetCard("ago_gfleet", "AGO GC Fleet", "FLEET_NARN",
+                Rarity.COMMON, Faction.NARN, CardSet.PREMIERE, "x", "text", 4);
+        gp.getFleets().add(gFleet);
+        gFleet.setOwner(gp);
+        int gBase = gFleet.getEffectiveMilitary();
+
+        // The incumbent is a registered +1 Military agenda, so its grant is
+        // observable; the replacement is an inert minor agenda, so nothing
+        // should be granted on top of it. What is being measured is that the
+        // OUTGOING grant is lifted by the replace.
+        AgendaCard incumbent = new AgendaCard("agenda_total_war", "Total War",
+                "AGENDA", Rarity.RARE, Faction.ANY, CardSet.PREMIERE, "total_war",
+                "Ongoing: Your fleets gain +1 Military.", false,
+                "MILITARY_SUPREMACY");
+        gp.setAgenda(incumbent);
+        CardEffects.applyAgendaOnPlay(gst, gp, incumbent);
+        boolean grantedFirst = gFleet.getEffectiveMilitary() == gBase + 1;
+
+        // The replacement is itself a bonus-granting agenda (a registered id in
+        // AGENDA_FLEET_PLUS1). An inert replacement would have left the grant
+        // half unobservable: with the old one used, deleting the
+        // applyAgendaOnPlay call from the REPLACE branch kept this check GREEN,
+        // because nothing in the scenario granted anything to observe. Testing
+        // both halves in one replace — old grant lifted, new grant landed —
+        // makes a regression in either visible.
+        AgendaCard fresh = new AgendaCard("agenda_order_above_all",
+                "Order Above All", "AGENDA", Rarity.RARE, Faction.ANY,
+                CardSet.PREMIERE, "order",
+                "Ongoing: Your fleets gain +1 Military.", false,
+                "MILITARY_SUPREMACY");
+        CharacterCard lead = leaderCard("ago_gc_lead", 3);
+        gp.getInnerCircle().add(lead);
+        gp.getHand().clear();
+        gp.getHand().add(fresh);
+        processActionThrough(gst, gp, GameAction.replaceAgenda(fresh, lead));
+        check("AGO-C", "a replacement agenda both lifts the outgoing agenda's "
+                + "ongoing bonus and grants its own",
+                grantedFirst && gp.getAgenda() == fresh
+                        && gFleet.getEffectiveMilitary() == gBase + 1);
+
+        // C2: the discard path must lift its grant too — the AGO-BONUS-STICK
+        // regression asserted at the real dispatcher rather than at the helper.
+        // A FRESH player, not gp: gp's fleet is still carrying the grant that
+        // AGO-C's replacement agenda just made, and discarding an agenda is not
+        // entitled to clear another agenda's bonus. Reusing gp here would have
+        // measured the wrong thing and failed for the wrong reason.
+        Player dp = player("AGO-disc", Faction.NARN);
+        player("AGO-disc2", Faction.MINBARI);
+        GameState dgc = state(dp, player("AGO-disc2", Faction.MINBARI));
+        FleetCard dFleet = new FleetCard("ago_dfleet", "AGO Discard Fleet",
+                "FLEET_NARN", Rarity.COMMON, Faction.NARN, CardSet.PREMIERE,
+                "x", "text", 4);
+        dp.getFleets().add(dFleet);
+        dFleet.setOwner(dp);
+        int dBase = dFleet.getEffectiveMilitary();
+        AgendaCard discardMe = new AgendaCard("agenda_total_war", "Total War",
+                "AGENDA", Rarity.RARE, Faction.ANY, CardSet.PREMIERE, "total_war",
+                "Ongoing: Your fleets gain +1 Military.", false,
+                "MILITARY_SUPREMACY");
+        dp.setAgenda(discardMe);
+        CardEffects.applyAgendaOnPlay(dgc, dp, discardMe);
+        boolean grantedSecond = dFleet.getEffectiveMilitary() == dBase + 1;
+        processActionThrough(dgc, dp, GameAction.discardAgenda(discardMe));
+        check("AGO-C2", "discarding an agenda lifts the bonus it granted",
+                grantedSecond && dp.getAgenda() == null
+                        && dFleet.getEffectiveMilitary() == dBase);
+
+        // C3: the teardown must not over-reach — an unrelated bonus the player
+        // holds from some other card has to survive an agenda leaving play.
+        Player keep = player("AGO-keep", Faction.NARN);
+        player("AGO-keep2", Faction.MINBARI);
+        GameState kst = state(keep, player("AGO-keep2", Faction.MINBARI));
+        FleetCard kFleet = new FleetCard("ago_kfleet", "AGO Keep Fleet", "FLEET_NARN",
+                Rarity.COMMON, Faction.NARN, CardSet.PREMIERE, "x", "text", 4);
+        keep.getFleets().add(kFleet);
+        kFleet.setOwner(keep);
+        int kBase = kFleet.getEffectiveMilitary();
+        AgendaCard keeper = new AgendaCard("agenda_total_war", "Total War",
+                "AGENDA", Rarity.RARE, Faction.ANY, CardSet.PREMIERE, "total_war",
+                "Ongoing: Your fleets gain +1 Military.", false,
+                "MILITARY_SUPREMACY");
+        keep.setAgenda(keeper);
+        CardEffects.applyAgendaOnPlay(kst, keep, keeper);
+        // A second, unrelated fleet-wide grant from a different source id.
+        keep.grantBonus(StatBonus.faction("some_other_card", StatKey.MILITARY, 1,
+                keep.getName(), Expiry.WHILE_IN_PLAY, kst.getRoundNumber()));
+        int withBoth = kFleet.getEffectiveMilitary();
+        keep.getHand().clear();
+        processActionThrough(kst, keep, GameAction.discardAgenda(keeper));
+        check("AGO-C3", "leaving play lifts only that agenda's bonus, not others",
+                withBoth == kBase + 2 && kFleet.getEffectiveMilitary() == kBase + 1);
+
+        // ── D: the Diplomacy-win agenda bonus is paid by RESOLUTION ──────────
+        // AGO-DIPLO-WIN. resolveConflict is called directly — no GameController,
+        // no UI — so before the fix the bonus was simply absent. The winner
+        // gains the card's own printed reward PLUS the agenda bonus.
+        Player w = player("AGO-win", Faction.NARN);
+        Player l = player("AGO-lose", Faction.MINBARI);
+        GameState dst = state(w, l);
+        AgendaCard rising = new AgendaCard("agenda_a_rising_power", "A Rising Power",
+                "AGENDA", Rarity.RARE, Faction.ANY, CardSet.PREMIERE, "rising",
+                "Ongoing: If you win a Diplomacy conflict, gain 1 Influence.",
+                false, "INFLUENCE_20");
+        w.setAgenda(rising);
+        ConflictCard dip = new ConflictCard("ago_dip", "AGO Diplomacy",
+                "CONFLICT_DIPLOMACY", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", ConflictType.DIPLOMACY, 1);
+        Conflict dipC = new Conflict(dip, w);
+        dipC.commitCard(w, w.getAmbassador());
+        dipC.commitCard(l, l.getAmbassador());
+        int wInf = w.getInfluence();
+        rules.resolveConflict(dipC, dst);
+        check("AGO-D", "a Diplomacy win pays the card reward AND the agenda "
+                + "bonus, headless with no UI in the path",
+                w.getInfluence() - wInf == 1 + 1);
+
+        // D2: the LOSER's agenda must not pay — the bonus is the winner's.
+        Player w2 = player("AGO-win2", Faction.NARN);
+        Player l2 = player("AGO-lose2", Faction.MINBARI);
+        GameState dst2 = state(w2, l2);
+        l2.setAgenda(rising);
+        Conflict dipC2 = new Conflict(dip, w2);
+        dipC2.commitCard(w2, w2.getAmbassador());
+        dipC2.commitCard(l2, l2.getAmbassador());
+        int w2Inf = w2.getInfluence();
+        int l2Inf = l2.getInfluence();
+        rules.resolveConflict(dipC2, dst2);
+        check("AGO-D2", "the loser's agenda pays nothing; the winner gets the "
+                + "card reward alone",
+                w2.getInfluence() - w2Inf == 1
+                        && l2.getInfluence() == l2Inf);
+
+        // D3: a MILITARY conflict pays no Diplomacy bonus — the bonus is keyed
+        // to the conflict type, not merely to winning.
+        Player w3 = player("AGO-win3", Faction.NARN);
+        Player l3 = player("AGO-lose3", Faction.MINBARI);
+        GameState dst3 = state(w3, l3);
+        w3.setAgenda(rising);
+        ConflictCard mil = new ConflictCard("ago_mil", "AGO Military",
+                "CONFLICT_MILITARY", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", ConflictType.MILITARY, 1);
+        Conflict milC = new Conflict(mil, w3);
+        milC.commitCard(w3, w3.getAmbassador());
+        milC.commitCard(l3, l3.getAmbassador());
+        int w3Inf = w3.getInfluence();
+        rules.resolveConflict(milC, dst3);
+        check("AGO-D3", "a Military win pays the card reward and no agenda bonus",
+                w3.getInfluence() - w3Inf == 1);
+
+        // D4: a FACE-DOWN agenda is inert (:520 / B5-0364) — it pays nothing.
+        Player w4 = player("AGO-win4", Faction.NARN);
+        Player l4 = player("AGO-lose4", Faction.MINBARI);
+        GameState dst4 = state(w4, l4);
+        AgendaCard hidden = new AgendaCard("agenda_a_rising_power", "A Rising Power",
+                "AGENDA", Rarity.RARE, Faction.ANY, CardSet.PREMIERE, "rising",
+                "Ongoing: If you win a Diplomacy conflict, gain 1 Influence.",
+                false, "INFLUENCE_20");
+        hidden.setFaceDown(true);
+        w4.setAgenda(hidden);
+        Conflict dipC4 = new Conflict(dip, w4);
+        dipC4.commitCard(w4, w4.getAmbassador());
+        dipC4.commitCard(l4, l4.getAmbassador());
+        int w4Inf = w4.getInfluence();
+        rules.resolveConflict(dipC4, dst4);
+        check("AGO-D4", "a hidden (face-down) agenda pays no Diplomacy bonus",
+                w4.getInfluence() - w4Inf == 1);
+
+        // ── E: the startRound query point — ongoing influence each round ──────
+        // applyAgendaStartOfRound is what startRound calls per player, so the
+        // round hook is asserted through it, including the servants_of_order
+        // prerequisite its own text states.
+        Player ip = player("AGO-inc", Faction.NARN);
+        player("AGO-inc2", Faction.MINBARI);
+        GameState ist = state(ip, player("AGO-inc2", Faction.MINBARI));
+        AgendaCard higher = new AgendaCard("agenda_higher_calling", "Higher Calling",
+                "AGENDA", Rarity.RARE, Faction.ANY, CardSet.PREMIERE, "higher",
+                "Ongoing: At the start of each round, gain 1 Influence.",
+                false, "INFLUENCE_20");
+        ip.setAgenda(higher);
+        int ipInf = ip.getInfluence();
+        CardEffects.applyAgendaStartOfRound(ist, ip);
+        CardEffects.applyAgendaStartOfRound(ist, ip);
+        check("AGO-E", "startRound query point: the ongoing influence is granted "
+                + "every round, not once",
+                ip.getInfluence() - ipInf == 2);
+
+        // E2: servants_of_order requires 2+ Inner Circle characters; with one it
+        // grants nothing. This is the prerequisite living in the hook, so it is
+        // asserted where the hook is.
+        Player sp = player("AGO-serv", Faction.NARN);
+        player("AGO-serv2", Faction.MINBARI);
+        GameState sst = state(sp, player("AGO-serv2", Faction.MINBARI));
+        AgendaCard servants = new AgendaCard("de_agenda_servants_of_order",
+                "Servants of Order", "AGENDA", Rarity.RARE, Faction.ANY,
+                CardSet.DELUXE, "servants",
+                "Ongoing: At the start of each round, gain 1 Influence if you "
+                        + "have 2 or more characters in your Inner Circle.",
+                false, "INFLUENCE_20");
+        sp.setAgenda(servants);
+        int spInf = sp.getInfluence();
+        CardEffects.applyAgendaStartOfRound(sst, sp);
+        boolean underPrereq = sp.getInfluence() == spInf;
+        sp.getInnerCircle().add(leaderCard("ago_serv_lead", 3));
+        CardEffects.applyAgendaStartOfRound(sst, sp);
+        check("AGO-E2", "a conditional ongoing effect pays only once its own "
+                + "text prerequisite is met",
+                underPrereq && sp.getInfluence() - spInf == 1);
+
+        // E3: a face-down agenda's round income is inert, same rule as D4.
+        Player hp = player("AGO-hid", Faction.NARN);
+        player("AGO-hid2", Faction.MINBARI);
+        GameState hst = state(hp, player("AGO-hid2", Faction.MINBARI));
+        AgendaCard hidInc = new AgendaCard("agenda_higher_calling", "Higher Calling",
+                "AGENDA", Rarity.RARE, Faction.ANY, CardSet.PREMIERE, "higher",
+                "Ongoing: At the start of each round, gain 1 Influence.",
+                false, "INFLUENCE_20");
+        hidInc.setFaceDown(true);
+        hp.setAgenda(hidInc);
+        int hpInf = hp.getInfluence();
+        CardEffects.applyAgendaStartOfRound(hst, hp);
+        check("AGO-E3", "a hidden agenda's round income is inert",
+                hp.getInfluence() == hpInf);
+    }
+
     private static void testD15EffectCoverage() {
         System.out.println("D15 (B5-0436 R4): dispatched effect kinds — winner-only influenceReward");
         RulesEngine rules = new RulesEngine();
@@ -4039,6 +4463,54 @@ public class HeadlessConformanceTest {
                 c5.isSupporting(opp) && !c5.isOpposing(opp));
     }
 
+    // ── B5-1707: war declaration after real deck-out leaves players active ──
+
+    private static void scenarioDeckOutDuringWar() {
+        System.out.println("WAR-ZERO (B5-1707): real deck-out followed by war declaration and resolution");
+        RulesEngine rules = new RulesEngine();
+        Player narn = player("ZeroDeckNarn", Faction.NARN);
+        Player minbari = player("ZeroDeckMinbari", Faction.MINBARI);
+        GameState st = state(narn, minbari);
+
+        CharacterCard narnAdvisor = leaderCard("zero_narn_advisor", 2);
+        CharacterCard minbariAdvisor = leaderCard("zero_minbari_advisor", 2);
+        narn.getInnerCircle().add(narnAdvisor);
+        minbari.getInnerCircle().add(minbariAdvisor);
+        List<Card> narnDeck = new ArrayList<Card>();
+        narnDeck.add(event("zero_narn_draw"));
+        List<Card> minbariDeck = new ArrayList<Card>();
+        minbariDeck.add(event("zero_minbari_draw"));
+        narn.setDeck(new Deck(narnDeck));
+        minbari.setDeck(new Deck(minbariDeck));
+
+        // Drawing one beyond each real one-card pile follows Player.drawCards'
+        // deck-out penalty: discard a non-ambassador Inner Circle character,
+        // but do not forfeit while one remains (the ambassador).
+        narn.drawCards(2);
+        minbari.drawCards(2);
+        check("WAR-ZERO", "both real draw piles are empty after deck-out",
+                narn.getDeck().isEmpty() && minbari.getDeck().isEmpty());
+        check("WAR-ZERO", "deck-out discarded each advisor without forfeiting",
+                narn.getDeck().getDiscardPile().contains(narnAdvisor)
+                && minbari.getDeck().getDiscardPile().contains(minbariAdvisor)
+                && !narn.hasForfeited() && !minbari.hasForfeited());
+
+        st.getTensionMatrix().enterWar(Faction.NARN, Faction.MINBARI);
+        rules.startRound(st);
+        check("WAR-ZERO", "active zero-deck player may declare war",
+                rules.canDeclareWarConflict(narn, st));
+        Conflict war = rules.declareWarConflict(narn, WarKind.RACE_TARGET,
+                minbari, null, st);
+        check("WAR-ZERO", "zero-deck race war is declared",
+                war != null && war.isWarConflict() && war.getTarget() == minbari);
+        Player winner = rules.resolveConflict(war, st);
+        check("WAR-ZERO", "declared zero-deck war resolves with its winner",
+                winner == narn && war.isResolved() && war.getWinner() == narn);
+        check("WAR-ZERO", "uncontested resolution applies the real war outcome",
+                narn.getInfluence() == 5 && minbari.getInfluence() == 3
+                && st.getTensionMatrix().getTension(Faction.MINBARI, Faction.NARN) == 1);
+    }
+
     // ── B5-0376 Phase A: war-conflict declaration + resolution ──────────
 
     private static void testWarConflict() {
@@ -4113,6 +4585,46 @@ public class HeadlessConformanceTest {
         check("WAR", "war conflict carries zero influence reward",
                 warConflict.getInfluenceReward() == 0);
 
+        // 8b (B5-1825): a player who has ceased play may not declare a war
+        // conflict. Rulebook :454 (forfeit) "loses the game, and ceases play";
+        // :817 (surrender) "Pick up your cards and go home". Before this gate
+        // both statuses returned true here with the faction held constant,
+        // which the B5-1609 audit measured as finding F-A.
+        // A fresh declarer is used so the earlier conflict in this scenario has
+        // not consumed this turn's one-conflict allowance for narn.
+        Player forfeitDeclarer = player("ForfeitDeclarer", Faction.NARN);
+        Player surrenderDeclarer = player("SurrenderDeclarer", Faction.NARN);
+        // A dedicated state: GameState.getPlayers() is unmodifiable, so these
+        // declarers are supplied at construction rather than added afterwards.
+        GameState stStatus = state(minbari, forfeitDeclarer, surrenderDeclarer);
+        stStatus.getTensionMatrix().enterWar(Faction.NARN, Faction.MINBARI);
+        rules.startRound(stStatus);   // gives each declarer its action
+        check("WAR", "control: an active player CAN declare at war",
+                rules.canDeclareWarConflict(forfeitDeclarer, stStatus));
+        forfeitDeclarer.setHasForfeited(true);
+        check("WAR", "forfeited player may not declare a war conflict",
+                !rules.canDeclareWarConflict(forfeitDeclarer, stStatus));
+        check("WAR", "declareWarConflict returns null for a forfeited declarer",
+                rules.declareWarConflict(forfeitDeclarer, WarKind.RACE_TARGET,
+                        minbari, null, stStatus) == null);
+        check("WAR", "canInitiateWarConflict refuses a forfeited declarer",
+                !rules.canInitiateWarConflict(forfeitDeclarer, WarKind.RACE_TARGET,
+                        minbari, null, stStatus));
+
+        // Surrendered is the same gate: :817 cessation, same isPlayerActive
+        // predicate, so both flags are covered by the one hunk in RulesEngine.
+        surrenderDeclarer.setHasSurrendered(true);
+        check("WAR", "surrendered player may not declare a war conflict",
+                !rules.canDeclareWarConflict(surrenderDeclarer, stStatus));
+        check("WAR", "declareWarConflict returns null for a surrendered declarer",
+                rules.declareWarConflict(surrenderDeclarer, WarKind.RACE_TARGET,
+                        minbari, null, stStatus) == null);
+
+        // The gate must not have disturbed a player who is still playing:
+        // minbari is in stStatus, is active, and is at war with Narn.
+        check("WAR", "an active player is still allowed to declare (no over-gate)",
+                rules.canDeclareWarConflict(minbari, stStatus));
+
         // ── Phase B tests (B5-0376): outcome resolution ──────────────────────
         // 10: uncontested race war → influence swing (target -1, winner +1)
         int narnBefore10 = narn.getInfluence();
@@ -4129,13 +4641,13 @@ public class HeadlessConformanceTest {
                 "LOCATION_CENTAURI", Rarity.RARE, Faction.CENTAURI, CardSet.PREMIERE,
                 "x", "text", 2, 3);
         locOwner.getLocations().add(locTarget);
-        GameState st2 = state(narn, locOwner, minbari, centauri);
-        st2.getTensionMatrix().enterWar(Faction.CENTAURI, Faction.NARN);
-        rules.startRound(st2);
+        GameState stLoc = state(narn, locOwner, minbari, centauri);
+        stLoc.getTensionMatrix().enterWar(Faction.CENTAURI, Faction.NARN);
+        rules.startRound(stLoc);
         Conflict locWar = rules.declareWarConflict(narn, WarKind.LOCATION_TARGET,
-                null, locTarget, st2);
+                null, locTarget, stLoc);
         check("WAR", "location-target war conflict declared", locWar != null);
-        rules.resolveWarOutcome(locWar, narn, st2);
+        rules.resolveWarOutcome(locWar, narn, stLoc);
         check("WAR", "location captured by winning initiator",
                 locTarget.getCapturedBy() == narn);
         check("WAR", "captured location income is suppressed to 0",
@@ -4143,13 +4655,13 @@ public class HeadlessConformanceTest {
         check("WAR", "captured location military is suppressed to 0",
                 locTarget.getMilitary() == 0);
         check("WAR", "tension incremented for location-target war outcome",
-                st2.getTensionMatrix().getTension(Faction.CENTAURI, Faction.NARN) > 0);
+                stLoc.getTensionMatrix().getTension(Faction.CENTAURI, Faction.NARN) > 0);
 
         // 14: recapture by the original faction owner → effects restored
         Conflict recapture = rules.declareWarConflict(locOwner, WarKind.LOCATION_TARGET,
-                null, locTarget, st2);
+                null, locTarget, stLoc);
         check("WAR", "location-target recapture war conflict declared", recapture != null);
-        rules.resolveWarOutcome(recapture, locOwner, st2);
+        rules.resolveWarOutcome(recapture, locOwner, stLoc);
         check("WAR", "recaptured location cleared of capture marker",
                 locTarget.getCapturedBy() == null);
         check("WAR", "recaptured location income restored",
@@ -5143,6 +5655,36 @@ public class HeadlessConformanceTest {
         check("CON", "revealed contingency cannot reveal twice",
                 !rules.canRevealContingency(p, card));
 
+        // B5-2243: placement opens the real controller's reveal-or-pass
+        // window. The AI owns the placed contingency and reveals it during
+        // the window without spending a second action.
+        Player windowPlayer = player("CONwindow", Faction.NARN);
+        GameState windowState = state(windowPlayer);
+        CharacterCard windowHost = windowPlayer.getAmbassador();
+        ContingencyCard windowCard = new ContingencyCard(
+                "event_merchandising_b5", "Window Contingency", "CHARACTER",
+                Rarity.COMMON, Faction.ANY, CardSet.PREMIERE, "x", "fixture",
+                "CHARACTER", "NARN", "WHEN_REVEALED_FIXTURE");
+        windowPlayer.getHand().clear();
+        windowPlayer.addToHand(windowCard);
+        GameController windowController = new GameController(windowState,
+                new ArrayList<AIPlayer>(),
+                new GameStateCallback() { public void accept(GameState gs) { } });
+        Method windowHandler = GameController.class.getDeclaredMethod(
+                "processAction", Player.class, GameAction.class);
+        windowHandler.setAccessible(true);
+        windowHandler.invoke(windowController, windowPlayer,
+                GameAction.playContingency(windowCard, windowHost));
+        Method windowLoop = GameController.class.getDeclaredMethod(
+                "runContingencyRevealWindow");
+        windowLoop.setAccessible(true);
+        windowLoop.invoke(windowController);
+        check("CON-WIN", "PLAY_CONTINGENCY opens reveal-or-pass window",
+                windowCard.isRevealed()
+                && windowCard.getPlacedUnder() == null
+                && windowPlayer.getDeck().getDiscardPile().contains(windowCard)
+                && logContains(windowState, "Contingency reveal window closed"));
+
         List<Card> parsed = DeckLoader.parseCards("[{\"id\":\"fixture\",\"title\":\"Fixture\","
                 + "\"type\":\"CONTINGENCY\",\"subtype\":\"CHARACTER\","
                 + "\"faction\":\"ANY\",\"set\":\"PREMIERE\","
@@ -5222,6 +5764,170 @@ public class HeadlessConformanceTest {
                 GameAction.RotateEffectKind.USE_SPONSOR_DISCOUNT, tstd);
         check("ROT", "discount rotates the assistant and grants 1",
                 chd.isRotated() && pd.getSponsorDiscount() == 1);
+    }
+
+    /**
+     * B5-1997: sustained actions — rotate-to-boost effects that persist across
+     * rounds while the source card remains rotated (rulebook III "Sustained
+     * Actions"). Two concrete kinds: LEADERSHIP_BOOST (character leadership
+     * boosting fleet military) and ASSISTANT_BONUS (assistant boosting
+     * ambassador stats).
+     */
+    private static void testSustainedActions() throws Exception {
+        System.out.println("SUS (B5-1997): sustained actions across rounds");
+        RulesEngine rules = new RulesEngine();
+
+        // 1: begin sustained leadership boost
+        Player p  = player("SUSp", Faction.NARN);
+        Player p2 = player("SUTr", Faction.MINBARI);
+        GameState st = state(p, p2);
+        CharacterCard ch = leaderCard("sus_ch", 3);
+        FleetCard fl = fleetCard("sus_fl", "FRIGATE");
+        p.getInnerCircle().add(ch);
+        p.getFleets().add(fl);
+
+        check("SUS", "canSustainAction passes for ready leader + own unled fleet",
+                rules.canSustainAction(p, ch, fl, SustainedActionType.LEADERSHIP_BOOST));
+        ch.unrotate();
+        fl.setLeader(ch);
+        check("SUS", "canSustainAction refuses fleet with existing leader",
+                !rules.canSustainAction(p, ch, fl, SustainedActionType.LEADERSHIP_BOOST));
+        fl.setLeader(null);
+        ch.unrotate();
+
+        rules.beginSustainedAction(p, ch, fl, SustainedActionType.LEADERSHIP_BOOST, st);
+        check("SUS", "beginSustainedAction rotates leader and sets fleet leader",
+                ch.isRotated() && fl.getLeader() == ch);
+        check("SUS", "isSustaining returns true for sustaining leader",
+                rules.isSustaining(ch, st));
+        check("SUS", "state.isSustaining returns true",
+                st.isSustaining(ch));
+        int baseMilitary = fl.getEffectiveMilitary();
+        // B5-2248: was asserted == 5, measured 6. Rulebook :358 makes the
+        // leadership boost ADDITIVE ("rotate a character with Leadership to
+        // INCREASE the Military rating of one of his fleets ... the fleet
+        // continues to receive the boost"), and this suite's own helpers build
+        // a base-3 frigate (fleetCard(..., 3)) and a leadership-3 character
+        // (leaderCard("sus_ch", 3)). 3 + 3 = 6. The old constant assumed a
+        // base-2 frigate the helper never constructs, so it was failing on
+        // correct product behaviour.
+        check("SUS", "fleet military includes leader leadership",
+                baseMilitary == 6);
+
+        // 2: sustained action survives round boundary
+        int roundBefore = st.getRoundNumber();
+        rules.startRound(st);
+        check("SUS", "sustained leader stays rotated after startRound",
+                ch.isRotated());
+        check("SUS", "fleet leader relation persists after startRound",
+                fl.getLeader() == ch);
+        check("SUS", "fleet military still includes leader after startRound",
+                fl.getEffectiveMilitary() == baseMilitary);
+        // B5-2248: the registry is NOT cleared by a round boundary. This is the
+        // load-bearing negative: an earlier reading of B5-2205 F1 proposed
+        // making advanceRound() call clearAllSustainedActions(), which would
+        // have satisfied nothing here and contradicted rulebook :358.
+        check("SUS", "sustained action is still registered after startRound",
+                rules.isSustaining(ch, st));
+        // B5-2248: was asserted roundNumber == roundBefore + 1 across
+        // startRound. startRound is a per-TURN reset; the round counter belongs
+        // to GameController.java:68, which calls state.advanceRound() once the
+        // round completes. HeadlessConformanceTest:3348 already asserts that
+        // contract in words ("only after advanceRound, not during"). Assert the
+        // real one here, in both directions, so it cannot drift again.
+        check("SUS", "startRound does not advance the round counter",
+                st.getRoundNumber() == roundBefore);
+        st.advanceRound();
+        check("SUS", "advanceRound advances the round counter",
+                st.getRoundNumber() == roundBefore + 1);
+
+        // 3: end sustained action explicitly
+        rules.endSustainedAction(p, ch, st);
+        check("SUS", "endSustainedAction unrotates leader and clears fleet leader",
+                !ch.isRotated() && fl.getLeader() == null);
+        check("SUS", "isSustaining returns false after ending",
+                !rules.isSustaining(ch, st));
+        // B5-2248: was asserted == 2, measured 3 — the same base-3 frigate with
+        // the leader now cleared. The leadership boost really is gone; the old
+        // constant was simply off by the fleet's printed Military.
+        check("SUS", "fleet military reverts to base after ending",
+                fl.getEffectiveMilitary() == 3);
+
+        // 4: sustained assistant bonus
+        Player pA  = player("SUSA", Faction.NARN);
+        Player pA2 = player("SUSA2", Faction.MINBARI);
+        GameState stA = state(pA, pA2);
+        CharacterCard ambA = pA.getAmbassador();
+        CharacterCard asstA = leaderCard("sus_asst", 1);
+        pA.getSupportingRole().add(asstA);
+
+        check("SUS", "canSustainAction passes for ready assistant + own ambassador",
+                rules.canSustainAction(pA, asstA, ambA, SustainedActionType.ASSISTANT_BONUS));
+        rules.beginSustainedAction(pA, asstA, ambA, SustainedActionType.ASSISTANT_BONUS, stA);
+        check("SUS", "sustained assistant rotates and flags ambassador",
+                asstA.isRotated() && ambA.isAssistantBonus());
+
+        rules.startRound(stA);
+        check("SUS", "sustained assistant stays rotated after startRound",
+                asstA.isRotated());
+        check("SUS", "ambassador bonus persists after startRound",
+                ambA.isAssistantBonus());
+
+        rules.endSustainedAction(pA, asstA, stA);
+        check("SUS", "ending sustained assistant unrotates and clears bonus",
+                !asstA.isRotated() && !ambA.isAssistantBonus());
+
+        // B5-2248: the contrast case for the check above, kept next to it so the
+        // conditional reads in one place. An assistant boost that was NOT
+        // sustained must NOT survive the round boundary -- rulebook :492 gives
+        // the bonus only "while the assistant remains rotated". Before the fix
+        // the flag lived solely on the ambassador, so startRound unrotated the
+        // assistant and left the +1 in place, and the ambassador kept a
+        // Diplomacy/Intrigue/Leadership boost that nobody was paying for.
+        Player pU  = player("SUSU", Faction.NARN);
+        Player pU2 = player("SUSU2", Faction.MINBARI);
+        GameState stU = state(pU, pU2);
+        CharacterCard ambU = pU.getAmbassador();
+        CharacterCard asstU = leaderCard("sus_unsustained_asst", 1);
+        pU.getSupportingRole().add(asstU);
+        rules.executeAssistantAbilityBoost(pU, asstU, stU);
+        check("SUS", "unsustained assistant boost flags the ambassador",
+                ambU.isAssistantBonus()
+                && ambU.getPrimaryStatValue(ConflictType.DIPLOMACY) == 4);
+        rules.startRound(stU);
+        check("SUS", "unsustained assistant bonus does NOT survive the round boundary",
+                !ambU.isAssistantBonus()
+                && ambU.getPrimaryStatValue(ConflictType.DIPLOMACY) == 3);
+
+        // 5: cannot sustain twice with same source
+        Player pB  = player("SUSB", Faction.NARN);
+        Player pB2 = player("SUSB2", Faction.MINBARI);
+        GameState stB = state(pB, pB2);
+        CharacterCard chB = leaderCard("sus_chB", 2);
+        FleetCard flB = fleetCard("sus_flB", "FRIGATE");
+        pB.getInnerCircle().add(chB);
+        pB.getFleets().add(flB);
+
+        rules.beginSustainedAction(pB, chB, flB, SustainedActionType.LEADERSHIP_BOOST, stB);
+        check("SUS", "first sustain succeeds", rules.isSustaining(chB, stB));
+        rules.beginSustainedAction(pB, chB, flB, SustainedActionType.LEADERSHIP_BOOST, stB);
+        check("SUS", "second sustain on same source is rejected",
+                flB.getLeader() == chB);
+
+        // 6: clearPlayerSustainedActions at game end
+        Player pC  = player("SUSC", Faction.NARN);
+        Player pC2 = player("SUSC2", Faction.MINBARI);
+        GameState stC = state(pC, pC2);
+        CharacterCard chC = leaderCard("sus_chC", 2);
+        FleetCard flC = fleetCard("sus_flC", "FRIGATE");
+        pC.getInnerCircle().add(chC);
+        pC.getFleets().add(flC);
+        rules.beginSustainedAction(pC, chC, flC, SustainedActionType.LEADERSHIP_BOOST, stC);
+        check("SUS", "sustained action active before clear",
+                rules.isSustaining(chC, stC));
+        rules.clearPlayerSustainedActions(pC, stC);
+        check("SUS", "clearPlayerSustainedActions clears all sustained actions",
+                !rules.isSustaining(chC, stC) && !chC.isRotated() && flC.getLeader() == null);
     }
 
     private static void testRotateController() throws Exception {
@@ -6081,9 +6787,11 @@ public class HeadlessConformanceTest {
         // 1. DeckLoader hydration: optional "mercenary" key (absent = false).
         List<Card> parsed = DeckLoader.parseCards("["
                 + "{\"id\":\"mer_leader\",\"title\":\"Merc Leader\",\"type\":\"CHARACTER\","
-                + "\"subtype\":\"CHARACTER_ANY\",\"mercenary\":true},"
+                + "\"subtype\":\"CHARACTER_ANY\",\"diplomacy\":1,\"intrigue\":1,"
+                + "\"psi\":0,\"leadership\":1,\"isAmbassador\":false,\"mercenary\":true},"
                 + "{\"id\":\"plain_leader\",\"title\":\"Plain\",\"type\":\"CHARACTER\","
-                + "\"subtype\":\"CHARACTER_ANY\"},"
+                + "\"subtype\":\"CHARACTER_ANY\",\"diplomacy\":1,\"intrigue\":1,"
+                + "\"psi\":0,\"leadership\":1,\"isAmbassador\":false},"
                 + "{\"id\":\"mer_off\",\"title\":\"Off\",\"type\":\"EVENT\",\"mercenary\":false}"
                 + "]");
         boolean merTrue = false, merAbsent = false, merFalse = false;
@@ -6164,17 +6872,23 @@ public class HeadlessConformanceTest {
                 && c.getAppliedPool() == 0 && c.getInfluence() == cRating2
                 && st4.getMercenaryBid(merc, c) == 0);
 
-        // 7. Resolution: strict-highest crown; ties crown nobody.
+        // 7. Resolution (B5-2281): the strict-highest crown now runs through
+        //    the ENGINE authority, and a tie is BROKEN in :352 initiative
+        //    order rather than crowning nobody. The model-scope strict reading
+        //    is pinned here as a DIVERGENCE witness on purpose: the two methods
+        //    answer the same question differently, and the one place a reader
+        //    would reach for the old comment is exactly where that must be
+        //    visible. The full tie-break contract is the MER-TIE section.
         Player x = player("MerX", Faction.HUMAN);
         Player y = player("MerY", Faction.MINBARI);
         GameState stR = state(x, y);
         stR.addMercenaryOffer(merc);
-        check("MER", "no controller before resolution", stR.getMercenaryController(merc) == null);
+        check("MER", "no controller before resolution",
+                rules.resolveMercenaryControl(stR).isEmpty());
         rules.executeBidOnMercenary(x, merc, 2, stR);
         rules.executeBidOnMercenary(y, merc, 1, stR);
-        Map<Card, Player> resolved = stR.resolveMercenaries();
-        check("MER", "highest single bidder controls", resolved.get(merc) == x
-                && stR.getMercenaryController(merc) == x);
+        Map<Card, Player> resolved = rules.resolveMercenaryControl(stR);
+        check("MER", "highest single bidder controls", resolved.get(merc) == x);
 
         Player p = player("MerP", Faction.NARN);
         Player q = player("MerQ", Faction.CENTAURI);
@@ -6182,9 +6896,12 @@ public class HeadlessConformanceTest {
         stT.addMercenaryOffer(merc);
         rules.executeBidOnMercenary(p, merc, 2, stT);
         rules.executeBidOnMercenary(q, merc, 2, stT);
-        Map<Card, Player> tie = stT.resolveMercenaries();
-        check("MER", "tied totals crown nobody (conservative, D12 discipline)",
-                tie.isEmpty() && stT.getMercenaryController(merc) == null);
+        Map<Card, Player> engineTie = rules.resolveMercenaryControl(stT);
+        Map<Card, Player> modelTie = stT.resolveMercenaries();
+        Player expectedTieWinner = RulesEngine.actsBefore(p, q) ? p : q;
+        check("MER", "B5-2281: engine breaks a tied total in :352 order where"
+                + " GameState.resolveMercenaries crowns nobody",
+                engineTie.get(merc) == expectedTieWinner && modelTie.isEmpty());
 
         // 8. Controller performs the mercenary action (fixture: +1 influence).
         Player w = player("MerW", Faction.HUMAN);
@@ -6192,20 +6909,23 @@ public class HeadlessConformanceTest {
         stW.addMercenaryOffer(merc);
         int wRating = w.getInfluence();
         rules.executeBidOnMercenary(w, merc, 1, stW);
-        stW.resolveMercenaries();
+        check("MER", "sole bidder is the controller (engine authority)",
+                rules.resolveMercenaryControl(stW).get(merc) == w);
         CardEffects.applyMercenaryAction(stW, w, merc);
         check("MER", "controlled fixture mercenary grants its effect to controller",
                 w.getInfluence() == wRating + 1);
 
-        // 9. Round boundary: bids + control clear at startRound, offers persist.
+        // 9. Round boundary: bids die with the round, offers persist, and the
+        //    frozen initiative order is RE-determined for the new turn.
         GameState stV = state(w, p);
         stV.addMercenaryOffer(merc);
         rules.executeBidOnMercenary(w, merc, 1, stV);
-        stV.resolveMercenaries();
+        check("MER", "control resolves before the round boundary",
+                rules.resolveMercenaryControl(stV).get(merc) == w);
         int offersBefore = stV.getMercenaryOffers().size();
-        rules.startRound(stV);   // resets pool too
-        check("MER", "startRound clears bids and control but keeps offers",
-                stV.getMercenaryController(merc) == null
+        rules.startRound(stV);   // resets pool too, and re-freezes initiative
+        check("MER", "startRound clears bids but keeps offers",
+                rules.resolveMercenaryControl(stV).isEmpty()
                 && stV.getMercenaryBid(merc, w) == 0
                 && stV.totalMercenaryBids(merc) == 0
                 && stV.getMercenaryOffers().size() == offersBefore);
@@ -6228,10 +6948,337 @@ public class HeadlessConformanceTest {
         phaseHandler.setAccessible(true);
         int uBefore = u.getInfluence();
         phaseHandler.invoke(ctl);
+        // B5-2281: runMercenaryPhase resolves through ITS OWN RulesEngine, so
+        // the controller identity is asked of that instance rather than of a
+        // fresh one -- asserting against a different engine would prove nothing
+        // about the phase that just ran, and would keep passing if the phase
+        // silently stopped resolving at all.
+        Field rulesField = GameController.class.getDeclaredField("rules");
+        rulesField.setAccessible(true);
+        RulesEngine ctlRules = (RulesEngine) rulesField.get(ctl);
         check("MER", "controller phase crowns the bidder and applies the fixture effect",
-                stC.getMercenaryController(merc) == u
+                ctlRules.resolveMercenaryControl(stC).get(merc) == u
                 && u.getInfluence() == uBefore + 1
                 && stC.getPhase() == GamePhase.MERCENARY);
+    }
+
+    // ── B5-2281: mercenary tie-break in initiative order (rulebook :352) ─────────
+    //
+    // Rulebook :739 decides mercenary control by the highest cumulative bid and
+    // is SILENT on equal totals. B5-0395 read that silence conservatively (a tie
+    // crowns nobody); this section pins the replacement reading -- a tie is
+    // broken in :352 initiative order and announced -- plus the two supporting
+    // facts the tie-break rests on: the order is FROZEN at the READY round, and
+    // a seat that has left the game cannot win control with an earlier bid.
+    //
+    // It also pins the DIVERGENCE from the model-scope strict resolver, because
+    // two methods answering the same question differently is only safe while a
+    // test says so out loud.
+    private static void testMercenaryTieBreak() throws Exception {
+        System.out.println("MER-TIE (B5-2281): mercenary tie-break in :352 initiative order");
+        RulesEngine rules = new RulesEngine();
+        Card merc = event("mer_tie_fixture");
+        merc.setMercenary(true);
+
+        // ── MERTB-01/02/03: the :352 chain, rung by rung. ──────────────────────
+        // Rating first (lowest acts first), then each ambassador ability in the
+        // rulebook's order -- each ASCENDING, because :352 says the HIGHER
+        // ability "wins (acts last)".
+        Player lo = player("TbLo", Faction.HUMAN);
+        Player hi = player("TbHi", Faction.MINBARI);
+        lo.gainInfluence(2);        // rating 4 -> 6
+        hi.gainInfluence(6);        // rating 4 -> 10
+        GameState stA = state(lo, hi);
+        List<Player> ord = rules.determineInitiativeOrder(stA);
+        check("MER-TIE", ":352 orders by Influence Rating, lowest acts first",
+                ord.size() == 2 && ord.get(0) == lo && ord.get(1) == hi
+                && RulesEngine.actsBefore(lo, hi));
+
+        // Equal rating: LOWER Diplomacy acts EARLIER (:352 "highest Diplomacy
+        // wins (acts last)"). Set the ambassadors explicitly rather than
+        // re-reading the 3/3/3/3 fixture.
+        Player dLow = player("TbDLo", Faction.NARN);
+        Player dHigh = player("TbDHi", Faction.CENTAURI);
+        ambassadorWith(dLow, 1, 9, 9, 9);
+        ambassadorWith(dHigh, 4, 0, 0, 0);
+        GameState stB = state(dLow, dHigh);
+        List<Player> ordB = rules.determineInitiativeOrder(stB);
+        check("MER-TIE", ":352 equal rating, lower Diplomacy acts earlier",
+                ordB.get(0) == dLow && ordB.get(1) == dHigh);
+
+        // Equal rating AND Diplomacy: the chain falls to Intrigue, then Psi,
+        // then Leadership. Pinned one rung at a time so a chain that silently
+        // stopped after Diplomacy cannot pass.
+        Player iLow = player("TbILo", Faction.NARN);
+        Player iHigh = player("TbIHi", Faction.CENTAURI);
+        ambassadorWith(iLow, 2, 1, 9, 9);
+        ambassadorWith(iHigh, 2, 6, 0, 0);
+        check("MER-TIE", ":352 equal rating+Diplomacy, lower Intrigue acts earlier",
+                firstIn(rules.determineInitiativeOrder(state(iLow, iHigh))) == iLow);
+
+        Player pLow = player("TbPLo", Faction.NARN);
+        Player pHigh = player("TbPHi", Faction.CENTAURI);
+        ambassadorWith(pLow, 2, 3, 1, 9);
+        ambassadorWith(pHigh, 2, 3, 7, 0);
+        check("MER-TIE", ":352 equal through Intrigue, lower Psi acts earlier",
+                firstIn(rules.determineInitiativeOrder(state(pLow, pHigh))) == pLow);
+
+        Player lLow = player("TbLLo", Faction.NARN);
+        Player lHigh = player("TbLHi", Faction.CENTAURI);
+        ambassadorWith(lLow, 2, 3, 4, 1);
+        ambassadorWith(lHigh, 2, 3, 4, 8);
+        check("MER-TIE", ":352 equal through Psi, lower Leadership acts earlier",
+                firstIn(rules.determineInitiativeOrder(state(lLow, lHigh))) == lLow);
+
+        // A seat with no ambassador is orderable at 0 abilities, not an NPE.
+        Player bare = player("TbBare", Faction.HUMAN);
+        bare.setAmbassador(null);
+        Player rated = player("TbRated", Faction.MINBARI);
+        rated.gainInfluence(3);
+        List<Player> ordBare = rules.determineInitiativeOrder(state(bare, rated));
+        check("MER-TIE", "a seat with no ambassador ranks at 0 abilities",
+                ordBare.get(0) == bare && ordBare.get(1) == rated);
+
+        // ── MERTB-04: the order is FROZEN for the turn (:350 "Determine
+        //    Initiative" is READY step 3), so a mid-turn gain cannot silently
+        //    reorder a tie-break that was already published. ──────────────────
+        Player f1 = player("TbF1", Faction.HUMAN);
+        Player f2 = player("TbF2", Faction.MINBARI);
+        GameState stF = state(f1, f2);
+        RulesEngine frozen = new RulesEngine();
+        frozen.startRound(stF);
+        List<Player> atReady = frozen.getInitiativeOrder();
+        check("MER-TIE", "startRound publishes an initiative order for the turn",
+                atReady.size() == 2 && atReady.get(0) == f1 && atReady.get(1) == f2);
+        f1.gainInfluence(9);        // f1 is now the HIGHEST-rated seat
+        check("MER-TIE", ":350 the frozen order survives a mid-turn gain"
+                + " (recomputing would reorder a published tie-break)",
+                frozen.getInitiativeOrder().get(0) == f1
+                && atReady.get(0) == f1);
+        // The next READY round re-determines it, so the freeze is per-turn and
+        // not a permanent pin.
+        frozen.startRound(stF);
+        check("MER-TIE", "the NEXT startRound re-determines the order",
+                frozen.getInitiativeOrder().get(0) == f2);
+
+        // ── MERTB-05: no tie, no tie line. The loud path must not fire on an
+        //    ordinary strict-highest crown, or the log is worthless. ─────────
+        Player s1 = player("TbS1", Faction.HUMAN);
+        Player s2 = player("TbS2", Faction.MINBARI);
+        GameState stS = state(s1, s2);
+        stS.addMercenaryOffer(merc);
+        RulesEngine engS = new RulesEngine();
+        engS.startRound(stS);
+        engS.executeBidOnMercenary(s1, merc, 3, stS);
+        engS.executeBidOnMercenary(s2, merc, 1, stS);
+        Map<Card, Player> solo = engS.resolveMercenaryControl(stS);
+        check("MER-TIE", "a strict-highest crown resolves and logs NO tie",
+                solo.get(merc) == s1 && !logContains(stS, "MERCENARY TIE"));
+
+        // ── MERTB-06: nobody bid is NOT a tie. A 0 bid is not a bid, so an
+        //    empty table resolves to nobody without a tie line. ──────────────
+        Player z1 = player("TbZ1", Faction.HUMAN);
+        GameState stZ = state(z1);
+        stZ.addMercenaryOffer(merc);
+        RulesEngine engZ = new RulesEngine();
+        engZ.startRound(stZ);
+        check("MER-TIE", "a table where nobody bid crowns nobody, and says no tie",
+                engZ.resolveMercenaryControl(stZ).isEmpty()
+                && !logContains(stZ, "MERCENARY TIE"));
+
+        // ── MERTB-07/08: the tie itself. Two seats level on 3; the earlier
+        //    initiative takes control and the log names BOTH seats, the shared
+        //    total and the step that decided. ────────────────────────────────
+        Player t1 = player("TbT1", Faction.HUMAN);
+        Player t2 = player("TbT2", Faction.MINBARI);
+        t1.gainInfluence(2);        // t1 rating 6, t2 rating 4 -> t2 acts first
+        GameState stT2 = state(t1, t2);
+        stT2.addMercenaryOffer(merc);
+        RulesEngine engT = new RulesEngine();
+        engT.startRound(stT2);
+        engT.executeBidOnMercenary(t1, merc, 2, stT2);
+        engT.executeBidOnMercenary(t2, merc, 2, stT2);
+        Map<Card, Player> won = engT.resolveMercenaryControl(stT2);
+        check("MER-TIE", ":352 lowest initiative takes control of a tied total",
+                won.get(merc) == t2);
+        check("MER-TIE", "the tie is announced: card, total, and BOTH tied seats",
+                logContains(stT2, "MERCENARY TIE on " + merc.getTitle())
+                && logContains(stT2, "2 influence")
+                && logContains(stT2, t1.getName())
+                && logContains(stT2, t2.getName()));
+        check("MER-TIE", "the announcement names the seat that took control",
+                logContains(stT2, t2.getName() + " acts"));
+
+        // ── MERTB-09: a three-way tie resolves to the earliest of the three,
+        //    and the two losers are named rather than dropped. ───────────────
+        Player m1 = player("TbM1", Faction.HUMAN);
+        Player m2 = player("TbM2", Faction.MINBARI);
+        Player m3 = player("TbM3", Faction.NARN);
+        m3.gainInfluence(4);        // m3 highest -> acts last
+        GameState stT3 = state(m1, m2, m3);
+        stT3.addMercenaryOffer(merc);
+        RulesEngine engT3 = new RulesEngine();
+        engT3.startRound(stT3);
+        engT3.executeBidOnMercenary(m1, merc, 1, stT3);
+        engT3.executeBidOnMercenary(m2, merc, 1, stT3);
+        engT3.executeBidOnMercenary(m3, merc, 1, stT3);
+        check("MER-TIE", "a three-way tie resolves to the earliest seat",
+                engT3.resolveMercenaryControl(stT3).get(merc) == m1);
+        check("MER-TIE", "all three tied seats are named in the announcement",
+                logContains(stT3, m1.getName())
+                && logContains(stT3, m2.getName())
+                && logContains(stT3, m3.getName()));
+
+        // ── MERTB-10: :352's residual step. Identical rating AND all four
+        //    abilities means the chain is exhausted, and the log must SAY the
+        //    seat-name stand-in decided it rather than implying :352 chose. ───
+        Player r1 = player("TbR1", Faction.HUMAN);
+        Player r2 = player("TbR2", Faction.MINBARI);
+        GameState stR2 = state(r1, r2);
+        stR2.addMercenaryOffer(merc);
+        RulesEngine engR = new RulesEngine();
+        engR.startRound(stR2);
+        check("MER-TIE", "exhausted :352 chain reports compareInitiativeKey 0",
+                RulesEngine.compareInitiativeKey(r1, r2) == 0);
+        engR.executeBidOnMercenary(r1, merc, 2, stR2);
+        engR.executeBidOnMercenary(r2, merc, 2, stR2);
+        Player residualWinner = engR.resolveMercenaryControl(stR2).get(merc);
+        check("MER-TIE", "the residual fallback is deterministic (seat name order)",
+                residualWinner == r1 && RulesEngine.actsBefore(r1, r2));
+        check("MER-TIE", "the residual fallback is named in the log, not implied",
+                logContains(stR2, "could not separate them"));
+
+        // ── MERTB-11: a seat that has LEFT THE GAME cannot take control, and
+        //    the exclusion is logged. Read through GameState.isPlayerActive so
+        //    this phase and every checkVictory path share one definition. ────
+        Player g1 = player("TbG1", Faction.HUMAN);
+        Player g2 = player("TbG2", Faction.MINBARI);
+        g1.gainInfluence(5);        // g1 outbids g2 outright
+        GameState stG = state(g1, g2);
+        stG.addMercenaryOffer(merc);
+        RulesEngine engG = new RulesEngine();
+        engG.startRound(stG);
+        engG.executeBidOnMercenary(g1, merc, 3, stG);
+        engG.executeBidOnMercenary(g2, merc, 1, stG);
+        g1.setHasForfeited(true);
+        check("MER-TIE", "a forfeited seat's higher bid does not take control",
+                engG.resolveMercenaryControl(stG).get(merc) == g2);
+        check("MER-TIE", "the forfeited seat is named, not silently dropped",
+                logContains(stG, g1.getName())
+                && logContains(stG, "has left the game"));
+
+        Player h1 = player("TbH1", Faction.HUMAN);
+        GameState stH = state(h1);
+        stH.addMercenaryOffer(merc);
+        RulesEngine engH = new RulesEngine();
+        engH.startRound(stH);
+        engH.executeBidOnMercenary(h1, merc, 2, stH);
+        h1.setHasSurrendered(true);
+        check("MER-TIE", "a surrendered seat's bid leaves nobody controlling",
+                engH.resolveMercenaryControl(stH).isEmpty());
+
+        // ── MERTB-12: the winner's mercenary ACTS, and the loser does not.
+        //    A tie-break that resolves without ever applying an effect would
+        //    satisfy every check above and change nothing at the table.
+        //    The card id is mer_metric_fixture, the ONE id CardEffects
+        //    MERCENARY_FIXTURE_INFLUENCE registers (+1 influence): any other
+        //    id dispatches to the no-op branch and this check would pass
+        //    vacuously on "nothing happened to either seat".
+        Card effectMerc = event("mer_metric_fixture");
+        effectMerc.setMercenary(true);
+        Player a1 = player("TbA1", Faction.HUMAN);
+        Player a2 = player("TbA2", Faction.MINBARI);
+        a1.gainInfluence(3);        // a1 outranks a2, so a2 acts first and takes the tie
+        GameState stA2 = state(a1, a2);
+        stA2.addMercenaryOffer(effectMerc);
+        RulesEngine engA = new RulesEngine();
+        engA.startRound(stA2);
+        engA.executeBidOnMercenary(a1, effectMerc, 1, stA2);
+        engA.executeBidOnMercenary(a2, effectMerc, 1, stA2);
+        int a1Before = a1.getInfluence();
+        int a2Before = a2.getInfluence();
+        Player tieCtl = engA.resolveMercenaryControl(stA2).get(effectMerc);
+        CardEffects.applyMercenaryAction(stA2, tieCtl, effectMerc);
+        check("MER-TIE", "the tie-break winner's mercenary acts (fixture +1)"
+                + " and the loser is untouched",
+                tieCtl == a2 && a2.getInfluence() == a2Before + 1
+                && a1.getInfluence() == a1Before);
+
+        // ── MERTB-13: DIVERGENCE WITNESS. The engine and the model-scope
+        //    resolver disagree by exactly the tie-break and nothing else --
+        //    on a strict-highest position they agree. Anyone who later finds
+        //    GameState.resolveMercenaries on a play path can read here what the
+        //    difference actually is. ──────────────────────────────────────────
+        Player w1 = player("TbW1", Faction.HUMAN);
+        Player w2 = player("TbW2", Faction.MINBARI);
+        GameState stW2 = state(w1, w2);
+        stW2.addMercenaryOffer(merc);
+        RulesEngine engW = new RulesEngine();
+        engW.startRound(stW2);
+        engW.executeBidOnMercenary(w1, merc, 2, stW2);
+        Map<Card, Player> strictBoth = engW.resolveMercenaryControl(stW2);
+        Map<Card, Player> strictModel = stW2.resolveMercenaries();
+        check("MER-TIE", "divergence: engine and model AGREE on a strict-highest bid",
+                strictBoth.get(merc) == strictModel.get(merc));
+        engW.executeBidOnMercenary(w2, merc, 2, stW2);
+        Map<Card, Player> tiedEngine = engW.resolveMercenaryControl(stW2);
+        Map<Card, Player> tiedModel = stW2.resolveMercenaries();
+        check("MER-TIE", "divergence: they differ by EXACTLY the tie-break",
+                tiedEngine.size() == 1 && tiedModel.isEmpty());
+
+        // ── MERTB-14: the resolver is side-effect free, so re-running the
+        //    phase (or a UI refresh reading it) cannot move bids or spend
+        //    influence. Resolution reads; only CardEffects writes. ──────────
+        Player k1 = player("TbK1", Faction.HUMAN);
+        Player k2 = player("TbK2", Faction.MINBARI);
+        GameState stK = state(k1, k2);
+        stK.addMercenaryOffer(merc);
+        RulesEngine engK = new RulesEngine();
+        engK.startRound(stK);
+        engK.executeBidOnMercenary(k1, merc, 2, stK);
+        engK.executeBidOnMercenary(k2, merc, 2, stK);
+        Map<Card, Player> first = engK.resolveMercenaryControl(stK);
+        Map<Card, Player> second = engK.resolveMercenaryControl(stK);
+        check("MER-TIE", "resolution is idempotent and mutates no bid or pool",
+                first.get(merc) == second.get(merc)
+                && stK.getMercenaryBid(merc, k1) == 2
+                && stK.getMercenaryBid(merc, k2) == 2
+                && k1.getAppliedPool() + k2.getAppliedPool() == 4);
+        check("MER-TIE", "a null state resolves to nobody rather than throwing",
+                engK.resolveMercenaryControl(null).isEmpty());
+
+        // ── MERTB-15: cumulative, not last-bid. A seat that outbids itself
+        //    after another seat has bid keeps the summed total, so the tie is
+        //    decided on the rulebook's "bids are cumulative" clause and not
+        //    on whichever action happened to be last. ────────────────────────
+        Player c1 = player("TbC1", Faction.HUMAN);
+        Player c2 = player("TbC2", Faction.MINBARI);
+        GameState stC2 = state(c1, c2);
+        stC2.addMercenaryOffer(merc);
+        RulesEngine engC = new RulesEngine();
+        engC.startRound(stC2);
+        engC.executeBidOnMercenary(c1, merc, 1, stC2);
+        engC.executeBidOnMercenary(c2, merc, 2, stC2);
+        engC.executeBidOnMercenary(c1, merc, 1, stC2);   // c1 total now 2
+        check("MER-TIE", ":739 cumulative bids: the tie is on the SUM, not the last bid",
+                engC.resolveMercenaryControl(stC2).get(merc)
+                        == (RulesEngine.actsBefore(c1, c2) ? c1 : c2)
+                && stC2.totalMercenaryBids(merc) == 4);
+    }
+
+    /** Replaces a player's ambassador with one carrying the given abilities. */
+    private static void ambassadorWith(Player p, int dip, int intr, int psi, int lead) {
+        CharacterCard amb = new CharacterCard("amb2_" + p.getName(), "Amb2 " + p.getName(),
+                "CHARACTER_" + p.getFaction(), Rarity.FIXED, p.getFaction(),
+                CardSet.PREMIERE, "x", "text", dip, intr, psi, lead, true);
+        p.setAmbassador(amb);
+        p.getInnerCircle().clear();
+        p.getInnerCircle().add(amb);
+    }
+
+    /** The seat that acts first in a two-seat order (test readability). */
+    private static Player firstIn(List<Player> order) {
+        return order.isEmpty() ? null : order.get(0);
     }
 
     // ── B5-1038: generic play path charges card cost ────────────────────────────
@@ -6304,11 +7351,713 @@ public class HeadlessConformanceTest {
                 !p.getHand().contains(costly) && p.getAppliedPool() == 0);
     }
 
+    // ── B5-1999: GROUP cards (rulebook §IV "Group Cards", :496) ───────────────
+
+    private static GroupCard groupCard(String id, Faction f, int cost) {
+        GroupCard g = new GroupCard(id, id, "GROUP", Rarity.COMMON, f,
+                CardSet.PREMIERE, "x", "text");
+        g.setCost(cost);
+        return g;
+    }
+
+    /**
+     * B5-2245 — Sponsor and Promote influence payment (SPN).
+     *
+     * Rulebook: :657 "Any character in the Inner Circle may rotate to bring a
+     * new supporting Character, Enhancement, Group, Location or Fleet into play
+     * from your hand. ... Your faction must apply the required influence cost
+     * listed on the sponsored card being brought into play or this action may
+     * not be performed"; :663 characters of another race cost DOUBLE;
+     * :664/:665 a card of any other type naming another race is ILLEGAL, not
+     * dearer; :669 promoting costs the character cost (doubled off-race) "plus
+     * one additional influence for each character that is already a member" and
+     * "a discount to the cost to sponsor a character does not apply to
+     * promoting".
+     *
+     * Every check below asserts a VALUE rather than the absence of an
+     * exception, so the section can go red: a cost term dropped from either
+     * rule, or the off-race rule collapsed into a single multiplier for both
+     * card types, moves a number these checks name.
+     */
+    private static void testSponsorPayment() {
+        System.out.println("SPN (B5-2245): Sponsor + Promote influence payment (rulebook :657/:663/:669)");
+        RulesEngine rules = new RulesEngine();
+
+        // ── 1. Sponsorship charges the LISTED cost and deducts on success ──
+        {
+            Player p = player("spn_listed", Faction.NARN);
+            GameState st = state(p);
+            setInfluence(p, 10);
+            LocationCard loc = new LocationCard("spn_loc", "Listed Location",
+                    "LOCATION", Rarity.COMMON, Faction.NARN, CardSet.PREMIERE,
+                    "x", "text", 1);
+            loc.setCost(4);
+            p.addToHand(loc);
+
+            check("SPN", "sponsorship costs the listed influence (:657)",
+                    rules.sponsorshipCost(p, loc) == 4);
+            check("SPN", "affordable listed-cost card may be sponsored (:657)",
+                    rules.canSponsorCard(p, loc));
+            rules.executeSponsorCard(p, loc, p.getAmbassador(), st);
+
+            check("SPN", "sponsorship deducts exactly the listed cost on success (:657)",
+                    p.getAppliedPool() == 6);
+            check("SPN", "sponsored location is in play (:657)",
+                    p.getLocations().contains(loc));
+            check("SPN", "sponsored card left the hand (:657)",
+                    !p.getHand().contains(loc));
+            check("SPN", "the sponsoring Inner Circle member rotated (:657)",
+                    p.getAmbassador().isRotated());
+        }
+
+        // ── 2. Refuse when short: nothing moves at all ──
+        // :657 "or this action may not be performed". The refusal has to leave
+        // the hand, the pool AND the rotation untouched, so this asserts all
+        // three — a refusal that deducted, or that rotated before charging,
+        // would pass a check that only looked at the pool.
+        {
+            Player p = player("spn_short", Faction.NARN);
+            GameState st = state(p);
+            setInfluence(p, 3);
+            LocationCard loc = new LocationCard("spn_loc_short", "Too Dear",
+                    "LOCATION", Rarity.COMMON, Faction.NARN, CardSet.PREMIERE,
+                    "x", "text", 1);
+            loc.setCost(4);
+            p.addToHand(loc);
+
+            check("SPN", "a card costing more than the pool is refused (:657)",
+                    !rules.canSponsorCard(p, loc));
+            rules.executeSponsorCard(p, loc, p.getAmbassador(), st);
+
+            check("SPN", "refused sponsorship deducts nothing (:657)",
+                    p.getAppliedPool() == 3);
+            check("SPN", "refused sponsorship leaves the card in hand (:657)",
+                    p.getHand().contains(loc));
+            check("SPN", "refused sponsorship does not rotate the sponsor (:657)",
+                    !p.getAmbassador().isRotated());
+            check("SPN", "refused sponsorship puts nothing in play (:657)",
+                    !p.getLocations().contains(loc));
+            check("SPN", "the refusal is logged rather than silent (:657)",
+                    logContains(st, "cannot sponsor"));
+        }
+
+        // ── 3. Off-race CHARACTER is dearer; off-race FLEET is illegal ──
+        // The two halves of the same rulebook paragraph, kept apart on purpose.
+        // :663 doubles the price of another race's character; :665 refuses
+        // outright any other card type naming another race. Collapsing these
+        // into one multiplier would let a Narn faction buy a Minbari fleet.
+        {
+            Player p = player("spn_race", Faction.NARN);
+            GameState st = state(p);
+            setInfluence(p, 30);
+
+            FleetCard hostileFleet = new FleetCard("spn_fleet_hostile",
+                    "Minbari Fleet", "FLEET", Rarity.COMMON, Faction.MINBARI,
+                    CardSet.PREMIERE, "x", "text", 3);
+            hostileFleet.setCost(2);
+            p.addToHand(hostileFleet);
+
+            check("SPN", "another race's FLEET is refused outright (:665)",
+                    !rules.canSponsorCard(p, hostileFleet));
+            check("SPN", "an absolute race refusal is not a doubled price (:665)",
+                    rules.sponsorshipListedCost(hostileFleet) == 2);
+
+            CharacterCard hostileChar = new CharacterCard("spn_char_hostile",
+                    "Minbari Character", "CHARACTER_MINBARI", Rarity.COMMON,
+                    Faction.MINBARI, CardSet.PREMIERE, "x", "text",
+                    2, 2, 2, 2, false);
+            hostileChar.setCost(3);
+            p.addToHand(hostileChar);
+            CharacterCard readyLeader = player("spn_race_leader", Faction.NARN).getAmbassador();
+            readyLeader.setOwner(p);
+            p.getInnerCircle().add(readyLeader);
+
+            check("SPN", "another race's CHARACTER is NOT refused, only dearer (:663)",
+                    rules.canRecruit(p, hostileChar)
+                            && rules.baseRecruitCost(p, hostileChar) == 6);
+
+            CharacterCard ownChar = new CharacterCard("spn_char_own",
+                    "Narn Character", "CHARACTER_NARN", Rarity.COMMON,
+                    Faction.NARN, CardSet.PREMIERE, "x", "text", 2, 2, 2, 2, false);
+            ownChar.setCost(3);
+            check("SPN", "an own-race CHARACTER costs its listed price (:663)",
+                    rules.baseRecruitCost(p, ownChar) == 3);
+            check("SPN", "the off-race rule is a doubling, not a flat surcharge (:663)",
+                    rules.baseRecruitCost(p, hostileChar)
+                            == 2 * rules.baseRecruitCost(p, ownChar));
+        }
+
+        // ── 4. Sponsorship needs a ready Inner Circle member, and carries NO
+        //    Inner-Circle term of its own (:657 charges the listed cost;
+        //    only :669 promotion adds the per-member surcharge) ──
+        {
+            Player p = player("spn_ic", Faction.NARN);
+            GameState st = state(p);
+            setInfluence(p, 12);
+            LocationCard loc = new LocationCard("spn_loc_ic", "Needs A Sponsor",
+                    "LOCATION", Rarity.COMMON, Faction.NARN, CardSet.PREMIERE,
+                    "x", "text", 1);
+            loc.setCost(3);
+            p.addToHand(loc);
+
+            check("SPN", "sponsorship cost carries no Inner-Circle term (:657)",
+                    rules.sponsorshipCost(p, loc) == 3);
+
+            int icSizeWithOneMember = p.getInnerCircle().size();
+            p.getAmbassador().rotate();
+            check("SPN", "a fully rotated Inner Circle cannot sponsor (:657)",
+                    !rules.hasReadySponsor(p) && !rules.canSponsorCard(p, loc));
+
+            p.getAmbassador().unrotate();
+            CharacterCard second = new CharacterCard("spn_ic_second", "Second Member",
+                    "CHARACTER_NARN", Rarity.COMMON, Faction.NARN, CardSet.PREMIERE,
+                    "x", "text", 2, 2, 2, 2, false);
+            p.getInnerCircle().add(second);
+
+            check("SPN", "a bigger Inner Circle does NOT raise the sponsorship price (:657)",
+                    rules.sponsorshipCost(p, loc) == 3);
+            CharacterCard probe = new CharacterCard("spn_probe", "Probe",
+                    "CHARACTER_NARN", Rarity.COMMON, Faction.NARN, CardSet.PREMIERE,
+                    "x", "text", 2, 2, 2, 2, false);
+            probe.setCost(3);
+            check("SPN", "the Inner-Circle term belongs to promotion, not sponsorship",
+                    icSizeWithOneMember >= 1
+                            && rules.promotionCost(p, probe) == 3 + p.getInnerCircle().size());
+        }
+
+        // ── 5. Promotion: listed + one per existing IC member, and the rulebook's
+        //    own worked example (:669 "if your faction has an ambassador and one
+        //    other member in its Inner circle, then to promote a character with
+        //    an influence cost of three would require a total of five") ──
+        {
+            Player p = player("spn_promote", Faction.NARN);
+            GameState st = state(p);
+            setInfluence(p, 20);
+
+            CharacterCard existing = new CharacterCard("spn_prom_existing",
+                    "Existing Member", "CHARACTER_NARN", Rarity.COMMON,
+                    Faction.NARN, CardSet.PREMIERE, "x", "text", 2, 2, 2, 2, false);
+            p.getInnerCircle().add(existing);   // ambassador + 1 = 2 members
+
+            CharacterCard target = new CharacterCard("spn_prom_target",
+                    "Promote Me", "CHARACTER_NARN", Rarity.COMMON, Faction.NARN,
+                    CardSet.PREMIERE, "x", "text", 2, 2, 2, 2, false);
+            target.setCost(3);
+            p.getSupportingRole().add(target);
+
+            check("SPN", "promotion cost is the rulebook's worked example, 3 + 2 = 5 (:669)",
+                    rules.promotionCost(p, target) == 5);
+            check("SPN", "an affordable promotion is offered (:669)",
+                    rules.canPromote(p, target));
+
+            int poolBefore = p.getAppliedPool();
+            rules.executePromote(p, target, p.getAmbassador(), st);
+
+            check("SPN", "promotion deducts the listed-plus-surcharge amount (:669)",
+                    poolBefore - p.getAppliedPool() == 5);
+            check("SPN", "the promoted character joined the Inner Circle (:669)",
+                    p.getInnerCircle().contains(target));
+            check("SPN", "the promoting member rotated (:669)",
+                    p.getAmbassador().isRotated());
+            check("SPN", "the logged promotion cost is the amount actually charged",
+                    logContains(st, "rotates, cost 5"));
+
+            // :669 "a discount to the cost to sponsor a character does not
+            // apply to promoting the character unless specifically stated
+            // otherwise." :492 scopes the assistant discount to SPONSORING a
+            // card, so the two costs must differ by exactly the discount — and
+            // asserting the pair is what keeps :669's exception from being read
+            // as "the discount does not exist".
+            p.grantSponsorDiscount(1);
+            CharacterCard target2 = new CharacterCard("spn_prom_target2",
+                    "Promote Me Too", "CHARACTER_NARN", Rarity.COMMON,
+                    Faction.NARN, CardSet.PREMIERE, "x", "text", 2, 2, 2, 2, false);
+            target2.setCost(3);
+            p.getSupportingRole().add(target2);
+            check("SPN", "an assistant sponsor discount does NOT reduce promotion (:669)",
+                    rules.promotionCost(p, target2) == 3 + p.getInnerCircle().size());
+            check("SPN", "the same discount DOES reduce sponsoring (:492)",
+                    rules.sponsorshipCost(p, target2)
+                            == rules.promotionCost(p, target2)
+                                 - p.getInnerCircle().size() - 1);
+        }
+
+        // ── 6. Promotion refuses when short, and the off-race doubling composes ──
+        {
+            Player p = player("spn_prom_short", Faction.NARN);
+            GameState st = state(p);
+            setInfluence(p, 2);   // promotion of a cost-3 character costs 4
+
+            CharacterCard target = new CharacterCard("spn_prom_short_target",
+                    "Unaffordable", "CHARACTER_NARN", Rarity.COMMON, Faction.NARN,
+                    CardSet.PREMIERE, "x", "text", 2, 2, 2, 2, false);
+            target.setCost(3);
+            p.getSupportingRole().add(target);
+
+            check("SPN", "promotion is refused when the pool is short (:669)",
+                    !rules.canPromote(p, target));
+            rules.executePromote(p, target, p.getAmbassador(), st);
+            check("SPN", "a refused promotion deducts nothing and moves nothing",
+                    p.getAppliedPool() == 2
+                            && !p.getInnerCircle().contains(target)
+                            && p.getSupportingRole().contains(target));
+
+            CharacterCard hostile = new CharacterCard("spn_prom_hostile",
+                    "Minbari Promote", "CHARACTER_MINBARI", Rarity.COMMON,
+                    Faction.MINBARI, CardSet.PREMIERE, "x", "text", 2, 2, 2, 2, false);
+            hostile.setCost(2);
+            check("SPN", "off-race doubling composes with the IC surcharge on promote (:669)",
+                    rules.promotionCost(p, hostile) == 4 + p.getInnerCircle().size());
+        }
+    }
+
+    /**
+     * B5-1999 — Group Cards (rulebook :496).
+     *
+     * :496 is one dense sentence carrying four rules, and the row premise for
+     * this task ("act as one unit for conflicts", "promotion costs of member
+     * personalities") inverts two of them: a group has NO abilities and may
+     * NOT be promoted. The rulebook governs; DECISIONS records the reading.
+     *
+     * Red-first: every rule below was measured false before this row. The
+     * probe recorded an OPEN conflict and a WAR conflict both accepting a
+     * GroupCard commit and then reporting isParticipantCard true, and no
+     * Card-typed promotion gate existing at all.
+     */
+    private static void testGroupCards() {
+        RulesEngine rules = new RulesEngine();
+        Player p = player("grp_human", Faction.HUMAN);
+        Player q = player("grp_narn", Faction.NARN);
+        GameState st = state(p, q);
+
+        // 1. A group contributes nothing to any conflict total (:496 "They do
+        //    not normally have abilities").
+        GroupCard anyGrp = groupCard("grp_any", Faction.ANY, 6);
+        boolean zeroEverywhere = true;
+        ConflictType[] types = ConflictType.values();
+        for (int i = 0; i < types.length; i++) {
+            if (anyGrp.getPrimaryStatValue(types[i]) != 0) zeroEverywhere = false;
+        }
+        check("GRP", "group has no ability in any conflict type (:496)", zeroEverywhere);
+
+        // 2. Participation: the rulebook's participant vocabulary is fleet and
+        //    character only (:434, :607), so a group is refused.
+        check("GRP", "engine refuses a group as a conflict participant (:496)",
+                !rules.canParticipateInConflict(anyGrp));
+
+        // 2a. Counter-case: the gate is group-specific, not a blanket refusal.
+        FleetCard fl = fleetCard("grp_fleet", "PICKET");
+        CharacterCard ch = leaderCard("grp_char", 3);
+        check("GRP", "gate still admits a fleet and a character (:434)",
+                rules.canParticipateInConflict(fl) && rules.canParticipateInConflict(ch));
+
+        // 2b. The group is not in an open conflict's committed set, because the
+        //     engine offers it no commit. (Conflict.canCommitCard lives in
+        //     model/, outside this row's scope — the engine gate is the
+        //     authority exercised here and the model seam is recorded as the
+        //     follow-up.)
+        ConflictCard open = conflictCard("grp_open", ConflictType.MILITARY, null);
+        Conflict openC = new Conflict(open, p);
+        check("GRP", "open conflict commits no group through the engine gate",
+                !rules.canParticipateInConflict(anyGrp)
+                && !openC.isParticipantCard(anyGrp));
+
+        // 2c. War conflicts carry no ConflictCard, so they have no filters at
+        //     all — the group gate is the only thing standing there.
+        Player w1 = player("grp_w1", Faction.NARN);
+        Player w2 = player("grp_w2", Faction.MINBARI);
+        GameState ws = state(w1, w2);
+        ws.getTensionMatrix().raiseTension(Faction.NARN, Faction.MINBARI, 5);
+        Conflict war = new Conflict(WarKind.RACE_TARGET, w1, w2);
+        check("GRP", "war conflict (no ConflictCard filters) still refuses a group",
+                !rules.canParticipateInConflict(anyGrp) && war.getCard() == null);
+
+        // 3. Promotion: "Groups are Supporting Cards and may not be promoted to
+        //    the Inner Circle" (:496). The Card-typed gate states it.
+        GroupCard promoTarget = groupCard("grp_promo", Faction.ANY, 6);
+        p.getGroups().add(promoTarget);
+        check("GRP", "group is not promotable to the Inner Circle (:496)",
+                !rules.canPromote(p, promoTarget) && !promoTarget.canBePromoted());
+
+        // 3a. The sibling rules are the same sentence applied to fleets and
+        //     locations (:500, :504) — asserted so the gate is not read as
+        //     group-only special-casing.
+        check("GRP", "fleet and location are also not promotable (:500/:504)",
+                !rules.canPromote(p, new FleetCard("grp_pf", "F", "FLEET",
+                        Rarity.COMMON, Faction.ANY, CardSet.PREMIERE, "x", "t", 3))
+                && !rules.canPromote(p, new LocationCard("grp_pl", "L", "LOCATION",
+                        Rarity.COMMON, Faction.ANY, CardSet.PREMIERE, "x", "t", 2, 3)));
+
+        // 3b. Counter-case: a real supporting character is still promotable, so
+        //     the gate did not break the promotion path it sits beside.
+        CharacterCard sup = leaderCard("grp_support", 3);
+        p.getSupportingRole().add(sup);
+        p.gainInfluence(10);
+        check("GRP", "an ordinary supporting character is still promotable (:484)",
+                rules.canPromote(p, sup) && rules.promotionCost(p, sup) >= 1);
+
+        // 4. Sponsorship cost is the card's LISTED cost (:657), with no
+        //    double-cost term and no Inner-Circle-size term — those belong to
+        //    characters (:484) and to promotion respectively.
+        check("GRP", "group sponsorship cost is the listed cost, undoubled (:657)",
+                rules.groupSponsorshipCost(groupCard("grp_cost", Faction.NARN, 6)) == 6);
+
+        // 5. Race restriction is ABSOLUTE, not a multiplier (:496 "Only the
+        //    player controlling the race listed as part of the Card Type may
+        //    bring a restricted card into play").
+        GroupCard narnGrp = groupCard("grp_narn", Faction.NARN, 6);
+        p.getHand().add(narnGrp);
+        p.gainInfluence(20);
+        check("GRP", "race-restricted group is refused by another race (:496)",
+                narnGrp.isRaceRestricted() && !rules.canSponsorGroup(p, narnGrp));
+        GroupCard narnOwn = groupCard("grp_narn2", Faction.NARN, 6);
+        q.getHand().add(narnOwn);
+        q.gainInfluence(20);
+        check("GRP", "the same card is legal for its own race",
+                rules.canSponsorGroup(q, narnOwn));
+        GroupCard anyGrp2 = groupCard("grp_any2", Faction.ANY, 6);
+        q.getHand().add(anyGrp2);
+        q.gainInfluence(20);
+        check("GRP", "unrestricted (ANY) group is playable by any race",
+                !anyGrp2.isRaceRestricted() && rules.canSponsorGroup(q, anyGrp2));
+
+        // 5a. Affordability rides the same gate (:657).
+        GroupCard pricey = groupCard("grp_pricey", Faction.ANY, 8);
+        Player poor = player("grp_poor", Faction.HUMAN);
+        poor.getHand().add(pricey);
+        check("GRP", "unaffordable group is refused (:657)",
+                poor.getAppliedPool() < 8 && !rules.canSponsorGroup(poor, pricey));
+
+        // 6. Limited default (:496 "Groups are limited unless otherwise
+        //    specified"; Glossary :1166/:1168). No shipped group says Multiple.
+        check("GRP", "group is Limited by default (:496)",
+                anyGrp.isLimited() && !anyGrp.isMultiple());
+        anyGrp.setMultiple(true);
+        check("GRP", "an explicit Multiple lifts the Limited default (:1168)",
+                !anyGrp.isLimited() && anyGrp.isMultiple());
+        anyGrp.setMultiple(false);
+
+        // 7. Data census: the shipped pools agree with the default.
+        List<Card> grpPool = null;
+        try {
+            grpPool = DeckLoader.loadFromResource("/cards/premiere.json");
+        } catch (java.io.IOException e) {
+            check("GRP", "premiere resource loads for the group census", false);
+            return;
+        }
+        int groups = 0, multipleWords = 0;
+        for (int i = 0; i < grpPool.size(); i++) {
+            Card c = grpPool.get(i);
+            if (!(c instanceof GroupCard)) continue;
+            groups++;
+            if (c.getText() != null && c.getText().indexOf("Multiple") >= 0) multipleWords++;
+        }
+        check("GRP", "shipped pools carry groups and none declares Multiple",
+                groups > 0 && multipleWords == 0);
+    }
+
+    // ── B5-2287: deck-builder rules, reachable headlessly ─────────────────────
+
+    /**
+     * B5-2287. Before this block the deck builder had NO automated coverage at
+     * all: every rule it enforces lived inside a private JDialog subclass, and
+     * showDeckBuilderDialog returns null under GraphicsEnvironment.isHeadless
+     * before that constructor is reached, so the code was reachable only by a
+     * human clicking it.
+     *
+     * <p>The rules now live in b5ccg.ui.DeckBuilderModel, which imports no Swing.
+     * That is what makes this block possible, and the block is the point of the
+     * extraction: a rule that can only be reached by clicking cannot regress
+     * silently, because nothing runs it.
+     *
+     * <p>Fixtures are built here rather than loaded from the shipped sets, so
+     * the block never touches the classpath and asserts on exactly the deck it
+     * just described.
+     */
+    private static void testDeckBuilderModel() {
+        System.out.println("DB: deck-builder rules without a display (B5-2287)");
+
+        // 1: the faction list a human may actually build for.
+        List<Faction> offered = DeckBuilderModel.playableFactions();
+        boolean anyOffered   = false, neutralOffered = false, humanOffered = false;
+        for (int i = 0; i < offered.size(); i++) {
+            if (offered.get(i) == Faction.ANY)    anyOffered = true;
+            if (offered.get(i) == Faction.NEUTRAL) neutralOffered = true;
+            if (offered.get(i) == Faction.HUMAN)   humanOffered = true;
+        }
+        check("DB1", "ANY is not offered as a faction to build for", !anyOffered);
+        check("DB1", "NEUTRAL is not offered as a faction to build for", !neutralOffered);
+        check("DB1", "HUMAN is offered", humanOffered);
+        // NON_ALIGNED is a real faction with a real deck, so filtering on
+        // "interesting" rather than "a race a human plays" would be an invented
+        // rule. Pinned so a future tidy-up cannot quietly drop it.
+        check("DB1", "NON_ALIGNED is offered (a real faction, not a card-side value)",
+                offered.contains(Faction.NON_ALIGNED));
+
+        // 2: the pool is filtered by faction, and switching widens it again
+        //    rather than destroying the source.
+        List<Card> pool = new ArrayList<Card>();
+        pool.add(fleetCard("db_human_fleet", "FLEET"));            // Faction.ANY
+        pool.add(leaderCard("db_narn_char", 3));                   // Faction.NARN
+        pool.add(characterCard("db_vor_char", "V", Faction.VORLON, Faction.VORLON,
+                CardSet.PREMIERE, Rarity.COMMON, new int[] { 1, 1, 1, 1 }));
+        pool.add(characterCard("db_cen_char", "C", Faction.CENTAURI, Faction.CENTAURI,
+                CardSet.PREMIERE, Rarity.COMMON, new int[] { 1, 1, 1, 1 }));
+
+        DeckBuilderModel narnModel = new DeckBuilderModel(pool, Faction.NARN);
+        List<Card> narnPool = narnModel.pool();
+        boolean sawNarn = false, sawVor = false, sawCen = false, sawAny = false;
+        for (int i = 0; i < narnPool.size(); i++) {
+            Faction f = narnPool.get(i).getFaction();
+            if (f == Faction.NARN)    sawNarn = true;
+            if (f == Faction.VORLON)  sawVor  = true;
+            if (f == Faction.CENTAURI) sawCen = true;
+            if (f == Faction.ANY)     sawAny  = true;
+        }
+        check("DB2", "pool offers the chosen faction's own card", sawNarn);
+        check("DB2", "pool offers ANY-faction cards", sawAny);
+        check("DB2", "pool withholds another faction's card", !sawVor);
+        check("DB2", "pool withholds a third faction's card", !sawCen);
+
+        narnModel.setFaction(Faction.VORLON);
+        List<Card> vorPool = narnModel.pool();
+        boolean sawVorAfter = false, sawNarnAfter = false;
+        for (int i = 0; i < vorPool.size(); i++) {
+            if (vorPool.get(i).getFaction() == Faction.VORLON) sawVorAfter = true;
+            if (vorPool.get(i).getFaction() == Faction.NARN)   sawNarnAfter = true;
+        }
+        check("DB2", "switching faction widens the pool to the new faction", sawVorAfter);
+        check("DB2", "switching faction narrows the pool away from the old one", !sawNarnAfter);
+        check("DB2", "the unfiltered source survives a faction switch",
+                narnModel.sourceCards().size() == pool.size());
+
+        // 3: mutation. Copies are permitted at add-time on purpose, so an
+        //    over-limit deck is reachable and therefore testable at all.
+        DeckBuilderModel m = new DeckBuilderModel(pool, Faction.NARN);
+        check("DB3", "a new deck is empty", m.deckSize() == 0);
+        m.addCard(pool.get(0));
+        m.addCard(pool.get(0));
+        m.addCards(null);
+        m.addCards(new ArrayList<Card>());
+        check("DB3", "add honours multiplicity", m.deckSize() == 2);
+        m.removeIndices(new int[] { 0 });
+        check("DB3", "remove by index drops exactly one entry", m.deckSize() == 1);
+        m.removeIndices(new int[] { 99, -5 });
+        check("DB3", "an out-of-range index is ignored, not thrown on", m.deckSize() == 1);
+        m.clear();
+        check("DB3", "clear empties the deck", m.deckSize() == 0);
+
+        // 4: the legality gate. This is the whole point of the dialog existing:
+        //    an illegal deck cannot be handed to the engine from here.
+        DeckBuilderModel gate = new DeckBuilderModel(pool, Faction.NARN);
+        check("DB4", "an empty deck is not legal (45-card floor, :128/:193)", !gate.isLegal());
+        check("DB4", "an empty deck reports problems", !gate.problems().isEmpty());
+
+        // A legal deck: 45 cards, within 3 copies each, faction-playable, one
+        // Starting Ambassador. Built from NARN's own card repeated, so the only
+        // rules under test are the floor and the copy limit.
+        List<Card> legal = new ArrayList<Card>();
+        Player holder = player("DBHolder", Faction.NARN);
+        CharacterCard starterAmb = (CharacterCard) holder.getAmbassador();
+        legal.add(starterAmb);                                   // the one ambassador
+        Card narnChar = leaderCard("db_legal_narn", 1);
+        for (int i = 0; i < 44; i++) legal.add(narnChar);        // 44 copies of one card
+
+        DeckBuilderModel legalModel = new DeckBuilderModel(pool, Faction.NARN);
+        legalModel.addCards(legal);
+        check("DB4", "44 copies of one card breaks the max-3 rule (:194)", !legalModel.isLegal());
+
+        // Rebuild legally: 15 distinct NARN cards at 3 copies each = 45.
+        List<Card> legalPool = new ArrayList<Card>();
+        for (int i = 0; i < 15; i++) {
+            legalPool.add(characterCard("db_ok_" + i, "OK" + i, Faction.NARN, Faction.NARN,
+                    CardSet.PREMIERE, Rarity.COMMON, new int[] { 1, 1, 1, 1 }));
+        }
+        List<Card> good = new ArrayList<Card>();
+        Player goodHolder = player("DBGood", Faction.NARN);
+        good.add(goodHolder.getAmbassador());
+        for (int i = 0; i < 15; i++) {
+            for (int copy = 0; copy < 3; copy++) good.add(legalPool.get(i));
+        }
+        DeckBuilderModel goodModel = new DeckBuilderModel(legalPool, Faction.NARN);
+        goodModel.addCards(good);
+        check("DB4", "45 cards, 15 distinct at 3 copies, one ambassador is legal",
+                goodModel.isLegal());
+        check("DB4", "a legal deck reports no problems", goodModel.problems().isEmpty());
+        check("DB4", "the Construct gate opens only on a legal deck",
+                goodModel.isLegal() && !legalModel.isLegal());
+
+        // 5: faction playability is re-checked against the CHOSEN faction, so a
+        //    deck that was legal for one faction is not silently legal for all.
+        DeckBuilderModel switched = new DeckBuilderModel(legalPool, Faction.NARN);
+        switched.addCards(good);
+        check("DB5", "a NARN deck is legal while building for NARN", switched.isLegal());
+        switched.setFaction(Faction.MINBARI);
+        check("DB5", "the same deck stops being legal for MINBARI (faction playability)",
+                !switched.isLegal());
+
+        // 6: the handed-over deck is a copy, so later mutation cannot change a
+        //    deck the engine already accepted.
+        DeckBuilderModel handover = new DeckBuilderModel(legalPool, Faction.NARN);
+        handover.addCards(good);
+        List<Card> handed = handover.constructedDeck();
+        int before = handed.size();
+        handover.clear();
+        check("DB6", "constructedDeck is a copy, not a live view",
+                handed.size() == before && handover.deckSize() == 0);
+        check("DB6", "the deck() accessor hands out an unmodifiable view", isUnmodifiable(m.deck()));
+    }
+
+    /** True when the list refuses mutation, which is how the suite pins the
+     *  unmodifiable-view contract without needing a Java 7 try/catch idiom. */
+    private static boolean isUnmodifiable(List<Card> list) {
+        try {
+            list.add(fleetCard("db_probe_should_not_land", "FLEET"));
+            return false;
+        } catch (UnsupportedOperationException e) {
+            return true;
+        }
+    }
+
+    // ── B5-2275: consecutive-full-table-pass stall guard (STALL) ──────────────
+
+    /**
+     * B5-2275. B5-0312 measured a game reaching a 20-20 tie with no winner:
+     * D12 crowns a player only on a strictly-greatest Influence Rating, so a
+     * table where nobody can act any more is a fixed point the rulebook never
+     * resolves, and the run loop spins forever.
+     *
+     * <p>GameController.resolveStall is private, so it is reached by
+     * reflection — the B5-0464 / B5-2251 pattern. Asserting the helper alone
+     * would prove nothing about the wiring, but the wiring here is one
+     * counter and one comparison, and what can silently regress is the
+     * DECISION (crown a leader, or report a tie and crown nobody). That is
+     * what is asserted here, against real GameState objects.
+     */
+    private static void testStallGuard() {
+        System.out.println("STALL: consecutive all-pass stall guard (B5-2275)");
+
+        // 1. A 20-20 table — the exact B5-0312 position — is crowned by nobody.
+        Player a = player("StallA", Faction.NARN);
+        Player b = player("StallB", Faction.CENTAURI);
+        a.gainInfluence(20);
+        b.gainInfluence(20);
+        GameState tie = state(a, b);
+        GameController tieCtl = newController(tie);
+        resolveStallThrough(tieCtl);
+        check("STALL", "a 20-20 tie declares no winner", !tie.isGameOver());
+        check("STALL", "a 20-20 tie is reported as a tie", tieCtl.isStalledOnTie());
+        check("STALL", "the tie report names the players",
+                logContains(tie, "StallA") && logContains(tie, "StallB"));
+        check("STALL", "the tie report states no winner was declared",
+                logContains(tie, "NO WINNER DECLARED"));
+
+        // 2. Three-way tie at a different rating is still uncrowned: the guard
+        //    counts ties, it does not grade them.
+        Player c1 = player("StallC1", Faction.VORLON);
+        Player c2 = player("StallC2", Faction.MINBARI);
+        Player c3 = player("StallC3", Faction.HUMAN);
+        c1.gainInfluence(7);
+        c2.gainInfluence(7);
+        c3.gainInfluence(7);
+        GameState three = state(c1, c2, c3);
+        GameController threeCtl = newController(three);
+        resolveStallThrough(threeCtl);
+        check("STALL", "a 7-7-7 tie declares no winner either", !three.isGameOver());
+        check("STALL", "a 7-7-7 tie is reported as a tie", threeCtl.isStalledOnTie());
+
+        // 3. A strictly-greatest leader IS crowned, at any rating — the guard
+        //    is a liveness measure and deliberately has no rating floor.
+        Player solo = player("StallSolo", Faction.NARN);
+        Player back  = player("StallBack",  Faction.CENTAURI);
+        solo.gainInfluence(9);
+        back.gainInfluence(3);
+        GameState lead = state(solo, back);
+        GameController leadCtl = newController(lead);
+        resolveStallThrough(leadCtl);
+        check("STALL", "a sole leader at Influence Rating 9 is crowned",
+                lead.isGameOver() && lead.getWinner() == solo);
+        check("STALL", "the stall crown is not reported as a tie",
+                !leadCtl.isStalledOnTie());
+        check("STALL", "the crown log says it is not a Standard Victory",
+                logContains(lead, "not a Standard Victory"));
+
+        // 4. Forfeited and surrendered players are excluded from BOTH the
+        //    crown and the tie, matching GameState.isPlayerActive and every
+        //    path in RulesEngine.checkVictory.
+        Player keep  = player("StallKeep", Faction.NARN);
+        Player gone  = player("StallGone", Faction.CENTAURI);
+        keep.gainInfluence(4);
+        gone.gainInfluence(30);
+        gone.setHasForfeited(true);
+        GameState forf = state(keep, gone);
+        GameController forfCtl = newController(forf);
+        resolveStallThrough(forfCtl);
+        check("STALL", "a forfeited 30 does not beat an active 4",
+                forf.isGameOver() && forf.getWinner() == keep);
+
+        Player keep2 = player("StallKeep2", Faction.NARN);
+        Player sur   = player("StallSur",   Faction.CENTAURI);
+        keep2.gainInfluence(4);
+        sur.gainInfluence(30);
+        sur.setHasSurrendered(true);
+        GameState surState = state(keep2, sur);
+        resolveStallThrough(newController(surState));
+        check("STALL", "a surrendered 30 does not beat an active 4 either",
+                surState.isGameOver() && surState.getWinner() == keep2);
+
+        // 5. Two ACTIVE players tied at the top: still no winner. This is the
+        //    distinction the guard turns on, so it is asserted directly.
+        Player t1 = player("StallT1", Faction.NARN);
+        Player t2 = player("StallT2", Faction.CENTAURI);
+        t1.gainInfluence(12);
+        t2.gainInfluence(12);
+        GameState topTie = state(t1, t2);
+        GameController topCtl = newController(topTie);
+        resolveStallThrough(topCtl);
+        check("STALL", "two active players tied at the top crown nobody",
+                !topTie.isGameOver() && topCtl.isStalledOnTie());
+
+        // 6. The cap constant is the documented 3.
+        check("STALL", "the cap is 3 consecutive all-pass rounds",
+                GameController.MAX_CONSECUTIVE_FULL_PASS_ROUNDS == 3);
+
+        // 7. The counter is readable and starts at zero — the run loop's only
+        //    input to the decision, so its default matters.
+        GameState fresh = state(player("StallFresh1", Faction.NARN),
+                                player("StallFresh2", Faction.CENTAURI));
+        GameController freshCtl = newController(fresh);
+        check("STALL", "a fresh controller has counted zero all-pass rounds",
+                freshCtl.getConsecutiveFullPassRounds() == 0);
+        check("STALL", "a fresh controller is not stalled on a tie",
+                !freshCtl.isStalledOnTie());
+    }
+
+    private static GameController newController(GameState st) {
+        return new GameController(st, new ArrayList<AIPlayer>(),
+                new GameStateCallback() {
+                    public void accept(GameState gs) { }
+                });
+    }
+
+    /** B5-2275: invoke the private resolveStall on a real controller. */
+    private static void resolveStallThrough(GameController ctl) {
+        try {
+            java.lang.reflect.Method m =
+                    GameController.class.getDeclaredMethod("resolveStall");
+            m.setAccessible(true);
+            m.invoke(ctl);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static void main(String[] args) {
         try {
             System.out.println("=== B5 CCG rulebook-conformance suite (B5-0308) ===");
             testD1();
             testD3();
+            testPsiIntrigueConflictEffects();   // B5-1966: PSI and INTRIGUE conflict generic effects
             testD8();
 
             testD12();
@@ -6321,6 +8070,7 @@ public class HeadlessConformanceTest {
             // ── B5-0376 Phase A: war-conflict declaration + resolution ──────────
 
             testWarConflict();
+            scenarioDeckOutDuringWar();
 
             testPromotion();
             testFreeParticipantWaiver();
@@ -6352,6 +8102,8 @@ public class HeadlessConformanceTest {
 
             testRotateController();
 
+            testSustainedActions();   // B5-1997: sustained actions (rulebook III)
+
             testBonusLayer();
 
             testDamageNeutralization();
@@ -6361,6 +8113,7 @@ public class HeadlessConformanceTest {
             testHealRepair();
 
             testMercenaries();   // B5-0395 (rulebook §Mercenaries :735–:741)
+            testMercenaryTieBreak();   // B5-2281 (rulebook :739 silence + :352 order)
             testCardCostOnPlay();   // B5-1038: generic play path charges card cost
 
             testStation();
@@ -6383,6 +8136,7 @@ public class HeadlessConformanceTest {
             testNegotiatedSurrender();   // B5-0990: Negotiated Surrender aftermath dispatch (NS)
             testDiplomaticAdvantageAftermath(); // B5-1051: Diplomatic Advantage aftermath dispatch
             testTotalWarDeluxeRestriction(); // B5-1045: Total War deluxe delta (WRONG #1 of 7)
+            testAgendaOngoingEffects();  // B5-2251: ongoing agenda effects at startRound + conflict resolution (AGO)
             testBioWeaponDeluxeDelta();       // B5-1089: Bio-Weapon deluxe delta (WRONG #2 of 7)
             testStationHooks();   // B5-0437: station-influence card hooks
             testAIStationAwareness(); // B5-0453: MEDIUM/HARD score station ratings, EASY uniform
@@ -6401,6 +8155,10 @@ public class HeadlessConformanceTest {
             testComputedPower(); // B5-0677: computed Power seam + Negative Power gate (PWR, rulebook :1034)
             testSurrenderAI(); // B5-0679: AI surrender awareness (SUR-AI)
             testCivilWar(); // B5-0691: Civil War engine law (CWR, rulebook :990–:1009)
+            testGroupCards(); // B5-1999: Group Cards (GRP, rulebook :496)
+            testSponsorPayment(); // B5-2245: Sponsor + Promote payment (SPN, rulebook :657/:663/:669)
+            testDeckBuilderModel(); // B5-2287: deck-builder rules reachable without a display
+            testStallGuard(); // B5-2275: consecutive all-pass stall guard + tie report (STALL)
             System.out.println("All B5-0203 deviations D1-D14 resolved; D15 partial by effect-coverage; D6/D7 now have dedicated named assertions (B5-0436). B5-0437 station hooks covered (STH). B5-0453 AI station-awareness covered. B5-0469 enhancement seam asserted (ESM). B5-0528 mines reactive covered (MINES). B5-0606 deck construction covered (CVD). B5-0617 victory conditions covered (VIC). B5-0629 Major Victory covered (MJR). B5-0661 Unconditional Surrender covered (SUR). B5-0677 computed Power seam covered (PWR). B5-0691 Civil War engine law covered (CWR).");
 
             System.out.println();

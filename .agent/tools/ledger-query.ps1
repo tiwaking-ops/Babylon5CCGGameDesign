@@ -115,16 +115,31 @@ $rowRegex = [regex]'^(\|+)\s*(B5-[0-9]{4}[a-z]?)\s*\|([^|]*)'
 # at runtime, so a future status value added to the ledger without updating
 # this list fails LOUD here — which is the correct direction for a gate.
 $knownStatuses = @("OPEN", "CLAIMED", "DONE", "BLOCKED", "VOID", "SUPERSEDED")
+# B5-1720: -Status now accepts a comma-separated LIST of vocabulary statuses
+# in addition to a single status or a wildcard (star, empty, ALL), which is
+# all it accepted before. Every comma element is trimmed and matched
+# case-insensitively; ALL elements must be recognised or the tool exits 3
+# BEFORE any table is printed, because an empty result must never be the
+# tool's way of saying "could not interpret" (the B5-1010 rule, unchanged).
+# QUEUE is deliberately still refused: QUEUE notes are narrative ledger
+# paragraphs, not row statuses, so a QUEUE filter is a category error the
+# vocabulary gate exists to catch. A list whose every element is recognised
+# yields $statusFilter as the recognised subset, and the row filter below
+# switches from single-value equality to list membership.
 $statusFilter = $null
-if ($Status -eq "*" -or $Status -eq "") {
+$trimmedStatusInput = ([string]$Status).Trim()
+if ($trimmedStatusInput -eq "*" -or $trimmedStatusInput -eq "") {
     $statusFilter = $null
-} elseif ($Status -ieq "ALL") {
+} elseif ($trimmedStatusInput -ieq "ALL") {
     $statusFilter = $null
-} elseif ($knownStatuses -icontains $Status) {
-    $statusFilter = $knownStatuses | Where-Object { $_ -ieq $Status } | Select-Object -First 1
 } else {
-    Write-Output ("UNRECOGNISED STATUS FILTER '{0}': not a wildcard (star, empty, ALL) and not in the ledger status vocabulary [{1}]. Exiting 3 rather than printing an empty table, because an empty result must never mean could-not-interpret (B5-1010)." -f $Status, ($knownStatuses -join ", "))
-    exit 3
+    $requested = @($trimmedStatusInput -split "," | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" })
+    $unrecognised = @($requested | Where-Object { $knownStatuses -inotcontains $_ })
+    if ($requested.Count -eq 0 -or $unrecognised.Count -gt 0) {
+        Write-Output ("UNRECOGNISED STATUS FILTER '{0}': not a wildcard (star, empty, ALL) and every comma-separated element must be in the ledger status vocabulary [{1}]. Exiting 3 rather than printing an empty table, because an empty result must never mean could-not-interpret (B5-1010)." -f $Status, ($knownStatuses -join ", "))
+        exit 3
+    }
+    $statusFilter = @($knownStatuses | Where-Object { $requested -icontains $_ })
 }
 
 $rows = @()
@@ -138,7 +153,7 @@ foreach ($line in [System.IO.File]::ReadAllLines($ledger, [System.Text.Encoding]
     $leading = $m.Groups[1].Value
     $id = $m.Groups[2].Value.Trim()
     $st = $m.Groups[3].Value.Trim()
-    if ($statusFilter -and $st -ne $statusFilter) { continue }
+    if ($statusFilter -and -not ($statusFilter -icontains $st)) { continue }
     $pipeCount = ([regex]::Matches($line, '\|')).Count
     $isDouble = ($leading.Length -gt 1)
 

@@ -8,6 +8,10 @@ b5ccg/out_ui/
 
 # Temp script (root copy — promoted to tracked .agent/tools/verify_task.py per B5-0833, 2026-09-28; root copy kept ignored to avoid double-tracking)
 verify_task.py
+# ...but the promoted tools copy MUST be tracked (B5-0833 promotion was incomplete until B5-1877; the slash-less pattern above matches at every depth):
+!.agent/tools/verify_task.py
+# Standing Java 6 construct census instrument, tracked per the DONE B5-1667 disposition (B5-1877); scratch original under /tmp-scans/ stays ignored:
+!.agent/tools/census-b50960.py
 
 # Python cache
 __pycache__/
@@ -151,3 +155,21 @@ __pycache__/
 # Machine-local scratch scans (B5-1405, 2026-10-01).
 /tmp-scans/
 /.agent/tmp_*
+
+# Machine-local scratch scripts and data at repo root (B5-1405, 2026-10-02).
+# These are per-session census/debug artefacts that a plain `git add -A`
+# checkpoint would sweep in. They are not repo content. Staged files are
+# listed here too: the ignore is belt-and-braces; gitignore does not
+# affect already-staged entries, but it prevents future checkpoints from
+# re-adding them if they are ever unstaged.
+/census.ps1
+/census_b5_1823.py
+/check_claims.ps1
+/deluxe_ids.txt
+/premiere_ids.txt
+/census_agenda.py
+
+# Machine-local scratch in .agent/ not covered by /.agent/tmp_* (B5-1405, 2026-10-02).
+# The tmp_* pattern matches underscore only; these use a dash.
+/.agent/tmp-clock-audit/
+/.agent/tmp-patch-0643.py

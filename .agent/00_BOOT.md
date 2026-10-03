@@ -14,9 +14,12 @@ provenance:
     - {name: "opencode (big-pickle-free)", version: "big-pickle-free", passes: 1, last_pass: "2026-09-27", note: "edit: qualified the three bare .agent/TASK_LEDGER.md references in steps 4, 9 and 10, where step 4 already carried the qualified form two lines below the bare one (B5-0693)"}
     - {name: "opencode (big-pickle-free)", version: "big-pickle-free", passes: 2, last_pass: "2026-09-28", note: "edit: step 9 now points at the repaired run-dup-census.ps1 wrapper ahead of the inline bash one-liner and records its 0/1/2 exit contract (B5-0777)"}
     - {name: "opencode (space-bunny-free) 2", version: "space-bunny-free", passes: 1, last_pass: "2026-09-28", note: "edit: step 3 gained the agent_id-names-your-session line carrying R1-R6 by reference, human ruling 2026-09-28 (B5-0785)"}
-  last_modified_by_llm: {name: "opencode (space-bunny-free) 2", version: "space-bunny-free"}
+    - {name: "opencode (space-bunny-free) 8", version: "space-bunny-free", passes: 1, last_pass: "2026-10-01", note: "edit: step 3 adopts the new tool-stamped heartbeat writer and step 6 adopts the tool-stamped claim creator as the default path, both human-approved 2026-10-01 (B5-1915); step 3 also records that validate-heartbeats.ps1 is known-red so its exit 1 is not read as news about one's own file"}
+    - {name: "opencode (space-bunny-free) 8b", version: "space-bunny-free", passes: 1, last_pass: "2026-10-01", note: "edit: step 9 gains the citation-presence check alongside the duplicate-ID census and the pipe detector, human-approved 2026-10-01 (B5-1927), closing the gap where DONE rows cited files that had never been created"}
+    - {name: "Hermes (stealth-space-bunny-alpha) 1733", version: "stealth-space-bunny-alpha", passes: 1, last_pass: "2026-10-02", note: "edit: step 9 gains the B5-1733 bare-cmdlet detector, so the B5-1541 shell trap is enforced rather than remembered, with the annotation convention it depends on stated here (B5-1733)"}
+  last_modified_by_llm: {name: "Hermes (stealth-space-bunny-alpha) 1733", version: "stealth-space-bunny-alpha"}
   created_date: "2026-09-21"
-  last_modified_date: "2026-09-28"
+  last_modified_date: "2026-10-02"
 ---
 
 # 00_BOOT — read this first, every session
@@ -30,9 +33,34 @@ provenance:
    Heartbeat format: `.agent/HEARTBEATS/README.md` is binding — strict JSON with
    `schema_version`, `agent_id`, `utc` (the only canonical timestamp field),
    `state`, and `live_claims` (always present; `[]` asserts you hold nothing).
-   `notes` is prose and is never parsed. Check the store with
+   `notes` is prose and is never parsed.
+
+   **Write the heartbeat with the shipped writer, never by hand (human-approved
+   2026-10-01, B5-1915).** `utc` is the field every liveness decision depends on,
+   and a hand-authored one is the weakest link in the design — a model can emit a
+   plausible ISO string without ever reading a clock:
+
+   ```
+   powershell -NoProfile -ExecutionPolicy Bypass -File .agent/tools/new-heartbeat.ps1 -AgentId "<agent-id>" -State active -LiveClaims B5-NNNN -Javac 1.8.0_292 -Notes "<prose>"
+   ```
+
+   The tool stamps `utc` from `[DateTimeOffset]::UtcNow`, refuses to write a file
+   held by a different `agent_id` (00_BOOT step 3's "never edit another agent's
+   heartbeat" as code, not prose), and accepts the write only if the payload is
+   **not ahead of the real clock** and agrees with its own file mtime. Refreshing
+   your own file is expected and allowed. `-VerifyOnly` inspects any heartbeat
+   read-only; exit `2` means MISSING, which is `UNKNOWN`, never healthy. Treat a
+   non-zero exit as "not written" and report the explicit error — never
+   substitute a hand-typed `utc`. There was **no** tool-stamped heartbeat writer
+   before this one, so every heartbeat in the store was hand-authored; that is why
+   three of them carried `utc` values 186–852 min ahead of real UTC.
+
+   Check the store with
    `powershell -NoProfile -ExecutionPolicy Bypass -File .agent/tools/validate-heartbeats.ps1`;
    it is read-only and exits non-zero on any non-conforming or unparseable file.
+   Note that gate is **known-red** (19 non-conforming files as of 2026-10-01, see
+   `docs/reports/clock-integrity-in-agent-coordination-files-2026-09-30.md` §6.3),
+   so read its per-file output rather than treating exit 1 as news about your file.
    **Your `agent_id` names your session, not your model** (human ruling 2026-09-28,
    R1–R6 in `.agent/HEARTBEATS/README.md`): `client (model)` + a discriminator no
    running instance is using, carrying **at least one letter or digit** because
@@ -41,6 +69,24 @@ provenance:
    another agent's heartbeat — not even a colliding one. If
    `validate-heartbeats.ps1` reports an IDENTITY COLLISION, the two files are
    reported, not merged: log it and leave both byte-identical.
+3a. **Task-cell budget check (on demand, when you write or seed ledger rows —
+   B5-1471 / B5-1730).** The budget for NEW ledger rows adopted by B5-1471 is
+   mean <= 764, median <= 479, p90 <= 1879, max <= 4397 characters in the Task
+   cell. Measure it with the shipped instrument:
+
+   ```
+   powershell -NoProfile -ExecutionPolicy Bypass -File .agent/tools/measure-task-cells.ps1
+   ```
+
+   It measures every row with an id above 1471 and prints a per-row table plus a
+   `VERDICT` line. **Run it after seeding, not before** — it measures the ledger as
+   it stands. Note for anyone repairing it: B5-1730 found this tool had never
+   executed (it failed to parse, then matched zero rows while still printing a
+   green verdict). A "FULLY COMPLIES" line is only meaningful if the `Count:`
+   above it is non-zero; **check the count, not just the verdict**. The retired
+   `B5-1014-harness.ps1` is now at `.agent/tools/_retired/` (archival, byte-
+   identical) and is not to be run.
+
 4. Obtain the OPEN-task census ONLY by running the shared census tool:
    `powershell -NoProfile -ExecutionPolicy Bypass -File .agent/run-queue.ps1 -DryRun`
    There is **no bash equivalent** — `.agent/run-queue.sh` has never existed in
@@ -71,13 +117,26 @@ provenance:
    under a live claim is a candidate, not a defect report. Protocol:
    `docs/proposals/live-repair-aware-ledger-census-protocol.md`.
 5. Pick the highest-priority `OPEN` task with no live claim.
-6. Claim it atomically: create `.agent/CLAIMS/<task-id>.json` (see
-   `.agent/CLAIMS/README.md`). If the file already exists, abort and pick
-   another. Never overwrite or delete another agent's claim.
-   `started_utc` must be the actual current UTC time at the moment of
-   claiming — never a placeholder, a default, or midnight-by-default: the
-   runner refuses to offer a task whose claim carries an implausible
-   `started_utc` (B5-0653).
+6. Claim it atomically with the shipped creator:
+
+   ```
+   powershell -NoProfile -ExecutionPolicy Bypass -File .agent/tools/new-claim.ps1 -TaskId B5-NNNN -AgentId "<agent-id>" -Scope "<scope>" -Javac 1.8.0_292
+   ```
+
+   **The tool is the default claim path (human-approved 2026-10-01, B5-1915;
+   originating proposal `docs/proposals/tool-stamped-claim-default-proposal.md`).**
+   It refuses an existing claim path, stamps `started_utc` from the current UTC
+   clock at write time, refuses an orphan claim against a non-`OPEN` row, and
+   accepts the write only after the payload is verified not to be ahead of the
+   real clock and to agree with the new file's mtime. Creating the file **is** the
+   claim, so if the file already exists the task is taken: never overwrite or
+   delete another agent's claim. **Treat a non-zero exit as no claim** — record
+   the explicit error and stop that item rather than substituting an
+   agent-authored timestamp.
+
+   `-Scope` may be repeated or comma-separated; from a shell that does not
+   preserve array syntax, pass it comma-separated in one argument.
+
    **Absence of the claim file is NECESSARY BUT NOT SUFFICIENT.** Re-read the
    candidate row immediately before writing and confirm it still reads `OPEN`.
    A claim against a `DONE`/`VOID`/`SUPERSEDED`/`BLOCKED` row is an orphan:
@@ -120,7 +179,18 @@ provenance:
    not a gate. If `run-dup-census.ps1` is genuinely unavailable, report that; do
    not hand-roll a replacement census (see step 4 on hand-rolled censuses).
 
-   Empty output is the pass condition. A duplicate ID is **not cosmetic**: the
+   **The exit code is the contract; stdout carries an allowed banner. Empty
+   output is NOT the pass condition and "Empty output is the pass condition" was
+   withdrawn as wrong on 2026-10-01 (B5-1732).** Measured against the shipped
+   wrapper: a clean ledger prints **3 lines** (PASS / the 0-duplicate line / the
+   encoding receipt) and exits 0; a ledger with one deliberate duplicate prints
+   **4 lines** (the ID and count, then FAIL, the see-above line, the receipt) and
+   exits 1. So an agent scanning stdout for emptiness reads a PASS banner as a
+   finding. Judge the **exit code**, and read stdout only for the evidence:
+   `0` clean, `1` duplicate found, `2` ledger missing or unreadable. This keeps
+   the banner, which is deliberate -- a gate that prints nothing on success is
+   the silent-green shape recorded in B5-1725, where a detector exited 0 while
+   emitting no output at all. A duplicate ID is **not cosmetic**: the
    queue keys task status by ID, so the second row silently overwrites the first
    and one task becomes invisible to the gate and lane logic. If you collided,
    do **not** renumber into the slot the other writer just vacated — that
@@ -139,13 +209,68 @@ provenance:
     per B5-0568, preserve every content pipe byte-identically, and never
     normalise-to-seven blindly.
 
+    **Citation presence rides with the same post-write check (B5-1927).** The two
+    checks above verify *structure* — unique IDs, correct pipe counts. Neither
+    verifies *presence*: that the report and pattern you just cited actually exist
+    as files. Six DONE rows were found citing files that had never been created,
+    and no standing instrument reported it. After writing your `DECISIONS.md`
+    entry and your report/pattern, run:
+
+    ```
+    powershell -NoProfile -ExecutionPolicy Bypass -File .agent/tools/check-citations.ps1
+    ```
+
+    Exit `0` clean, `1` dangling citation found, `2` a source file was
+    unreadable — and `2` is a false pass that must never be read as clean. Each
+    finding names the source line, the reference, and either the likely target
+    (same basename elsewhere — usually a wrong path or namespace) or an explicit
+    statement that nothing with that basename exists, meaning the artifact was
+    never filed. **If it reports your own citation as dangling, fix it before you
+    close**: a citation to a file you did not write is the defect.
+
+    It is deliberately blind to three things, which are counted and printed
+    rather than silently dropped: globs (`*.md`), lossy renderings where `:` or
+    `/` was mangled in transit, and paths containing characters NTFS forbids. The
+    colon case matters here — `solar-pro4:free` is a real `agent_id` and `:` is
+    illegal in a Windows filename, so its pattern directory is `solar-pro4-free`.
+    A false positive on any of these trains you to ignore the tool.
+
+    It is instrument 7 of the standing verification battery
+        (`powershell -NoProfile -ExecutionPolicy Bypass -File .agent/tools/run-verification-battery.ps1`),
+    which runs every gate in this step in one command. Prefer the battery when you
+    want the whole set; run this one directly when you have just cited something
+    and want the answer in one second.
+
+    **A bare PowerShell cmdlet in instruction position is a finding, not a
+    style note (B5-1541, enforced by B5-1733).** If you edit any `.agent/*.md`
+    and add a fenced code block, run:
+
+    ```
+    powershell -NoProfile -ExecutionPolicy Bypass -File .agent/tools/detect-bare-powershell-cmdlet.ps1
+    ```
+
+    Exit `0` clean, `1` at least one bare cmdlet, `2` root missing or unreadable
+    — and `2` is a false pass that must never be read as clean. It fires only on
+    a line that (a) is inside a fenced block, (b) BEGINS with the cmdlet, and
+    (c) is followed by a parameter, `{` or `.` — so a mention inside prose does
+    not fire, which is the B5-1541 discipline of anchoring on the invocation
+    rather than on the bare name. A **deliberate counter-example keeps the bare
+    line and adds `# FAILS` (or `# b5-1733 exempt`) on it**; that annotation is
+    the exemption, and the repo already carries one such line at
+    `.agent/SHELL.knowledge.md` line 66. Without the annotation the detector is
+    red, and the fix is to change the command, never to edit the tool.
+    Prove the tool can still fail with
+    `-SelfTest`, which feeds it the pre-B5-1541 lines recovered from commit
+    `02716363` and asserts they are caught.
+
     **Claims-first applies here too (B5-0657).** The detector prints a
     `defectReport` column and a `CLAIMS-FIRST` footer. If your row reads
     `suppressed-live-claim`, its `7` / `no` reading was taken while another
     agent held a live claim on that row, so it is **not a defect report** —
     re-run the detector after the claim is released and judge the row then. Your
     own row, the one you just wrote under your own claim, is the exception that
-    proves the rule: you know it is yours and complete, so judge it directly.10. Claims older than 30 min are stale: you may reap one ONLY after noting
+    proves the rule: you know it is yours and complete, so judge it directly.
+10. Claims older than 30 min are stale: you may reap one ONLY after noting
     the reaping in `.agent/TASK_LEDGER.md`. Never touch live claims or heartbeats.
     Staleness is judged on the THREE-SIGNAL rule (`.agent/HEARTBEATS/README.md`
     is canonical): a claim is LIVE while the NEWEST of its claim age, its

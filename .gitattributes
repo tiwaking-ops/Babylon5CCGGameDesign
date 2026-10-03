@@ -2,3 +2,14 @@
 # converts it to CRLF on checkout (a CRLF shebang breaks stricter `sh` builds;
 # see the B5-0974 close-out and the B5-0306 compile.sh precedent).
 b5ccg/compile.sh text eol=lf
+
+# B5-1947: extend that pin to every tracked shell script, not just the one
+# B5-0988 happened to name. Measured on this host with core.autocrlf=true:
+# b5ccg/run.sh and seed_tasks.sh both carried a full CRLF working-tree copy,
+# the run.sh shebang included, and `dash b5ccg/run.sh` failed on it
+# ("5: \r: not found" / "12: Syntax error: end of file expecting \"then\"") --
+# a real break, not a theoretical one. A `*.sh` pattern matches at any depth,
+# so this covers future scripts too and makes the per-file line above
+# redundant-but-harmless (kept for its B5-0988 citation). The .bat files are
+# deliberately NOT pinned: CRLF is the correct working-tree form for cmd.exe.
+*.sh text eol=lf

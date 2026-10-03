@@ -38,6 +38,7 @@ public class HeadlessWarConflictProbe {
         scenarioTensionIncrementClamped();
         scenarioLocationCaptureAndRecapture(pool);
         scenarioUncontestedReadBothWays();
+        scenarioForfeitedRaceMemberJointLoss();
 
         System.out.println();
         if (failures == 0) {
@@ -277,6 +278,58 @@ public class HeadlessWarConflictProbe {
                 minC.getInfluence() == minCInf);
         check("S4c contested-by-attack read: no winner swing",
                 narnC.getInfluence() == narnCInf);
+    }
+
+    // ── Scenario 5: forfeited race member should not lose influence in joint loss (B5-1706) ────────────────
+    // Rulebook :980 — while UNIFIED, loss spills to every faction of the race.
+    // Forfeited/surrendered players are out of the game and should not be debited.
+    private static void scenarioForfeitedRaceMemberJointLoss() {
+        System.out.println("== S5: Forfeited race member excluded from joint influence loss ==");
+        // Three players: two Narn (same race), one Minbari
+        Player narn1 = player("Narn1", Faction.NARN);
+        Player narn2 = player("Narn2", Faction.NARN);
+        Player minbari = player("Minbari", Faction.MINBARI);
+        GameState st = state(narn1, narn2, minbari);
+        st.getTensionMatrix().enterWar(Faction.NARN, Faction.MINBARI);
+
+        // Narn1 initiates uncontested race war against Minbari
+        Conflict war = rules.declareWarConflict(narn1, WarKind.RACE_TARGET, minbari, null, st);
+        int narn1Before = narn1.getInfluence();
+        int narn2Before = narn2.getInfluence();
+        int minbariBefore = minbari.getInfluence();
+
+        // Narn2 forfeits (simulates deck-out or voluntary forfeit)
+        narn2.setHasForfeited(true);
+
+        // Resolve: Minbari loses 1, Narn1 gains 1, Narn2 (forfeited) should NOT lose 1
+        Player winner = rules.resolveConflict(war, st);
+
+        check("S5 winner is Narn1 (initiator won uncontested)", winner == narn1);
+        check("S5 Minbari loses 1 influence", minbari.getInfluence() == minbariBefore - 1);
+        check("S5 Narn1 gains 1 influence", narn1.getInfluence() == narn1Before + 1);
+        check("S5 Forfeited Narn2 does NOT lose influence (joint loss filter)",
+                narn2.getInfluence() == narn2Before);
+
+        // Also test surrendered player in same scenario (initiator wins, target is surrendered race member)
+        Player narn3 = player("Narn3", Faction.NARN);
+        Player narn4 = player("Narn4", Faction.NARN);
+        Player minbari2 = player("Minbari2", Faction.MINBARI);
+        GameState st2 = state(narn3, narn4, minbari2);
+        st2.getTensionMatrix().enterWar(Faction.NARN, Faction.MINBARI);
+        Conflict war2 = rules.declareWarConflict(narn3, WarKind.RACE_TARGET, minbari2, null, st2);
+        int narn3Before = narn3.getInfluence();
+        int narn4Before = narn4.getInfluence();
+        int minbari2Before = minbari2.getInfluence();
+
+        // Narn4 (race member of winner) surrenders
+        narn4.setHasSurrendered(true);
+
+        Player winner2 = rules.resolveConflict(war2, st2);
+        check("S5b winner is Narn3 (initiator won uncontested)", winner2 == narn3);
+        check("S5b Minbari2 loses 1 influence", minbari2.getInfluence() == minbari2Before - 1);
+        check("S5b Narn3 gains 1 influence", narn3.getInfluence() == narn3Before + 1);
+        check("S5b Surrendered Narn4 does NOT lose influence (joint loss filter)",
+                narn4.getInfluence() == narn4Before);
     }
 
     // ── Helpers (mirror HeadlessConformanceTest.player/state) ─────────────────

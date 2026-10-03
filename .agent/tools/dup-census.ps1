@@ -4,9 +4,15 @@
     Duplicate-task-ID census over .agent/TASK_LEDGER.md (boot step 9, gate (a)).
 
 .DESCRIPTION
-    Prints one line per duplicated task ID. Empty output is the pass condition:
-    the queue keys task status by ID, so a second row silently overwrites the
-    first and one task becomes invisible to the gate and lane logic.
+    Prints one line per duplicated task ID. THE PASS CONDITION IS EXIT 0, NOT
+    EMPTY OUTPUT (B5-1732, 2026-10-01): "Empty output is the pass condition" was
+    withdrawn as wrong, and it was written about THIS file while describing the
+    wrapper's behaviour instead of its own. This file does keep stdout empty on
+    pass by contract; the run-dup-census.ps1 wrapper then adds its own PASS or
+    FAIL banner, so the caller sees 3 stdout lines at exit 0 and 4 at exit 1.
+    Judge the exit code. The queue keys task status by ID, so a second row
+    silently overwrites the first and one task becomes invisible to the gate and
+    lane logic.
 
     Exit codes are the machine contract, not decoration:
       0  no duplicate IDs   (pass)
@@ -76,11 +82,15 @@ catch {
 
 $duplicates = @($ids | Group-Object | Where-Object { $_.Count -gt 1 })
 
-# B5-1002 receipt: stdout stays empty on pass BY CONTRACT (the run-dup-census
-# wrapper re-prints every stdout line as a duplicate ID, and 00_BOOT step 9
-# reads empty output as the pass condition), so the encoding receipt goes to
-# the verbose stream instead of stdout: visible under -Verbose, invisible to
-# the gate. The wrapper's own PASS/FAIL banner carries the stdout receipt.
+# B5-1002 receipt, reworded by B5-1732 (2026-10-01): stdout stays empty on pass
+# BY CONTRACT at THIS level, because the run-dup-census wrapper re-prints every
+# stdout line and would otherwise show the encoding receipt as if it were a
+# duplicated ID. The 00_BOOT step 9 clause that "reads empty output as the pass
+# condition" is WITHDRAWN -- it described this file while documenting the
+# wrapper, whose banner is deliberate. So the encoding receipt goes to the
+# verbose stream here: visible under -Verbose, invisible to the gate. The
+# wrapper's own PASS/FAIL banner carries the caller-visible receipt, and the
+# caller judges the EXIT CODE, not stdout emptiness.
 Write-Verbose "dup-census encoding: UTF-8 (explicit; Select-String -Encoding UTF8)"
 
 if ($duplicates.Count -gt 0) {

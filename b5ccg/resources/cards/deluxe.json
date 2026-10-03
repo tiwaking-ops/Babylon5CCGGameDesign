@@ -470,7 +470,8 @@
     "intrigue": 3,
     "psi": 0,
     "leadership": 2,
-    "isAmbassador": false
+    "isAmbassador": false,
+    "cost": 6
   },
   {
     "id": "de_char_delenn",
@@ -1164,7 +1165,8 @@
     "intrigue": 4,
     "psi": 6,
     "leadership": 5,
-    "isAmbassador": false
+    "isAmbassador": false,
+    "cost": 1
   },
   {
     "id": "de_fleet_colonial_centauri",
@@ -2982,7 +2984,8 @@
     "intrigueBonus": 0,
     "psiBonus": 0,
     "militaryBonus": 0,
-    "leadershipBonus": 0
+    "leadershipBonus": 0,
+    "cost": 3
   },
   {
     "id": "de_enh_mines",

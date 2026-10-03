@@ -5,7 +5,7 @@ import b5ccg.model.enums.*;
 import java.util.*;
 
 /**
- * B5-1047 scratch probe — git-ignored.
+ * B5-1047 scratch probe — tracked (not git-ignored).
  * Drives an unknown conflictType value through DeckLoader.parseCards and asserts
  * the card stays reachable (not dropped) while the B5-1047 guard fires on stderr.
  */

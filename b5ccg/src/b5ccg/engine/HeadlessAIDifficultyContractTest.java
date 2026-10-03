@@ -84,6 +84,11 @@ public class HeadlessAIDifficultyContractTest {
 
         // ── EASY: legality + non-determinism + pass bias ─────────────────────
         AIPlayer easy = new AIPlayer(p, AIDifficulty.EASY);
+        check("EASY exposes its difficulty memory through the decision engine",
+              easy.getDecisionEngine().getMemory() == easy.getMemory()
+              && easy.getMemory().getRiskTolerance() == 1.0
+              && easy.getMemory().getCardValuationMultiplier() == 1.0
+              && easy.getMemory().getConflictInitiationThreshold() == 0.5);
         int evPicks = 0, grPicks = 0, passes = 0, illegal = 0;
         final int RUNS = 300;
         for (int i = 0; i < RUNS; i++) {
@@ -112,6 +117,10 @@ public class HeadlessAIDifficultyContractTest {
 
         // ── MEDIUM: zero-cost tie keeps list order (B5-0324 invariance) ──────
         AIPlayer medium = new AIPlayer(p, AIDifficulty.MEDIUM);
+        check("MEDIUM uses its distinct difficulty profile",
+              medium.getMemory().getRiskTolerance() == 0.7
+              && medium.getMemory().getCardValuationMultiplier() == 1.2
+              && medium.getMemory().getConflictInitiationThreshold() == 0.6);
         GameAction mPick = medium.chooseAction(st, p);
         check("MEDIUM zero-cost invariance: first-listed equal-value play wins ("
               + (sameCard(mPick, ev0) ? "ev0" : sameCard(mPick, ev1) ? "ev1" : "?") + ")",
@@ -138,6 +147,10 @@ public class HeadlessAIDifficultyContractTest {
 
         // ── HARD: same two checks (invariance + cost-awareness) ──────────────
         AIPlayer hard = new AIPlayer(p, AIDifficulty.HARD);
+        check("HARD uses its distinct difficulty profile",
+              hard.getMemory().getRiskTolerance() == 0.4
+              && hard.getMemory().getCardValuationMultiplier() == 1.5
+              && hard.getMemory().getConflictInitiationThreshold() == 0.8);
         p.removeFromHand(evCheap);
         p.removeFromHand(evDear);
         p.addToHand(ev0);

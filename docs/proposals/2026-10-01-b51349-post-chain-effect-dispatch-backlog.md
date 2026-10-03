@@ -1,6 +1,10 @@
 ---
 title: "B5-1349 - Post-chain effect-dispatch backlog (ranked), merged from four completed censuses"
-author_llm: me-so-poor
+author_llm: {name: "me-so-poor", version: "unknown"}
+assessor_llm:
+  - {name: "Kilo (kilo-auto/free)", version: "kilo-auto/free", passes: 1, last_pass: "2026-10-02", note: "edit: B5-1929 serialization only — author_llm normalized from a bare name with NO version into the flow-mapping form verify_task.py line 245 accepts. The row premise called all four in-scope files parenthesized-form; measured, this one is a missing-version defect, so the version token is supplied as unknown per AGENTS.md section 1 rather than invented. See docs/DECISIONS.md 2026-10-02 B5-1929."}
+last_modified_by_llm: {name: "Kilo (kilo-auto/free)", version: "kilo-auto/free"}
+last_modified_date: "2026-10-02"
 task: B5-1349
 utc: "2026-10-01T00:24:11Z"
 status: "proposal"

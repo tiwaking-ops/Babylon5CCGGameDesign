@@ -13,6 +13,7 @@ import java.util.List;
 import b5ccg.model.enums.Rarity;
 import b5ccg.model.enums.CardSet;
 import b5ccg.model.enums.ConflictType;
+import b5ccg.model.enums.WarKind;
 
 /**
  * B5-0534: standalone scenario probe for conflict resolution sides rule.
@@ -156,6 +157,72 @@ public class HeadlessConflictResolutionProbe {
             check("S3: tie -> leading opposer wins (not initiator)",
                     winner != null && winner == opp);
             check("S3: game not over after tied conflict", !g.isGameOver());
+        }
+
+        // ── Scenario 4 (B5-1705): a ceased-play player may not join ────────
+        {
+            System.out.println("== S4: forfeit/surrender gate on joining a conflict ==");
+            Player init   = new Player("Init4", Faction.NARN, false);
+            Player joiner = new Player("Join4", Faction.MINBARI, false);
+            Player surr   = new Player("Surr4", Faction.CENTAURI, false);
+            Player forfeit3 = new Player("Forfeit4", Faction.CENTAURI, false);
+            List<Player> players = new ArrayList<Player>();
+            players.add(init);
+            players.add(joiner);
+            players.add(surr);
+            players.add(forfeit3);
+            GameState g = new GameState(players);
+            // Wire the back-reference so the gate reads GameState.isPlayerActive,
+            // the same path the live game takes.
+            for (Player p : players) p.setGameState(g);
+
+            ConflictCard cc = conflict("cc4", "Probe Conflict 4", Faction.NARN, 2);
+            Conflict c = new Conflict(cc, init, joiner);
+
+            // Under-gate control, asserted BEFORE any status is set: an active
+            // player may join. Without this a gate that returned false
+            // unconditionally would pass every "must refuse" assert below.
+            check("S4: active player may join (under-gate control)",
+                    c.canJoinConflict(forfeit3));
+            check("S4: active player is added by addParticipant",
+                    c.addParticipant(forfeit3, true)
+                    && c.getParticipants().contains(forfeit3));
+
+            // The gate, forfeited.
+            forfeit3.setHasForfeited(true);
+            check("S4: forfeited player may not join", !c.canJoinConflict(forfeit3));
+            check("S4: forfeited player is not added by addParticipant",
+                    !c.addParticipant(forfeit3, false)
+                    && c.getOpposers().isEmpty());
+            CharacterCard forfeitAmb =
+                    amb("f4amb", "Forfeit Amb", Faction.CENTAURI, 3, forfeit3);
+            check("S4: forfeited player may not commit into the conflict",
+                    !c.canCommitCard(forfeit3, forfeitAmb));
+
+            // The gate, surrendered — a distinct flag, same rule (:817).
+            surr.setHasSurrendered(true);
+            check("S4: surrendered player may not join", !c.canJoinConflict(surr));
+
+            // Over-gate control: an active player is still allowed in the SAME
+            // state, proving the gate is status-conditional and not a blanket
+            // refusal.
+            check("S4: active player still allowed after the gate (over-gate control)",
+                    c.canJoinConflict(joiner));
+            check("S4: initiator is still allowed after the gate (over-gate control)",
+                    c.canJoinConflict(init));
+
+            // The war-conflict branch is the one the row names: a player at war
+            // with the initiator is accepted when active, refused when forfeited.
+            g.getTensionMatrix().enterWar(Faction.NARN, Faction.MINBARI);
+            Conflict war = new Conflict(WarKind.RACE_TARGET, init, joiner);
+            check("S4: at-war active player may join the war conflict",
+                    war.canJoinConflict(joiner));
+            joiner.setHasForfeited(true);
+            check("S4: at-war forfeited player may not join the war conflict",
+                    !war.canJoinConflict(joiner));
+            joiner.setHasForfeited(false);
+            check("S4: at-war player may rejoin once the status clears",
+                    war.canJoinConflict(joiner));
         }
 
         // ── Summary ─────────────────────────────────────────────────────────

@@ -10,6 +10,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 import java.util.List;
 
 public class GameBoardPanel extends JPanel {
@@ -37,6 +38,13 @@ public class GameBoardPanel extends JPanel {
         addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) {
                 handleClick(e.getX(), e.getY());
+            }
+        });
+        // B5-1971: hover tooltip for board cards (Inner Circle, Supporting Role,
+        // Fleets, Groups, Locations, Ambassador).
+        addMouseMotionListener(new MouseMotionAdapter() {
+            @Override public void mouseMoved(MouseEvent e) {
+                setToolTipText(renderCardTooltip(resolveCardAt(e.getX(), e.getY())));
             }
         });
     }
@@ -276,7 +284,7 @@ public class GameBoardPanel extends JPanel {
             String msg = c.isWarConflict()
                 ? "WAR: " + warConflictTitle(c)
                 : "CONFLICT: " + c.getCard().getTitle()
-                    + "  [" + c.getConflictType() + "]";
+                    + "  [" + c.getConflictType() + " \u2014 " + conflictTypeAbility(c.getConflictType()) + "]";
             FontMetrics fm = g2.getFontMetrics();
             g2.drawString(msg, (getWidth() - fm.stringWidth(msg)) / 2, getHeight() / 2 + 6);
 
@@ -312,9 +320,15 @@ public class GameBoardPanel extends JPanel {
                 } else {
                     for (int i = 0; i < cards.size(); i++) {
                         if (i > 0) line.append(", ");
-                        line.append(cards.get(i).getTitle());
+                        Card card = cards.get(i);
+                        int val = card.getPrimaryStatValue(c.getConflictType());
+                        line.append(card.getTitle()).append("(").append(val);
+                        if (val == 0 && card.isNeutralized()) {
+                            line.append(",NEUT");
+                        }
+                        line.append(")");
                     }
-                    line.append("  (total ").append(c.playerTotal(pl)).append(")");
+                    line.append("  [").append(c.playerTotal(pl)).append("]");
                 }
                 String detail = line.toString();
                 g.setColor(support ? new Color(120, 200, 120) : new Color(220, 160, 120));
@@ -322,6 +336,11 @@ public class GameBoardPanel extends JPanel {
                 lineY += 13;
             }
             }   // closes the active-conflict block
+
+            // B5-2006: inter-faction states matrix, painted after the zones
+            // and the centred readout lines. It reads model state only and
+            // draws nothing when fewer than two races are in play.
+            drawInterFactionStates(g2);
 
             // B5-0347: conflict outcome banner — SIBLING of the active-conflict
             // block: it must render exactly when the active conflict is gone
@@ -408,14 +427,258 @@ public class GameBoardPanel extends JPanel {
         return sb.toString();
     }
 
-    /** B5-0376: banner title for a war conflict — the declared kind plus its
-     *  target (race or location), since a war conflict carries no ConflictCard. */
+    // ── B5-2006: inter-faction states matrix ─────────────────────────────
+    //
+    // READOUT ONLY, and deliberately narrow about what it claims. The model
+    // holds exactly two inter-faction facts (b5ccg/model/enums/TensionMatrix):
+    // an unordered at-war set, and a DIRECTIONAL 0..5 tension score per pair.
+    // There is no alliance or trade-pact field anywhere in model/ or engine/ --
+    // the rulebook (:799) lists alliance / trade / war as the states a game may
+    // have, but none of them is implemented as model state, and this row's
+    // scope is ui/ only. So the matrix renders the two facts that DO exist and
+    // derives its five labels from them by the explicit mapping below; it
+    // asserts no rule the engine does not already hold. Those bands are a UI
+    // presentational scale on real tension numbers, not rulebook state names,
+    // and a rulebook alliance/trade mechanic would replace them rather than
+    // sit beside them.
+    //
+    // Fence on B5-1969: this is a COMPANION to the InfluenceTrackerPanel in the
+    // right sidebar, not a replacement. It shows relations BETWEEN races where
+    // the tracker shows each race's own totals against the victory threshold;
+    // neither derives the other's numbers, and InfluenceTrackerPanel is left
+    // byte-identical by this row.
+
+    /** B5-2006: the pair label when the at-war set contains the pair. */
+    public static final String STATE_WAR = "WAR";
+    /** B5-2006: high summed directional tension, no formal war. */
+    public static final String STATE_HOSTILE = "HOSTILE";
+    /** B5-2006: mid summed directional tension, no formal war. */
+    public static final String STATE_STRAINED = "STRAINED";
+    /** B5-2006: low summed directional tension, no formal war. */
+    public static final String STATE_TENSE = "TENSE";
+    /** B5-2006: no tension recorded in either direction, no formal war. */
+    public static final String STATE_NEUTRAL = "NEUTRAL";
+
+    /**
+     * B5-2006: the derived inter-faction state of one unordered pair.
+     *
+     * WAR wins outright -- it is the only state the model records explicitly
+     * (TensionMatrix.enterWar). Otherwise the label is a band on the summed
+     * DIRECTIONAL tension, read live from the matrix: the model clamps each
+     * direction to 0..5 (TensionMatrix.raiseTension), so the sum spans 0..10
+     * and the bands below are fixed points on that scale. NEUTRAL is the
+     * no-evidence case: nothing recorded, nothing claimed. A null state, a
+     * null faction, or a self pair yields NEUTRAL rather than throwing.
+     *
+     * Public for headless probes, mirroring atWarLine() / tensionLine().
+     */
+    public static String factionPairState(GameState s, Faction a, Faction b) {
+        if (s == null || a == null || b == null || a == b) return STATE_NEUTRAL;
+        if (s.isAtWar(a, b)) return STATE_WAR;
+        TensionMatrix m = s.getTensionMatrix();
+        int sum = m.getTension(a, b) + m.getTension(b, a);
+        if (sum >= 6) return STATE_HOSTILE;
+        if (sum >= 3) return STATE_STRAINED;
+        if (sum > 0)  return STATE_TENSE;
+        return STATE_NEUTRAL;
+    }
+
+    /**
+     * B5-2006: the colour band for a pair label. Public and static so a
+     * headless probe can assert the coding without parsing pixels -- the same
+     * reason atWarLine() and tensionLine() are public (B5-0427 / B5-0429).
+     * Any unrecognised label falls back to the NEUTRAL band rather than
+     * throwing, so a future label cannot blank the matrix.
+     */
+    public static Color stateColor(String label) {
+        if (STATE_WAR.equals(label))      return new Color(200, 40, 40);
+        if (STATE_HOSTILE.equals(label))  return new Color(215, 110, 50);
+        if (STATE_STRAINED.equals(label)) return new Color(210, 170, 60);
+        if (STATE_TENSE.equals(label))    return new Color(110, 170, 110);
+        return new Color(90, 110, 90);
+    }
+
+    /**
+     * B5-2006: the factions worth a row or column -- the races actually in
+     * play, plus any faction the at-war set names (war is recorded between
+     * races, so a pair may name a race with no seat at the table).
+     *
+     * NEUTRAL and ANY are never rows: NEUTRAL is the wildcard playable by
+     * everyone and ANY is a match-any sentinel, so neither is a party to a
+     * relation. NON_ALIGNED IS kept -- rulebook :208 makes the League of
+     * Non-Aligned Worlds the fifth playable race, so it is a party like any
+     * other. Dedupe is by enum identity, order by ordinal: deterministic
+     * across paints, which matters because this feeds the pixel paint.
+     */
+    public static java.util.List<Faction> boardFactions(GameState s) {
+        java.util.List<Faction> out = new java.util.ArrayList<Faction>();
+        if (s == null) return out;
+        java.util.List<Player> roster =
+            new java.util.ArrayList<Player>(s.getPlayers());
+        for (int i = 0; i < roster.size(); i++) {
+            addFaction(out, roster.get(i).getFaction());
+        }
+        java.util.Set<TensionMatrix.FactionPair> pairs =
+            s.getTensionMatrix().getAtWarPairs();
+        for (TensionMatrix.FactionPair fp : pairs) {
+            addFaction(out, fp.a);
+            addFaction(out, fp.b);
+        }
+        java.util.Collections.sort(out, new java.util.Comparator<Faction>() {
+            @Override public int compare(Faction x, Faction y) {
+                return x.ordinal() - y.ordinal();
+            }
+        });
+        return out;
+    }
+
+    /** B5-2006: identity-deduped append; drops the wildcard constants. */
+    private static void addFaction(java.util.List<Faction> out, Faction f) {
+        if (f == null) return;
+        if (f == Faction.NEUTRAL || f == Faction.ANY) return;
+        for (int i = 0; i < out.size(); i++) {
+            if (out.get(i) == f) return;
+        }
+        out.add(f);
+    }
+
+    /**
+     * B5-2006: the matrix as text -- a header row of sigils then one row per
+     * faction carrying a short label per later faction, so a headless probe
+     * can assert the relations the board draws. The upper triangle is blank
+     * because the pair state is symmetric (TensionMatrix.isAtWar is, and a sum
+     * of two directional tensions is commutative), so the lower triangle
+     * states each pair exactly once. Empty string with no state.
+     * Public for probes, mirroring atWarLine() / tensionLine().
+     */
+    public static String interFactionMatrix(GameState s) {
+        java.util.List<Faction> fs = boardFactions(s);
+        // Fewer than two races means there are no pairs, and a header row
+        // naming one race is a readout with nothing in it. Return empty, the
+        // same answer drawInterFactionStates gives by not painting -- the two
+        // must agree or a probe asserts a matrix the board never draws.
+        if (fs.size() < 2) return "";
+        StringBuilder sb = new StringBuilder("States:");
+        for (int c = 0; c < fs.size(); c++) {
+            sb.append(' ').append(sigil(fs.get(c)));
+        }
+        for (int r = 0; r < fs.size(); r++) {
+            sb.append('\n').append(sigil(fs.get(r)));
+            for (int c = r + 1; c < fs.size(); c++) {
+                sb.append(' ')
+                  .append(shortLabel(factionPairState(s, fs.get(r), fs.get(c))));
+            }
+        }
+        return sb.toString();
+    }
+
+    /** B5-2006: one-character label so the matrix fits its box. */
+    private static String shortLabel(String label) {
+        if (STATE_WAR.equals(label))      return "W";
+        if (STATE_HOSTILE.equals(label))  return "H";
+        if (STATE_STRAINED.equals(label)) return "S";
+        if (STATE_TENSE.equals(label))    return "t";
+        return "n";
+    }
+
+    /**
+     * B5-2006: matrix sigil. The NEUTRAL / NON_ALIGNED / ANY constants share
+     * leading letters with real races (Narn, Minbari), so those get
+     * two-character forms; the four playable races get their initial.
+     */
+    private static String sigil(Faction f) {
+        if (f == null) return "?";
+        if (f == Faction.NEUTRAL)     return "Nu";
+        if (f == Faction.NON_ALIGNED) return "NA";
+        if (f == Faction.ANY)         return "An";
+        String s = f.toString();
+        return s.length() > 0 ? s.substring(0, 1) : "?";
+    }
+
+    /**
+     * B5-2006: paint the matrix. Bottom-right, clear of the centred
+     * station / tension / at-war readout lines (all centred and short) and of
+     * the per-zone left-aligned header and card rows. The background is
+     * translucent by design: at a high player count the right-hand zone's
+     * cards reach this corner, and an opaque box would hide cards rather than
+     * merely overlay them.
+     */
+    private void drawInterFactionStates(Graphics2D g2) {
+        java.util.List<Faction> fs = boardFactions(state);
+        if (fs.size() < 2) return;          // fewer than two races: no pairs
+
+        int sigilW = 26;
+        int cell   = 14;
+        int pad    = 5;
+        int headH  = 12;
+        int w = pad + sigilW + pad + cell * (fs.size() - 1) + pad;
+        int h = pad + headH + pad + cell * fs.size() + pad;
+        int x = getWidth() - w - 6;
+        int y = getHeight() - h - 6;
+        if (x < 0 || y < 0) return;
+
+        // A copy, so the font/stroke/colour set here cannot leak into the
+        // caller's Graphics2D (the rest of paintComponent keeps drawing after
+        // this). Java 6: no try-with-resources, hence the finally.
+        Graphics2D g = (Graphics2D) g2.create();
+        try {
+            g.setColor(new Color(10, 20, 10, 190));
+            g.fillRect(x, y, w, h);
+            g.setColor(new Color(80, 120, 80, 200));
+            g.drawRect(x, y, w, h);
+            g.setFont(new Font("SansSerif", Font.BOLD, 8));
+
+            // Column header: one sigil above each column.
+            int cx = x + pad + sigilW;
+            for (int c = 0; c < fs.size(); c++) {
+                String s = sigil(fs.get(c));
+                g.setColor(new Color(180, 200, 180));
+                g.drawString(s, cx + cell / 2 - g.getFontMetrics().stringWidth(s) / 2,
+                             y + pad + headH - 3);
+                cx += cell;
+            }
+
+            // One row per faction; the lower triangle carries the pair state.
+            for (int r = 0; r < fs.size(); r++) {
+                int ry = y + pad + headH + r * cell;
+                g.setColor(new Color(180, 200, 180));
+                g.drawString(sigil(fs.get(r)), x + pad, ry + cell - 4);
+                int bx = x + pad + sigilW;
+                for (int c = 0; c < fs.size(); c++) {
+                    if (c > r) {
+                        g.setColor(stateColor(factionPairState(state,
+                                                              fs.get(r), fs.get(c))));
+                        g.fillRect(bx + 1, ry + 1, cell - 2, cell - 2);
+                    }
+                    bx += cell;
+                }
+            }
+        } finally {
+            g.dispose();
+        }
+    }
+
+        /** B5-0376: banner title for a war conflict — the declared kind plus its
+         *  target (race or location), since a war conflict carries no ConflictCard. */
+    /** B5-2263: human-readable ability name for a conflict type. */
+    private String conflictTypeAbility(ConflictType type) {
+        if (type == null) return "";
+        switch (type) {
+            case DIPLOMACY:  return "Diplomacy";
+            case INTRIGUE:   return "Intrigue";
+            case MILITARY:   return "Military (Fleets)";
+            case PSI:        return "Psi";
+            default:         return "";
+        }
+    }
+
     private String warConflictTitle(Conflict c) {
         if (c.getTargetLocation() != null) {
             return "war on " + c.getTargetLocation().getTitle();
         }
         Player t = c.getTarget();
-        return "war on " + (t != null ? t.getName() : "(unknown)") + "  [MILITARY]";
+        return "war on " + (t != null ? t.getName() : "(unknown)")
+            + "  [" + c.getConflictType() + " \u2014 " + conflictTypeAbility(c.getConflictType()) + "]";
     }
 
     private void drawZone(Graphics2D g, Player p, int x, int y, int w, int h) {
@@ -776,5 +1039,72 @@ public class GameBoardPanel extends JPanel {
             case NARN:     return new Color(220, 120, 80);
             default:       return Color.WHITE;
         }
+    }
+
+    // B5-1971: hover tooltip for board cards. Mirrors HandPanel's tooltip
+    // content but without promotion/state context (board cards are in-play).
+    private String renderCardTooltip(Card card) {
+        if (card == null) return null;
+        StringBuilder sb = new StringBuilder("<html><b>");
+        sb.append(card.getTitle()).append("</b> (")
+          .append(card.getType().toString()).append(")");
+        if (card.getCost() > 0) {
+            sb.append(" — Cost: ").append(card.getCost()).append(" INF");
+        }
+        sb.append("<br>Faction: ").append(card.getFaction().toString());
+        sb.append(" | Rarity: ").append(card.getRarity().toString());
+        String subtype = card.getSubtype();
+        if (subtype != null && subtype.length() > 0) {
+            sb.append(" | Subtype: ").append(subtype);
+        }
+        if (card instanceof CharacterCard) {
+            CharacterCard ch = (CharacterCard) card;
+            sb.append("<br>D").append(ch.getDiplomacy()).append(" I")
+              .append(ch.getIntrigue()).append(" P").append(ch.getPsi())
+              .append(" L").append(ch.getLeadership());
+            if (ch.isAmbassador()) sb.append(" — Ambassador");
+        } else if (card instanceof FleetCard) {
+            FleetCard fleet = (FleetCard) card;
+            sb.append("<br>Military: ").append(fleet.getMilitary());
+        } else if (card instanceof ConflictCard) {
+            ConflictCard cc = (ConflictCard) card;
+            sb.append("<br>").append(cc.getConflictType().toString())
+              .append("  +").append(cc.getInfluenceReward()).append(" INF");
+        } else if (card instanceof AgendaCard) {
+            AgendaCard agenda = (AgendaCard) card;
+            sb.append("<br>Agenda (")
+              .append(agenda.isMajorAgenda() ? "MAJOR" : "minor").append(")");
+            if (agenda.isFaceDown()) sb.append(" [face-down]");
+        } else if (card instanceof EnhancementCard) {
+            EnhancementCard enh = (EnhancementCard) card;
+            boolean first = true;
+            if (enh.getDiplomacyBonus() != 0) { sb.append(first ? "<br>Bonuses: " : ", ").append("D").append(enh.getDiplomacyBonus()); first = false; }
+            if (enh.getIntrigueBonus() != 0) { sb.append(first ? "<br>Bonuses: " : ", ").append("I").append(enh.getIntrigueBonus()); first = false; }
+            if (enh.getPsiBonus() != 0) { sb.append(first ? "<br>Bonuses: " : ", ").append("P").append(enh.getPsiBonus()); first = false; }
+            if (enh.getMilitaryBonus() != 0) { sb.append(first ? "<br>Bonuses: " : ", ").append("M").append(enh.getMilitaryBonus()); first = false; }
+            if (enh.getLeadershipBonus() != 0) { sb.append(first ? "<br>Bonuses: " : ", ").append("L").append(enh.getLeadershipBonus()); first = false; }
+        } else if (card instanceof LocationCard) {
+            LocationCard loc = (LocationCard) card;
+            sb.append("<br>Influence/round: +").append(loc.getInfluencePerRound()).append(" INF");
+        } else if (card instanceof GroupCard) {
+            // GroupCard has no special stats beyond what's in text
+        } else if (card instanceof EventCard) {
+            // EventCard has no special stats beyond what's in text
+        } else if (card instanceof AftermathCard) {
+            AftermathCard aft = (AftermathCard) card;
+            sb.append("<br>Trigger: ").append(aft.getTriggerCondition());
+        } else if (card instanceof ContingencyCard) {
+            ContingencyCard con = (ContingencyCard) card;
+            sb.append("<br>Target: ").append(con.getValidTargetType()).append(" / ").append(con.getValidTargetRace());
+            String trigger = con.getTriggerCondition();
+            if (trigger != null && trigger.length() > 0) {
+                sb.append(" | Trigger: ").append(trigger);
+            }
+        }
+        String text = card.getText();
+        if (text != null && text.length() > 0) {
+            sb.append("<br><i>").append(text).append("</i>");
+        }
+        return sb.toString();
     }
 }

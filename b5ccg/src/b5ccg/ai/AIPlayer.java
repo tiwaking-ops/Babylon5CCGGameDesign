@@ -51,6 +51,28 @@ import java.util.*;
  *  total (ties crown nobody) — when the applied pool can cover it. MEDIUM and
  *  HARD score the bid by win probability of the projected total versus its
  *  cost; bids spend the D9 applied pool only, never the Rating.
+ *
+ *  Promotion economics (B5-1708; rulebook §VI, "ACTION: Promote a
+ *  Character to the Inner Circle"): MEDIUM and HARD run every
+ *  PROMOTE_CHARACTER offer through evaluateCharacterCardPromotion() —
+ *  the net influence delta, the supporting-role bonus (the best
+ *  effective Diplomacy/Intrigue/Psi ability the character seats as an
+ *  Inner-Circle member) minus RulesEngine.promotionCost — and drop
+ *  promotions whose delta is negative in chooseAction() during the
+ *  ACTION phase: a promotion that costs more influence than the
+ *  ability it seats is an influence-losing trade. EASY keeps the full
+ *  offer list (the difficulty contract, B5-0351).
+ *
+ *  Conflict-type weighting (B5-1709; rulebook Conflicts section):
+ *  MEDIUM and HARD add a small per-difficulty preference weight to
+ *  the INITIATE_CONFLICT score — CONFLICT_TYPE_WEIGHTS, keyed by
+ *  ConflictType. The ledger row's "AGGRESSIVE/DIPLOMATIC" personality
+ *  enums do not exist in this tree; the difficulty tier IS the
+ *  personality, so HARD leans MILITARY (the aggressive posture),
+ *  MEDIUM leans DIPLOMACY (the diplomatic posture), and EASY stays
+ *  uniform (the difficulty contract, B5-0351). The weight is a
+ *  tie-break among otherwise-equal offers, not a re-ordering of the
+ *  win-probability core (B5-0301 house style: kept modest).
  */
 public class AIPlayer {
 
@@ -59,21 +81,87 @@ public class AIPlayer {
 
     private final Player       player;
     private final AIDifficulty difficulty;
+    private final AIDecisionEngine decisionEngine;
+    private final AIMemory       memory;
     private final Random       rng = new Random();
 
     public AIPlayer(Player player, AIDifficulty difficulty) {
         this.player     = player;
         this.difficulty = difficulty;
+        this.decisionEngine = new AIDecisionEngine(difficulty);
+        this.memory = decisionEngine.getMemory();
     }
 
     public Player       getPlayer()     { return player; }
     public AIDifficulty getDifficulty() { return difficulty; }
+    public AIMemory getMemory() { return memory; }
+    public AIDecisionEngine getDecisionEngine() { return decisionEngine; }
+
+    // ── B5-1709: per-difficulty conflict-type weights ───────────────
+
+    /** Initiator-side preference weights over ConflictType, one map
+     *  per difficulty (B5-1709). The ledger row's vocabulary —
+     *  "AGGRESSIVE" and "DIPLOMATIC" personalities — has no enum in
+     *  this tree; the tier stands in for the personality: HARD leans
+     *  MILITARY (aggressive), MEDIUM leans DIPLOMACY (diplomatic),
+     *  EASY stays uniform (the difficulty contract, B5-0351). Weights
+     *  are additive tie-break terms on the INITIATE_CONFLICT score —
+     *  modest by house style (B5-0301), so they tip only near-equal
+     *  offers, never the win-probability core. INTRIGUE and PSI carry
+     *  no lean at any tier (the row's vocabulary is military vs
+     *  diplomacy vs intrigue only); every ConflictType is still present
+     *  so the map is total over the enum. */
+    private static final Map<AIDifficulty, Map<ConflictType, Double>>
+            CONFLICT_TYPE_WEIGHTS;
+    static {
+        Map<AIDifficulty, Map<ConflictType, Double>> m =
+                new EnumMap<AIDifficulty, Map<ConflictType, Double>>(
+                        AIDifficulty.class);
+        m.put(AIDifficulty.EASY,   weights(0.0, 0.0, 0.0, 0.0));
+        m.put(AIDifficulty.MEDIUM, weights(1.0, 0.0, 0.0, 0.0));
+        m.put(AIDifficulty.HARD,   weights(0.0, 0.0, 2.0, 0.0));
+        CONFLICT_TYPE_WEIGHTS = m;
+    }
+
+    /** B5-1709: a fully-populated ConflictType weight map; the four
+     *  arguments are DIPLOMACY, INTRIGUE, MILITARY, PSI in enum
+     *  declaration order. */
+    private static Map<ConflictType, Double> weights(
+            double diplomacy, double intrigue, double military, double psi) {
+        Map<ConflictType, Double> w = new EnumMap<ConflictType, Double>(
+                ConflictType.class);
+        w.put(ConflictType.DIPLOMACY, diplomacy);
+        w.put(ConflictType.INTRIGUE, intrigue);
+        w.put(ConflictType.MILITARY, military);
+        w.put(ConflictType.PSI, psi);
+        return w;
+    }
+
+    /** B5-1709: this player's difficulty weight for a conflict type
+     *  (CONFLICT_TYPE_WEIGHTS); null/unknown inputs score 0. */
+    private double conflictTypeWeight(ConflictType type) {
+        if (type == null) return 0.0;
+        Map<ConflictType, Double> w = CONFLICT_TYPE_WEIGHTS.get(difficulty);
+        if (w == null) return 0.0;
+        Double v = w.get(type);
+        return v == null ? 0.0 : v;
+    }
 
     // ── Main decision entry point ─────────────────────────────────────────────
 
     public GameAction chooseAction(GameState state, Player p) {
         List<GameAction> legal = buildLegalActions(state, p);
         if (legal.isEmpty()) return GameAction.pass();
+
+        // B5-1708: ACTION-phase promotion economics. MEDIUM and HARD
+        // drop PROMOTE_CHARACTER offers whose net influence delta is
+        // negative (evaluateCharacterCardPromotion) — spending more
+        // influence than the seated ability is worth is a losing trade.
+        // EASY keeps the full list (the difficulty contract, B5-0351).
+        // PASS survives every filter, so this never empties the list.
+        if (difficulty != AIDifficulty.EASY) {
+            legal = pruneUnprofitablePromotions(legal, p);
+        }
 
         switch (difficulty) {
             case EASY:   return easyChoose(legal, p);
@@ -175,6 +263,11 @@ public class AIPlayer {
     private List<GameAction> buildLegalActions(GameState state, Player p) {
         List<GameAction> actions = new ArrayList<GameAction>();
         actions.add(GameAction.pass());
+
+        // B5-0202c: early return for already-passed or action-spent players
+        if (p.isPassed() || p.getActionsLeft() <= 0) {
+            return actions; // only PASS is legal
+        }
 
         for (Card c : p.getHand()) {
             if (!c.getFaction().isPlayableBy(p.getFaction())) continue;
@@ -650,6 +743,66 @@ public class AIPlayer {
         return mergeExposure(cws, p);
     }
 
+    // ── B5-1708: Promotion economics (rulebook §VI) ─────────────────
+
+    /** Net influence delta of promoting supporting character ch into
+     *  the Inner Circle (rulebook §VI, "ACTION: Promote a Character
+     *  to the Inner Circle"): the supporting-role bonus minus the
+     *  promotion cost.
+     *
+     *  The supporting-role bonus is the ability the character seats as
+     *  an Inner-Circle member: its best effective primary ability
+     *  across Diplomacy, Intrigue and Psi — the abilities an
+     *  unrotated Inner-Circle member feeds into the non-Military
+     *  conflict totals (Player.conflictTotal). Military is excluded
+     *  (B5-0337): character Leadership never enters Military totals
+     *  directly, only through the fleet-leader relation.
+     *
+     *  The promotion cost is RulesEngine.promotionCost — the
+     *  character's influence cost, doubled for other-race loyalty,
+     *  plus one per existing Inner Circle member including the
+     *  ambassador (rulebook §VI). RulesEngine stays the legality and
+     *  cost authority; this is the ACTION-phase decision aid.
+     *
+     *  Positive delta: a profitable influence trade. Negative: the
+     *  promotion spends more influence than the seated ability is
+     *  worth. A character outside the supporting role (or a null
+     *  argument) is not promotable — its delta is undefined and
+     *  reported as the floor.
+     */
+    public int evaluateCharacterCardPromotion(Player p, CharacterCard ch) {
+        if (p == null || ch == null || !p.getSupportingRole().contains(ch)) {
+            return Integer.MIN_VALUE;
+        }
+        int diplomacy = p.effectiveStat(ch.getId(), StatKey.DIPLOMACY,
+                                        ch.getDiplomacy(), true);
+        int intrigue  = p.effectiveStat(ch.getId(), StatKey.INTRIGUE,
+                                        ch.getIntrigue(), true);
+        int psi       = p.effectiveStat(ch.getId(), StatKey.PSI,
+                                        ch.getPsi(), true);
+        int bonus = Math.max(Math.max(diplomacy, intrigue), psi);
+        return bonus - rules.promotionCost(p, ch);
+    }
+
+    /** B5-1708: the offer list with negative-delta PROMOTE_CHARACTER
+     *  actions removed (see evaluateCharacterCardPromotion). PASS and
+     *  every other action type pass through untouched, so the list
+     *  keeps the always-legal PASS entry and is never emptied. */
+    private List<GameAction> pruneUnprofitablePromotions(
+            List<GameAction> legal, Player p) {
+        List<GameAction> kept = new ArrayList<GameAction>();
+        for (GameAction a : legal) {
+            if (a.getType() == GameAction.Type.PROMOTE_CHARACTER
+                    && a.getCard() instanceof CharacterCard
+                    && evaluateCharacterCardPromotion(p,
+                            (CharacterCard) a.getCard()) < 0) {
+                continue;
+            }
+            kept.add(a);
+        }
+        return kept;
+    }
+
     // ── EASY ──────────────────────────────────────────────────────────────────
 
     private GameAction easyChoose(List<GameAction> legal, Player p) {
@@ -681,12 +834,22 @@ public class AIPlayer {
                     int score = myTotal > oppTotal
                         ? cc.getInfluenceReward() * 10 + (myTotal - oppTotal)
                         : -5;
+                    double winRate = (myTotal + 1.0)
+                            / (myTotal + oppTotal + 2.0);
+                    if (winRate < memory.getConflictInitiationThreshold()) {
+                        score -= 10;
+                    }
+                    score += (int) Math.round((myTotal - oppTotal)
+                            * memory.getRiskTolerance());
                     // B5-0727: Civil War context (:990–:1009) — unrest pressure
                     // adds urgency to any offer; a race already at war steers
                     // toward ENDING it (a win advances the :998 exit), and the
                     // :1000 rounded-up-average merge exposure discounts.
                     score += unrestPressure(p) - civilWarMergeExposureTerm(state, p);
                     if (raceInCivilWar(state, p)) score += 2;
+                    // B5-1709: the difficulty's conflict-type preference
+                    // (MEDIUM leans DIPLOMACY; CONFLICT_TYPE_WEIGHTS).
+                    score += conflictTypeWeight(cc.getConflictType());
                     // B5-0453 station-context is on DECLARE_WAR_CONFLICT (the path
                     // that raises station influence via capture source), not here.
                     return score;
@@ -708,12 +871,16 @@ public class AIPlayer {
                 // (see agendaProximityScore), not by a flat base.
                 if (a.getCard() instanceof AgendaCard) {
                     AgendaCard ag = (AgendaCard) a.getCard();
-                    return Math.max(0, agendaProximityScore(state, p, ag)
-                                       - a.getCard().getCost());
+                    return Math.max(0, (int) Math.round(
+                            (agendaProximityScore(state, p, ag)
+                            - a.getCard().getCost())
+                            * memory.getCardValuationMultiplier()));
                 }
                 if (a.getCard() instanceof EventCard) {
-                    return Math.max(0, 2 + eventCatchUpBonus(state, p)
-                                       - a.getCard().getCost());
+                    return Math.max(0, (int) Math.round(
+                            (2 + eventCatchUpBonus(state, p)
+                            - a.getCard().getCost())
+                            * memory.getCardValuationMultiplier()));
                 }
                 int base;
                 if (a.getCard() instanceof LocationCard) base = 6;
@@ -726,7 +893,9 @@ public class AIPlayer {
                 if (a.getCard() instanceof LocationCard) {
                     base += stationContextScore(state);
                 }
-                return Math.max(0, base - a.getCard().getCost());
+                return Math.max(0, (int) Math.round(
+                        (base - a.getCard().getCost())
+                        * memory.getCardValuationMultiplier()));
             }
             case BUILD_INFLUENCE:
                 // Positive value: pushing toward the Influence cap.
@@ -923,6 +1092,21 @@ public class AIPlayer {
                 // rounded-up-average merge exposure discounts.
                 base += unrestPressure(p) - civilWarMergeExposureTerm(state, p);
                 if (raceInCivilWar(state, p)) base += 2.0;
+                // B5-1709: the difficulty's conflict-type preference
+                // (HARD leans MILITARY; CONFLICT_TYPE_WEIGHTS).
+                base += conflictTypeWeight(cc.getConflictType());
+                // B5-1974: opponent threat, as TWO terms rather than one.
+                // The urgency term says initiate BECAUSE this opponent is
+                // dangerous; the tilt says on WHICH axis. Without the threat
+                // term the AI never reacts to an opponent closing on its own
+                // agenda win condition, and without the tilt it would answer
+                // every threat with the same card.
+                Player threatTarget = opp != null ? opp : leadingPlayer(state, p);
+                int threat = threatAssessment(state, p, threatTarget);
+                base += 0.5 * threat;
+                base += threatConflictTypeTilt(cc.getConflictType(), threat,
+                        p.conflictTotal(ConflictType.MILITARY),
+                        threatTarget.conflictTotal(ConflictType.MILITARY));
                 return base + leaderPenalty + lossPenalty;
             }
             case RECRUIT_CHARACTER: {
@@ -944,7 +1128,8 @@ public class AIPlayer {
                 else if (a.getCard() instanceof GroupCard)    base = 5;
                 else if (a.getCard() instanceof EnhancementCard) base = 4;
                 else                                          base = 2;
-                return base - a.getCard().getCost();
+                return (base - a.getCard().getCost())
+                        * memory.getCardValuationMultiplier();
             }
             case BUILD_INFLUENCE:
                 // B5-0324: capped value — HARD avoids over-tinging the score table.
@@ -1147,7 +1332,7 @@ public class AIPlayer {
      * playing it wins the game at the next victory check — so MEDIUM/HARD
      * always take a winning agenda.
      */
-    private int agendaProximityScore(GameState state, Player p, AgendaCard ag) {
+    public static int agendaProximityScore(GameState state, Player p, AgendaCard ag) {
         String key = ag.getWinConditionKey();
         if ("MILITARY_SUPREMACY".equals(key)) {
             int myMil = 0;
@@ -1218,6 +1403,93 @@ public class AIPlayer {
                 }
                 if (bestOther < 0 || myPower >= bestOther) return 0;
                 return Math.min(3, bestOther - myPower);
+    }
+
+    // ── B5-1974: opponent threat assessment (conflict initiation) ───────────
+    //
+    // The row names "AIDecisionEngine", a class that does not exist anywhere in
+    // this tree; AIPlayer IS the AI's decision surface, so this landed here.
+    // See the report for that adjudication.
+    //
+    // What the pre-B5-1974 INITIATE_CONFLICT score could not read:
+    //
+    //   * the OPPONENT's proximity to its own agenda's win condition -- the
+    //     sharpest "act now" signal, and absent entirely before, because
+    //     majorProximityHard reads the INFLUENCE race, not the agenda;
+    //   * the opponent's hand depth -- how many answers it is holding;
+    //   * the opponent's fleet Military, which is the entire MILITARY axis
+    //     (Player.conflictTotal reads fleets for MILITARY and committed
+    //     characters for the other three types -- B5-0337 audit D5).
+    //
+    // Zero-cost invariance: all four terms are strict comparisons against the
+    // assessing player, so on a symmetric opening board every term is 0 and
+    // the pre-B5-1974 ordering is byte-identical. EASY is untouched entirely
+    // (difficulty contract, B5-0351); only the HARD scorer reads these.
+
+    /** Threat band: 0 (no threat) .. 10 (act now). Composed of four terms. */
+    public static final int MAX_THREAT = 10;
+
+    /**
+     * B5-1974: how dangerous is this opponent right now, from `self`'s point of
+     * view. Band 0..{@link #MAX_THREAT}, composed of the row's four inputs --
+     * agenda proximity to victory (0..4), fleet strength (0..2), hand depth
+     * (0..2), influence race (0..2). Null self or opponent reads 0 rather than
+     * throwing, because this is called from a scoring path.
+     */
+    public static int threatAssessment(GameState state, Player self, Player opponent) {
+        if (state == null || self == null || opponent == null || self == opponent) return 0;
+        int threat = 0;
+
+        // 1. Agenda proximity to the opponent's OWN win condition. Only its
+        //    own agenda counts: another faction's agenda is not its threat.
+        AgendaCard og = opponent.getAgenda();
+        if (og != null) threat += agendaProximityScore(state, opponent, og) / 2;
+
+        // 2. Fleet strength (0..2), every 4 Military of excess.
+        int oppMil = opponent.conflictTotal(ConflictType.MILITARY);
+        int myMil  = self.conflictTotal(ConflictType.MILITARY);
+        if (oppMil > myMil) threat += Math.min(2, (oppMil - myMil) / 4);
+
+        // 3. Hand depth (0..2), every 2 cards of excess.
+        int oppHand = opponent.getHand().size();
+        int myHand  = self.getHand().size();
+        if (oppHand > myHand) threat += Math.min(2, (oppHand - myHand) / 2);
+
+        // 4. Influence race (0..2), every 4 Power of excess.
+        int oppPow = opponent.getPower();
+        int myPow  = self.getPower();
+        if (oppPow > myPow) threat += Math.min(2, (oppPow - myPow) / 4);
+
+        return Math.min(MAX_THREAT, threat);
+    }
+
+    /**
+     * B5-1974: which conflict AXIS the threat argues for, as an additive score
+     * term. Deliberately separate from the urgency term: "this opponent is
+     * dangerous, so act" and "act on this axis" are different claims, and
+     * folding them together would make every conflict card equally attractive
+     * against a threatening board.
+     *
+     * <p>Grounded in Player.conflictTotal (B5-0337 audit D5): MILITARY totals
+     * fleets only, so a fleet-heavy opponent IS that axis and the existing
+     * win-probability term already charges for it -- the tilt moves the choice
+     * off it. PSI and INTRIGUE total committed characters, which the enemy's
+     * fleet board does not inflate, so they gain slightly. DIPLOMACY gains least:
+     * the loser penalties in CardEffects are board pressure rather than a race
+     * on an axis.
+     *
+     * <p>Zero-cost invariance: threat 0 returns 0.0 for every type.
+     */
+    public static double threatConflictTypeTilt(ConflictType type, int threat,
+                                                int selfMil, int oppMil) {
+        if (type == null || threat <= 0) return 0.0;
+        double scale = threat / (double) MAX_THREAT;
+        if (type == ConflictType.MILITARY) {
+            return oppMil > selfMil ? -1.0 * scale : 0.0;
+        }
+        if (type == ConflictType.PSI || type == ConflictType.INTRIGUE) return 0.5 * scale;
+        if (type == ConflictType.DIPLOMACY) return 0.25 * scale;
+        return 0.0;
     }
 
     private Player leadingPlayer(GameState state, Player self) {

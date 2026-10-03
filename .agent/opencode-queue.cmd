@@ -15,5 +15,5 @@ REM                   display name in ~/.config/opencode/opencode.jsonc is "me-s
 REM
 REM Usage: powershell -NoProfile -ExecutionPolicy Bypass -File .agent/run-queue.ps1
 REM   -AgentCli 'C:\temp\projects\Babylon5CCGGameDesign\.agent\opencode-queue.cmd' -MaxIterations 10
-opencode run --auto -m omniroute/omni-auto %*
+opencode run --auto -m omniroute/auto/cheap %*
 exit /b %ERRORLEVEL%

@@ -2,6 +2,9 @@ package b5ccg.engine;
 
 import b5ccg.model.Card;
 import b5ccg.model.CharacterCard;
+import b5ccg.model.AgendaCard;
+import b5ccg.model.FleetCard;
+import b5ccg.model.LocationCard;
 import b5ccg.model.enums.CardSet;
 import b5ccg.model.enums.Faction;
 import b5ccg.model.enums.Rarity;
@@ -63,6 +66,24 @@ public final class StarterDeckBuilder {
     /** 0 = non-deterministic (default); non-zero lets tests seed the draw. */
     private static long randomSeed = 0L;
 
+    /**
+     * Faction-specific starting board state: homeworld location, starting fleet,
+     * and starting agenda. Per rulebook "Preparing the Playing Field", these
+     * cards begin in play at game start (homeworld and fleet as Supporting Cards,
+     * agenda to the left of the ambassador).
+     */
+    public static final class StartingSetup {
+        public final LocationCard homeworld;
+        public final FleetCard startingFleet;
+        public final AgendaCard startingAgenda;
+
+        public StartingSetup(LocationCard homeworld, FleetCard startingFleet, AgendaCard startingAgenda) {
+            this.homeworld = homeworld;
+            this.startingFleet = startingFleet;
+            this.startingAgenda = startingAgenda;
+        }
+    }
+
     private StarterDeckBuilder() {}
 
     /** Seed the random uncommons/rares draw (tests). 0 restores default. */
@@ -83,10 +104,65 @@ public final class StarterDeckBuilder {
     }
 
     /**
+     * Get the faction-specific starting board state (homeworld location,
+     * starting fleet, and starting agenda) from an already-loaded card pool.
+     * Returns null if the pool is missing any of the required cards.
+     * The card IDs are sourced from {@code premiere-starter-decks.json}.
+     */
+    public static StartingSetup getStartingSetup(Faction faction, List<Card> pool) {
+        if (faction == null || pool == null || pool.isEmpty()) return null;
+
+        Map<String, Card> byId = new HashMap<String, Card>();
+        for (int i = 0; i < pool.size(); i++) {
+            Card c = pool.get(i);
+            byId.put(c.getId(), c);
+        }
+
+        String homeworldId = null;
+        String fleetId = null;
+        String agendaId = null;
+
+        if (faction == Faction.HUMAN) {
+            homeworldId = "loc_earth";
+            fleetId = "fleet_homeworld_human";
+            agendaId = "agenda_alliance_of_races";
+        } else if (faction == Faction.CENTAURI) {
+            homeworldId = "loc_centauri_prime";
+            fleetId = "fleet_homeworld_centauri";
+            agendaId = "agenda_knowledge_is_power";
+        } else if (faction == Faction.MINBARI) {
+            homeworldId = "loc_minbar";
+            fleetId = "fleet_homeworld_minbari";
+            agendaId = "agenda_finish_the_war";
+        } else if (faction == Faction.NARN) {
+            homeworldId = "loc_narn_homeworld";
+            fleetId = "fleet_homeworld_narn";
+            agendaId = "agenda_never_again";
+        } else {
+            return null; // NON_ALIGNED not supported
+        }
+
+        Card hw = byId.get(homeworldId);
+        Card fl = byId.get(fleetId);
+        Card ag = byId.get(agendaId);
+
+        if (hw == null || fl == null || ag == null) return null;
+
+        if (!(hw instanceof LocationCard)) return null;
+        if (!(fl instanceof FleetCard)) return null;
+        if (!(ag instanceof AgendaCard)) return null;
+
+        return new StartingSetup((LocationCard) hw, (FleetCard) fl, (AgendaCard) ag);
+    }
+
+    /**
      * Build the starter deck for {@code faction} from an already-loaded card
      * pool (both sets): 50 fixed cards in resource order, then 10 random
      * uncommons/rares. Missing fixed ids or a non-50 fixed count are reported to
-     * stderr but do not throw, so a partial pool still yields a playable deck.
+     * stderr but do not throw, so a partial pool still yields a playable deck;
+     * the assembled result is then validated by {@link #validateDeck}, which
+     * throws on a short, unplayable or ambassador-less deck (B5-1714), so a
+     * silent short deck can no longer reach the game (the B5-1517 class).
      */
     public static List<Card> build(Faction faction, List<Card> pool) throws IOException {
         if (faction == null) throw new IllegalArgumentException("faction is null");
@@ -136,7 +212,50 @@ public final class StarterDeckBuilder {
         }
 
         deck.addAll(drawRandomUncommonsRares(faction, pool, fixedIds));
+        validateDeck(deck, faction);
         return deck;
+    }
+
+    /**
+     * Validate a built starter deck against the faction minimums, throwing on
+     * the first batch of violations (B5-1714). A starter deck must carry the
+     * 50-fixed-plus-10-random structure: at least {@link #DECK_SIZE} cards,
+     * every card playable by the faction, and the faction ambassador present
+     * (the deck must seat one; the B5-0313 ambassador guarantee).
+     *
+     * @throws IllegalStateException naming every violation when the deck is
+     *         null, short of {@link #DECK_SIZE}, holds a card the faction
+     *         cannot play, or lacks the faction ambassador
+     */
+    public static void validateDeck(List<Card> deck, Faction faction) {
+        if (faction == null) throw new IllegalArgumentException("faction is null");
+        if (deck == null || deck.isEmpty()) {
+            throw new IllegalStateException(
+                "StarterDeckBuilder: starter deck for " + faction + " is null or empty");
+        }
+        List<String> problems = new ArrayList<String>();
+        if (deck.size() < DECK_SIZE) {
+            problems.add("size " + deck.size() + " < minimum " + DECK_SIZE);
+        }
+        int unplayable = 0;
+        for (int i = 0; i < deck.size(); i++) {
+            Card c = deck.get(i);
+            if (c == null) {
+                problems.add("null card at index " + i);
+                continue;
+            }
+            if (!c.getFaction().isPlayableBy(faction)) unplayable++;
+        }
+        if (unplayable > 0) {
+            problems.add(unplayable + " card(s) not playable by " + faction);
+        }
+        if (findAmbassador(deck, faction) == null) {
+            problems.add("faction ambassador missing");
+        }
+        if (!problems.isEmpty()) {
+            throw new IllegalStateException("StarterDeckBuilder: invalid " + faction
+                + " starter deck: " + problems);
+        }
     }
 
     /** The printed 10 random uncommons/rares for a faction (see class note). */
@@ -192,6 +311,19 @@ public final class StarterDeckBuilder {
             deckEntries = DeckLoader.loadFlatObjects(DECK_RESOURCE);
         }
         return deckEntries;
+    }
+
+    /** Test helper: load fixed-list entries for a specific faction. */
+    static List<Map<String, String>> loadEntriesForTest(Faction faction) throws IOException {
+        List<Map<String, String>> all = loadEntries();
+        List<Map<String, String>> filtered = new ArrayList<Map<String, String>>();
+        for (int i = 0; i < all.size(); i++) {
+            Map<String, String> e = all.get(i);
+            if (faction.name().equals(e.get("deck"))) {
+                filtered.add(e);
+            }
+        }
+        return filtered;
     }
 
     /**

@@ -13,6 +13,160 @@ import java.util.*;
  */
 public class DeckLoader {
 
+    // ══ B5-1992: rulebook play-deck floor (rulebook section II) ═════════════
+    //
+    // :128 and :193 -- "Each player must play with a minimum of 45 cards in
+    // his deck" / "Each must have a minimum of 45 cards", and :128 continues
+    // "There is no maximum number of cards that may be in a play deck."
+    // :195 -- "Must contain one Starting Ambassador."
+    //
+    // WHAT THIS IS NOT. loadFromResource / loadBothSets return the CARD POOL,
+    // not a play deck, so the floor is deliberately NOT applied to them: a pool
+    // is a few hundred cards and gating it on "a deck" would be a category
+    // error. validatePlayDeck is a separate, explicitly-named entry point that
+    // a deck BUILDER calls.
+    //
+    // WHAT IS DELIBERATELY ABSENT, and why. :194 -- "It may have a maximum of
+    // 3 of any card" -- is NOT enforced here: B5-1965 owns max-3-copies and
+    // faction playability, and this row is fenced to keep that work separate.
+    // There is also no maximum, because the rulebook states there is none.
+    //
+    // RELATION TO StarterDeckBuilder.validateDeck. That is a DIFFERENT
+    // question, not a duplicate: it checks a starter deck against DECK_SIZE
+    // (the 50-fixed + 10-random structure) and against faction playability, and
+    // throws. This one checks the rulebook's play-deck floor for a custom deck
+    // and RETURNS its violations so a builder can show them all at once. The
+    // ambassador test differs deliberately -- StarterDeckBuilder requires the
+    // card to be the FACTION's ambassador (findAmbassador matches
+    // ch.getFaction() == faction), while :195 only requires the deck to
+    // CONTAIN one Starting Ambassador. For NON_ALIGNED (:884 -- "there is no
+    // single 'ambassador' for the League ... the player chooses a character
+    // listed as an ambassador for one of the Non-Aligned species") the
+    // faction-scoped test has no single answer, so the deck-wide test below is
+    // the correct one and returns true for any species ambassador.
+
+    /** Rulebook :128 / :193 -- the minimum play-deck size. */
+    public static final int MIN_PLAY_DECK_SIZE = 45;
+
+    /**
+     * Rulebook II:194 -- max copies of any one card in a play deck.
+     * FIXED-rarity cards (Starting Ambassadors and other unique fixed-list
+     * cards) are exempt from this limit per B5-1965.
+     */
+    public static final int MAX_COPIES_PER_CARD = 3;
+
+    /**
+     * B5-1992 + B5-1965: the rulebook play-deck validation. Returns every
+     * violation found, so a builder can present them together; an empty list
+     * means legal. Returns the single "deck is null" violation rather than
+     * throwing, because this is called from a validation surface that must
+     * report rather than crash.
+     *
+     * <p>Nulls inside the deck are counted as cards for the size test (the
+     * rulebook counts cards, and a null is a card slot that cannot be
+     * validated) and reported by index, so a malformed entry is visible rather
+     * than silently shrinking the count.
+     *
+     * <p>Checks performed:
+     * <ul>
+     *   <li>Deck size >= 45 (rulebook :128/:193)</li>
+     *   <li>Contains at least one Starting Ambassador (rulebook :195)</li>
+     *   <li>No more than 3 copies of any card by ID, except FIXED-rarity cards (rulebook :194 + B5-1965)</li>
+     *   <li>Every card's faction is playable by the given player faction via {@link Faction#isPlayableBy} (rulebook Character Cards, B5-1965)</li>
+     * </ul>
+     *
+     * @param deck the list of cards to validate
+     * @param playerFaction the faction of the player building the deck; used for
+     *     faction-playability checks. Pass {@code null} to skip faction checks.
+     */
+    public static List<String> validatePlayDeck(List<Card> deck, Faction playerFaction) {
+        List<String> problems = new ArrayList<String>();
+        if (deck == null) {
+            problems.add("deck is null");
+            return problems;
+        }
+        if (deck.size() < MIN_PLAY_DECK_SIZE) {
+            problems.add("size " + deck.size() + " < rulebook minimum "
+                + MIN_PLAY_DECK_SIZE + " (:128/:193)");
+        }
+
+        // Count copies per card ID for the max-3 rule (B5-1965).
+        Map<String, Integer> idCounts = new HashMap<String, Integer>();
+        boolean hasAmbassador = false;
+        for (int i = 0; i < deck.size(); i++) {
+            Card c = deck.get(i);
+            if (c == null) {
+                problems.add("null card at index " + i);
+                continue;
+            }
+
+            // :195 "Must contain one Starting Ambassador" -- any Starting
+            // Ambassador in the deck. Deck-wide, not faction-scoped; see the
+            // NON_ALIGNED note above.
+            if (!hasAmbassador && c instanceof CharacterCard
+                    && ((CharacterCard) c).isAmbassador()) {
+                hasAmbassador = true;
+            }
+
+            // Count copies by card ID.
+            String id = c.getId();
+            int count = 1;
+            Integer prev = idCounts.get(id);
+            if (prev != null) count = prev.intValue() + 1;
+            idCounts.put(id, new Integer(count));
+
+            // Faction playability check (B5-1965).
+            if (playerFaction != null && !c.getFaction().isPlayableBy(playerFaction)) {
+                problems.add("card " + id + " (" + c.getTitle() + ") not playable by faction "
+                    + playerFaction + " (card faction: " + c.getFaction() + ")");
+            }
+        }
+        if (!hasAmbassador) {
+            problems.add("no Starting Ambassador in deck (:195)");
+        }
+
+        // Max 3 copies per card (rulebook :194), except FIXED-rarity cards.
+        for (Map.Entry<String, Integer> e : idCounts.entrySet()) {
+            int n = e.getValue().intValue();
+            if (n > MAX_COPIES_PER_CARD) {
+                // Find the card to check its rarity.
+                Card sample = null;
+                for (int i = 0; i < deck.size(); i++) {
+                    Card c = deck.get(i);
+                    if (c != null && c.getId().equals(e.getKey())) {
+                        sample = c;
+                        break;
+                    }
+                }
+                if (sample == null || sample.getRarity() != Rarity.FIXED) {
+                    problems.add("card " + e.getKey() + " appears " + n
+                        + " times; rulebook maximum is " + MAX_COPIES_PER_CARD
+                        + " (:194)");
+                }
+            }
+        }
+
+        return problems;
+    }
+
+    /**
+     * Overload for backward compatibility: validates without faction checks.
+     * @deprecated Use {@link #validatePlayDeck(List, Faction)} for full validation.
+     */
+    public static List<String> validatePlayDeck(List<Card> deck) {
+        return validatePlayDeck(deck, null);
+    }
+
+    /** Convenience form of {@link #validatePlayDeck}: true when legal. */
+    public static boolean isPlayDeckLegal(List<Card> deck) {
+        return validatePlayDeck(deck).isEmpty();
+    }
+
+    /** Convenience form with faction: true when legal for that faction. */
+    public static boolean isPlayDeckLegal(List<Card> deck, Faction playerFaction) {
+        return validatePlayDeck(deck, playerFaction).isEmpty();
+    }
+
     public static List<Card> loadFromResource(String resourcePath) throws IOException {
         URL url = DeckLoader.class.getResource(resourcePath);
         if (url == null) throw new FileNotFoundException("Resource not found: " + resourcePath);

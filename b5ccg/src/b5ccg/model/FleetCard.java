@@ -1,6 +1,7 @@
 package b5ccg.model;
 
 import b5ccg.model.enums.*;
+import java.util.*;
 
 public class FleetCard extends Card {
     private final int military;
@@ -19,6 +20,10 @@ public class FleetCard extends Card {
     // rotates the leader); cleared by RulesEngine.startRound — the relation
     // is a per-round rotation, not a permanent attachment.
     private CharacterCard leader;
+
+    /** B5-1995: per-fleet mark counts. Keyed by MarkType.
+     *  Rulebook VI: marks occasionally attach to fleets. */
+    private final Map<MarkType, Integer> marks = new HashMap<MarkType, Integer>();
 
     public FleetCard(String id, String title, String subtype,
                      Rarity rarity, Faction faction, CardSet cardSet,
@@ -103,4 +108,62 @@ public class FleetCard extends Card {
     /** B5-0337: fleet-leader relation (null = unled; see field comment). */
     public CharacterCard getLeader()           { return leader; }
     public void          setLeader(CharacterCard ch) { leader = ch; }
+
+    // ── B5-1995: Mark operations ──────────────────────────────────────────────
+
+    /** Returns the count of a specific mark type on this fleet. */
+    public int getMarkCount(MarkType type) {
+        Integer count = marks.get(type);
+        return count == null ? 0 : count.intValue();
+    }
+
+    /** Sets the count of a specific mark type on this fleet. */
+    public void setMarkCount(MarkType type, int count) {
+        if (count <= 0) {
+            marks.remove(type);
+        } else {
+            marks.put(type, Integer.valueOf(count));
+        }
+    }
+
+    /** Adds marks of a specific type to this fleet. Returns the new count. */
+    public int addMarks(MarkType type, int count) {
+        if (count <= 0) return getMarkCount(type);
+        int current = getMarkCount(type);
+        int next = current + count;
+        marks.put(type, Integer.valueOf(next));
+        return next;
+    }
+
+    /** Removes marks of a specific type from this fleet. Returns the new count (never negative). */
+    public int removeMarks(MarkType type, int count) {
+        if (count <= 0) return getMarkCount(type);
+        int current = getMarkCount(type);
+        int next = Math.max(0, current - count);
+        if (next == 0) {
+            marks.remove(type);
+        } else {
+            marks.put(type, Integer.valueOf(next));
+        }
+        return next;
+    }
+
+    /** Returns true if this fleet has at least one mark of the given type. */
+    public boolean hasMark(MarkType type) {
+        return getMarkCount(type) > 0;
+    }
+
+    /** Returns the total number of marks on this fleet across all types. */
+    public int getTotalMarks() {
+        int total = 0;
+        for (Integer count : marks.values()) {
+            total += count.intValue();
+        }
+        return total;
+    }
+
+    /** Returns an unmodifiable view of the marks map. */
+    public Map<MarkType, Integer> getMarks() {
+        return Collections.unmodifiableMap(marks);
+    }
 }

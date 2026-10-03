@@ -9,9 +9,13 @@ provenance:
     - {name: "Buffy", version: "glm-5.3-flash"}
     - {name: "opencode (space-bunny-free)", version: "space-bunny-free", passes: 1, last_pass: "2026-09-27", note: "edit: section 1a assessor_llm compaction convention, human-approved 2026-09-27 (B5-0655)"}
     - {name: "me-so-poor", version: "me-so-poor", passes: 1, last_pass: "2026-09-29", note: "B5-1049 cost gate surfacing in UI"}
-  last_modified_by_llm: {name: "me-so-poor", version: "me-so-poor"}
+    - {name: "Kilo (kilo-auto/free) 7", version: "kilo-auto/free", passes: 1, last_pass: "2026-10-01", note: "B5-1479 edit: section 2a standing Java 6 construct gate adopted from docs/proposals/standing-java6-construct-gate-proposal.md, with the command recorded in the py-launcher form actually executable on this host"}
+    - {name: "Buffy (glm-5.3-flash) 16", version: "glm-5.3-flash", passes: 2, last_pass: "2026-10-01", note: "pass 1 B5-1479: my concurrent section 2 census block landed beside Kilo 7's section 2a and was deleted by me per the B5-1519 own-defect rule, their adoption canonical; pass 2 B5-1877: section 2a command re-pointed to the tracked instrument .agent/tools/census-b50960.py completing the B5-1667 disposition"}
+    - {name: "opencode (space-bunny-free) 10", version: "space-bunny-free", passes: 1, last_pass: "2026-10-01", note: "edit: section 5 names new-claim.ps1 and new-heartbeat.ps1 as the only claim and heartbeat write path, and records the B5-1931 UTC+13 hand-stamp measurement on live claim B5-1827"}
+    - {name: "GitHub Copilot (Auto mode) 1249", version: "Auto mode", passes: 1, last_pass: "2026-10-02", note: "B5-1729 reconciled Java census labels and tracked-versus-on-disk denominators"}
+  last_modified_by_llm: {name: "GitHub Copilot (Auto mode) 1249", version: "Auto mode"}
   created_date: "2026-09-21"
-  last_modified_date: "2026-09-29"
+  last_modified_date: "2026-10-02"
 ---
 
 # AGENTS.md — Babylon 5 CCG (autonomous, lightweight)
@@ -82,6 +86,62 @@ simply following the rule. Rationale and the rejected alternatives:
 * `BABYLON5_CCG_RULEBOOK.md` is canonical reference — do not edit the body;
   record interpretations in `docs/DECISIONS.md`.
 
+### 2a. Standing Java 6 construct census (on demand — not wired into the build)
+
+`javac -source 6 -target 6` stays **decisive on syntax**: a real violation fails the
+build. It is structurally blind to the classpath/API dimension (`Map.getOrDefault`
+compiles fine at `-source 6`). The census below covers exactly that gap: it masks
+comments and string literals, so a hit is *code* only if it survives the mask.
+
+Run it on demand. **No build wiring, no CI** — the instrument is the B5-0960
+census script, tracked since B5-1877 as `.agent/tools/census-b50960.py`
+(byte-identical to the `tmp-scans/b50960/census.py` provenance original,
+which stays in place and stays ignored; before B5-1877 the documented path
+resolved only on this working tree — B5-1667).
+
+```
+PYTHONIOENCODING=utf-8 py .agent/tools/census-b50960.py
+```
+
+* `PYTHONIOENCODING=utf-8` is **load-bearing**: the script prints raw source lines
+  and tracked comments carry box-drawing glyphs, so the default Windows cp1252
+  console raises `UnicodeEncodeError` (hit and recorded during the B5-1012 re-run).
+* Use **`py`** on this host. The bare name `python` is *not* on `PATH` here and the
+  command fails with `python: The term 'python' is not recognized` — the same
+  "a gate an agent cannot execute is not a gate" failure as B5-1541, so the `py`
+  launcher form is the documented one.
+
+**Pass condition: `code-lines 0` for every construct family under
+`=== TRACKED b5ccg/src ===`.** The frozen `src-java8-archive/` is censused by the
+same script in the same run and is expected to read the *opposite* (all families
+present as code) — that contrast is the instrument's built-in validation. Never edit
+the archive.
+
+Standing state, re-measured 2026-10-02 (65 tracked Java files; 32 archive Java files):
+
+The census counts tracked `.java` paths, not every path under each directory.
+`git ls-files -- b5ccg/src` currently returns 67 paths because two tracked
+coordination JSON files remain under `b5ccg/src/.agent/`; the archive returns
+33 paths because its tracked `README.md` is not Java. The working tree has one
+additional untracked Java source, `b5ccg/src/b5ccg/engine/B51823DeckCensus.java`,
+so the live source tree has 66 Java files while the census intentionally scans
+the 65 tracked Java paths. These deltas are not build outputs; the two source-tree
+JSON files and archive README are tracked non-Java residue, and the extra Java
+file is an untracked source.
+
+| family | tracked `code-lines` | expected | note |
+|---|---|---|---|
+| arrow `->`, methodref `::`, stream, computeIfAbsent, computeIfPresent, compute, merge, @FunctionalInterface, try-with-resources, diamond, forEach, removeIf | **0** | 0 | any nonzero code-line count is a real finding — name the file and line; do not seed |
+| arrow **prose** lines | 50 (64 occurrences) | grows with comments | comment bands only; prose is not a violation |
+| `getOrDefault` | 14, all the project's own unqualified helper | 14 | `DeckLoader.getOrDefault(Map, key, def)`, private static |
+| **qualified** `.getOrDefault(` | **0** | 0 | *this* number, not the raw 14, is the API-level signal |
+
+**Authority: javac is authoritative on violations; the census is the record and the
+API-level second look.** A standing gate that disagreed with javac about syntax
+would be a defect in the gate by construction, which is why this one claims no
+syntax authority. Source proposal:
+`docs/proposals/standing-java6-construct-gate-proposal.md`.
+
 ## 3. Statuses (lightweight, file-location based)
 
 * `canonical/` + root rulebook + `b5ccg/src/` code = current truth.
@@ -102,11 +162,24 @@ block unrelated work.
 ## 5. Shared-files protocol (executable: `.agent/`)
 
 Boot: `.agent/00_BOOT.md`. Tasks: `.agent/TASK_LEDGER.md`. Claim before edit
-by creating `.agent/CLAIMS/<task-id>.json` (atomic — if it exists, the task is
-taken); heartbeat at `.agent/HEARTBEATS/<agent-id>.json`; report to
+with `.agent/tools/new-claim.ps1` (atomic — if the claim file exists the task
+is taken); heartbeat at `.agent/HEARTBEATS/<agent-id>.json`; report to
 `.agent/REPORTS/<date>-<agent-id>-<task-id>.md`. One writer per
 scope (`engine/`, `model/`, `ai/`, `ui/`); 30-min TTL; small diffs; never touch
 another agent's claim or heartbeat. Git is change-tracking only, not authority.
+
+**Hand-authoring a claim file is a defect, not a shortcut (B5-1931).** Both
+writers stamp their own timestamp from the real UTC clock
+(`new-claim.ps1`, `new-heartbeat.ps1`) and accept the write only after checking
+the payload is not ahead of that clock. A hand-typed `started_utc` is an
+unread measurement. This host runs **UTC+13**, so stamping local time and
+appending `Z` puts the claim ~13 h ahead; its age goes negative, and a negative
+age compares as *younger* than any TTL — the claim then reads LIVE forever and
+its task is unofferable and unrepairable by anyone but its owner. Measured on
+live claim `B5-1827`: `started_utc` 779.9 min ahead of the claim file's own
+mtime, exactly this host's offset; on live claim `B5-1803`, 351.8 min ahead,
+*not* the offset, so that one was an invented value. Use the tool; if it exits
+non-zero, there is no claim — record the error and stop that item.
 
 ## 6. Self-seeding and file placement (added 2026-09-21 after B5-0319)
 

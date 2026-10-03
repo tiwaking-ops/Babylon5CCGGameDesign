@@ -7,6 +7,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -52,6 +53,16 @@ public class HandPanel extends JPanel {
         addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) {
                 handleClick(e.getX(), e.getY());
+            }
+        });
+        // B5-1712: hover tooltip. The promotion path — supporting-role
+        // membership and its cost — had no readout anywhere in the hand;
+        // the card face shows only the green affordance dot.
+        // B5-1971: enhanced tooltip with full card details (name, type, cost,
+        // game text, stats, faction, rarity).
+        addMouseMotionListener(new MouseMotionAdapter() {
+            @Override public void mouseMoved(MouseEvent e) {
+                setToolTipText(renderCardTooltip(cardAt(e.getX(), e.getY())));
             }
         });
     }
@@ -147,6 +158,22 @@ public class HandPanel extends JPanel {
         repaint();
     }
 
+    /** B5-1712: hover hit-test — the same filtered-view walk as
+     *  handleClick, returning the card under the point or null. */
+    private Card cardAt(int mx, int my) {
+        int x = 10;
+        for (int i = 0; i < hand.size(); i++) {
+            Card card = hand.get(i);
+            if (!cardVisible(card)) { x += (CARD_W - OVERLAP); continue; }
+            int y = (getHeight() - CARD_H) / 2;
+            if (mx >= x && mx <= x + CARD_W && my >= y && my <= y + CARD_H) {
+                return card;
+            }
+            x += (CARD_W - OVERLAP);
+        }
+        return null;
+    }
+
     // B5-0348: returns true when card passes all active filters
     private boolean cardVisible(Card card) {
         if (!typeFilter[card.getType().ordinal()]) return false;
@@ -202,6 +229,101 @@ public class HandPanel extends JPanel {
             return humanPlayer.getHand().contains(card);
         }
         return false;
+    }
+
+    /** B5-1712: per-card hover tooltip. The promotion path — a
+     *  supporting-role character's promotion cost — previously had
+     *  no readout in the hand (the green dot marked affordability
+     *  without ever naming the cost). The CharacterCard branch shows
+     *  zone membership and, when a rules engine and human player are
+     *  wired, the engine's promotionCost and promote eligibility;
+     *  the AgendaCard branch carries the board agenda readout idiom
+     *  (major/minor slot, face-down marker) — the tooltip the row's
+     *  mirror citation pointed at never existed in this file (427
+     *  lines; the cited 412-428 range holds the color switches), so
+     *  the GameBoardPanel agenda readout is the repo's real precedent.
+     *  All reads are null-defensive: an unwired engine or player
+     *  simply omits the promotion line rather than guessing. */
+    private String renderCardTooltip(Card card) {
+        if (card == null) return null;
+        StringBuilder sb = new StringBuilder("<html><b>");
+        sb.append(card.getTitle()).append("</b> (")
+          .append(card.getType().toString()).append(")");
+        if (card.getCost() > 0) {
+            sb.append(" — Cost: ").append(card.getCost()).append(" INF");
+        }
+        // B5-1971: add faction, rarity, subtype
+        sb.append("<br>Faction: ").append(card.getFaction().toString());
+        sb.append(" | Rarity: ").append(card.getRarity().toString());
+        String subtype = card.getSubtype();
+        if (subtype != null && subtype.length() > 0) {
+            sb.append(" | Subtype: ").append(subtype);
+        }
+        if (card instanceof CharacterCard) {
+            CharacterCard ch = (CharacterCard) card;
+            sb.append("<br>D").append(ch.getDiplomacy()).append(" I")
+              .append(ch.getIntrigue()).append(" P").append(ch.getPsi())
+              .append(" L").append(ch.getLeadership());
+            if (ch.isAmbassador()) sb.append(" — Ambassador");
+            Player hp = humanPlayer;
+            if (hp != null) {
+                if (hp.getInnerCircle().contains(ch)) {
+                    sb.append("<br>Inner Circle");
+                } else if (hp.getSupportingRole().contains(ch)) {
+                    sb.append("<br>Supporting role");
+                    if (ch.isRotated()) sb.append(" (rotated)");
+                    if (rules != null) {
+                        sb.append(" — promotion cost ")
+                          .append(rules.promotionCost(hp, ch)).append(" INF");
+                        if (rules.canPromote(hp, ch)) {
+                            sb.append(" — promote available");
+                        }
+                    }
+                }
+            }
+        } else if (card instanceof FleetCard) {
+            FleetCard fleet = (FleetCard) card;
+            sb.append("<br>Military: ").append(fleet.getMilitary());
+        } else if (card instanceof ConflictCard) {
+            ConflictCard cc = (ConflictCard) card;
+            sb.append("<br>").append(cc.getConflictType().toString())
+              .append("  +").append(cc.getInfluenceReward()).append(" INF");
+        } else if (card instanceof AgendaCard) {
+            AgendaCard agenda = (AgendaCard) card;
+            sb.append("<br>Agenda (")
+              .append(agenda.isMajorAgenda() ? "MAJOR" : "minor").append(")");
+            if (agenda.isFaceDown()) sb.append(" [face-down]");
+        } else if (card instanceof EnhancementCard) {
+            EnhancementCard enh = (EnhancementCard) card;
+            boolean first = true;
+            if (enh.getDiplomacyBonus() != 0) { sb.append(first ? "<br>Bonuses: " : ", ").append("D").append(enh.getDiplomacyBonus()); first = false; }
+            if (enh.getIntrigueBonus() != 0) { sb.append(first ? "<br>Bonuses: " : ", ").append("I").append(enh.getIntrigueBonus()); first = false; }
+            if (enh.getPsiBonus() != 0) { sb.append(first ? "<br>Bonuses: " : ", ").append("P").append(enh.getPsiBonus()); first = false; }
+            if (enh.getMilitaryBonus() != 0) { sb.append(first ? "<br>Bonuses: " : ", ").append("M").append(enh.getMilitaryBonus()); first = false; }
+            if (enh.getLeadershipBonus() != 0) { sb.append(first ? "<br>Bonuses: " : ", ").append("L").append(enh.getLeadershipBonus()); first = false; }
+        } else if (card instanceof LocationCard) {
+            LocationCard loc = (LocationCard) card;
+            sb.append("<br>Influence/round: +").append(loc.getInfluencePerRound()).append(" INF");
+        } else if (card instanceof GroupCard) {
+            // GroupCard has no special stats beyond what's in text
+        } else if (card instanceof EventCard) {
+            // EventCard has no special stats beyond what's in text
+        } else if (card instanceof AftermathCard) {
+            AftermathCard aft = (AftermathCard) card;
+            sb.append("<br>Trigger: ").append(aft.getTriggerCondition());
+        } else if (card instanceof ContingencyCard) {
+            ContingencyCard con = (ContingencyCard) card;
+            sb.append("<br>Target: ").append(con.getValidTargetType()).append(" / ").append(con.getValidTargetRace());
+            String trigger = con.getTriggerCondition();
+            if (trigger != null && trigger.length() > 0) {
+                sb.append(" | Trigger: ").append(trigger);
+            }
+        }
+        String text = card.getText();
+        if (text != null && text.length() > 0) {
+            sb.append("<br><i>").append(text).append("</i>");
+        }
+        return sb.toString();
     }
 
     @Override

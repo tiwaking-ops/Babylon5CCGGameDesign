@@ -14,6 +14,12 @@
     4. .agent\tools\ledger-query.ps1 -Status "*"   row/pipe census
     5. .agent\tools\validate-heartbeats.ps1        heartbeat conformance
     6. .agent\run-queue.ps1 -DryRun         claimable census
+    7. .agent\tools\check-citations.ps1     dangling-citation census (B5-1927)
+
+  Instrument 7 was added by B5-1927 because instruments 1-6 verify STRUCTURE and
+  never verify PRESENCE: nothing in the standing sequence checked that a cited
+  report or pattern file actually existed. Six DONE rows named files that had
+  never been created, and no instrument reported it.
 
   The battery REPORTS and does not ACT: it never repairs, never reaps, never
   edits any file, and never changes an instrument's exit code, threshold, TTL
@@ -23,10 +29,10 @@
   without a declared expected-red list trains every future session to ignore
   red). Standing state as of 2026-09-30, each with its measured reason:
 
-    - validate-heartbeats: designed 0, standing observed 1. Declared reason:
-      the out-of-enum tombstone "Cline (space-bunny) b5-0941.json"
-      (state 'released') plus the legacy solar-pro4 / freebuff-NN lookalike
-      class. All foreign; none battery-owned.
+    - validate-heartbeats: designed 0, standing observed 1. Standing state
+      re-declared 2026-10-01, amended 09:33Z (15 non-conforming filenames, 2 colliding
+      agent_ids; all foreign, none battery-owned) - full inventory pinned in
+      $ExpectedRed below and compared both directions per B5-1067.
 
   THE EXPECTED RED IS A SET, NOT A NUMBER (B5-1067). B5-1019 declared the
   standing state as a scalar, and line 102 compared only the observed exit code
@@ -97,11 +103,22 @@ param(
   # B5-1067: internal. Redirects ONLY the heartbeat instrument's -Directory so the
   # set self-test can drive a TEMP copy of the store. Default is the live store,
   # which is what every ordinary invocation uses.
-  [string]$HeartbeatDirectory
+  [string]$HeartbeatDirectory,
+  # B5-1927: internal. Redirects ONLY the citation instrument's -Source, so the
+  # dangling-citation red proof can drive a TEMP fixture carrying the real
+  # pre-repair citation shapes without touching the live ledger or the live
+  # decision register. Same shape as -HeartbeatDirectory above, and same
+  # discipline: the default is the live pair, which is what every ordinary
+  # invocation uses.
+  [string]$CitationSource,
+  # B5-1927: the CITATION-path red proof. Same discipline as -SelfTestSet above
+  # and for the same reason: each proof must be runnable alone so a reader can see
+  # one red path green up without another's verdict masking it.
+  [switch]$SelfTestCitations
 )
 
 $ErrorActionPreference = 'Continue'
-$batteryVersion = 'B5-1019 + B5-1067 2026-09-30'
+$batteryVersion = 'B5-1019 + B5-1067 + B5-1927 2026-10-01'
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 
 # ---- B5-1067: pin the pipe to UTF-8 BEFORE any native invocation ----------
@@ -137,20 +154,31 @@ try {
 $ExpectedRed = @{}
 $ExpectedRed['validate-heartbeats'] = @{
   StandingObserved = 1
-  Reason = 'declared 2026-09-30: out-of-enum tombstone Cline (space-bunny) b5-0941.json (state released) plus legacy solar-pro4/freebuff-NN lookalike class; all foreign, none battery-owned'
-  # Measured 2026-09-30T05:47Z by slicing the instrument's own -Json array prefix.
-  # 8 of these 9 are inside _quarantine/ (B5-1062 put them there by decision);
-  # exactly 1 is in the live tier, the Cline tombstone. Re-declare, do not
-  # silently absorb, when this inventory legitimately changes.
+  Reason = 're-declared 2026-10-01T09:16Z, amended 09:33Z: 15 standing non-conforming filenames (the 14 plus newly-drifted space-bunny-free 8.json, an active session mid-work file) and 2 standing collisions; the declared me-so-poor collision has resolved; all foreign, none battery-owned. COLLISION SET RE-DECLARED 2026-10-03 under B5-2340: the 15-file non-conforming inventory above is UNCHANGED by that pass (measured 15 before, 15 after, every finding preserved), but the 2 declared collisions became 1 because a collision now means one LIVE agent_id across more than one LIVE file, so pi (poor-pi) replaced two entries that were never live-store collisions at all'
+  # Re-declared 2026-10-01T09:16Z by slicing the instrument's own -Json array prefix
+  # (same method as 2026-09-30). The 5 additions are foreign-agent timestamp /
+  # future-skew findings on the live tier; the 3 Cline clock-skew files flagged by
+  # the previous run had been rewritten by their owner between runs and read
+  # conforming here. This store is hot: re-measure before trusting this pin.
+  # Re-declare, do not silently absorb, when this inventory legitimately changes.
   StandingNonConforming = @(
     'Cline (space-bunny) b5-0941.json',
+    'Cline (space-bunny) b5-1045.json',
     'freebuff-01.json',
     'freebuff-02.json',
     'freebuff-03.json',
+    'GitHub Copilot (Auto mode).json',
     'kiro-pi.timestamp',
     'me-so-poor.json.bak',
+    'opencode (space-bunny-free) 4.json',
+    'opencode (space-bunny-free) 5.json',
+    # Added 2026-10-01T09:33Z: active session mid-work heartbeat (partial schema at
+    # measurement); expected to resolve on owner close-out, at which point drop this
+    # line with a comment, not silently.
+    'opencode (space-bunny-free) 8.json',
     'solar-pro4',
     'solar-pro4.json',
+    'solar-pro4-free-b51068blocked.json',
     # The U+F03A lookalike is BUILT FROM ITS CODEPOINT, never pasted as a literal.
     # A raw private-use character in a source file renders as '?' or a box, so
     # every reader of this line and every tool that rewrites the file can silently
@@ -160,13 +188,32 @@ $ExpectedRed['validate-heartbeats'] = @{
     # DECISIONS B5-1001 is blocked on.
     ('solar-pro4' + [char]0xF03A + 'free.json')
   )
-  # Mirrors validate-heartbeats.ps1 lines 203-210: one agent_id, >1 file.
+  # Mirrors validate-heartbeats.ps1's LIVE-only collision rule: one LIVE agent_id,
+  # more than one LIVE file.
+  # The me-so-poor entry stood here until 2026-10-01, when the live store showed
+  # the collision resolved; dropped in the re-declaration, not silently absorbed.
+  # RE-DECLARED 2026-10-03 under B5-2340, and the two entries that stood here until
+  # then were NOT resolved by their owners -- they were never live-store collisions at
+  # all. Measured on the store: 'Buffy (deepseek-v4-flash)' has 0 LIVE files and 4
+  # archived copies (_retired/Buffy (deepseek-v4-flash).json plus _quarantine/
+  # freebuff-01..03.json); 'solar-pro4:free' has 1 LIVE file (solar-pro4-free.json)
+  # and 2 archived copies. Each read as a collision only because the archive was
+  # enumerated as if it were the live store, which meant every correct execution of the
+  # approved retirement policy manufactured a fresh phantom collision and this set had
+  # to be re-declared as the fleet retired. 'pi (poor-pi)' is the one genuine
+  # live-vs-live collision (pi (poor-pi).json and pi (poor-pi) 1.json, both LIVE, no
+  # archived copy) and is now the only entry. Re-declare, do not silently absorb.
   StandingCollisions = @(
-    'Buffy (deepseek-v4-flash)',
-    'me-so-poor',
-    'solar-pro4:free'
+    'pi (poor-pi)'
   )
 }
+
+# census-crosscheck (bonus) carries NO ExpectedRed entry as of 2026-10-01T09:33Z:
+# the B5-1109 pipe-shape divergence it was declared for (StandingObserved 1, B5-1727)
+# was repaired by another agent's lead-pipe work the same session - the row now reads
+# 7 pipes with a single lead and both tools report CONSISTENT - so designed 0 now
+# equals observed 0 with nothing declared. Any future nonzero exit is a NEW divergence
+# and must go red; do not re-add a standing entry without a measured divergence.
 
 # ---- layout gate: exit 2, never a false pass -------------------------------
 $required = @(
@@ -174,6 +221,10 @@ $required = @(
   (Join-Path $repoRoot '.agent\tools\ledger-query.ps1'),
   (Join-Path $repoRoot '.agent\tools\validate-heartbeats.ps1'),
   (Join-Path $repoRoot '.agent\tools\census-crosscheck.ps1'),
+  # B5-1927: the dangling-citation checker is now instrument 7. Listing it here
+  # means a missing or renamed checker is exit 2 (a false pass) rather than a
+  # silent skip -- the battery would otherwise report GREEN while not running it.
+  (Join-Path $repoRoot '.agent\tools\check-citations.ps1'),
   (Join-Path $repoRoot '.agent\run-queue.ps1'),
   (Join-Path $repoRoot 'b5ccg\compile.bat'),
   (Join-Path $repoRoot 'b5ccg\compile.sh')
@@ -258,8 +309,13 @@ function Get-HeartbeatInventory {
   $inv.Readable  = $true
   $inv.Rows      = $data.Count
   $inv.NonConforming = @($data | Where-Object { $_.Verdict -ne 'CONFORMS' } | ForEach-Object { $_.File } | Sort-Object)
-  # Mirrors validate-heartbeats.ps1 lines 203-210: one agent_id, more than one file.
-  $inv.Collisions = @($data | Where-Object { -not [string]::IsNullOrEmpty($_.AgentId) } |
+  # Mirrors validate-heartbeats.ps1's LIVE-ONLY collision rule (B5-2340): one LIVE
+  # agent_id claimed by more than one LIVE file. The archive (_retired/, _quarantine/)
+  # is out of the live store by the retirement policy approved 2026-09-29, so a live
+  # file beside its own archived copy is not two sessions sharing one identity -- it is
+  # the ordinary terminal state of a retirement. Without the -Live filter this mirror
+  # re-derived the OLD rule and contradicted the instrument it exists to mirror.
+  $inv.Collisions = @($data | Where-Object { $_.Live -and -not [string]::IsNullOrEmpty($_.AgentId) } |
                         Group-Object AgentId | Where-Object { $_.Count -gt 1 } |
                         ForEach-Object { $_.Name } | Sort-Object)
   return $inv
@@ -374,7 +430,57 @@ if ($SelfTestSet) {
 }
 
 # =================================================================================
-# The six instruments, in boot order.
+if ($SelfTestCitations) {
+  # B5-1927 RED-path proof 3: the dangling-citation instrument. Proofs 1 and 2
+  # above cover the scalar and SET gates; this one proves instrument 7 is not a
+  # dead stub. It builds a TEMP fixture carrying the REAL pre-repair citation
+  # shapes found by B5-1925 and asserts the instrument reads 1, which the battery
+  # must then surface as RED.
+  #
+  # NO LIVE FILE IS TOUCHED. The live ledger and the live decision register are
+  # never passed to the instrument here; only the fixture is.
+  Write-Host ("=== B5 verification battery " + $batteryVersion + " - SELF-TEST (CITATION path) ===")
+  $citeFix = Join-Path ([System.IO.Path]::GetTempPath()) ('b5-battery-citest-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
+  New-Item -ItemType Directory -Path $citeFix -Force | Out-Null
+  $citeFixture = Join-Path $citeFix 'fixture-ledger.md'
+  # Three of the four real shapes from B5-1925: a report cited under a truncated
+  # model name, a report that was never filed at all, and a pattern cited under
+  # the wrong namespace. Plus a glob and an NTFS-illegal colon path, which must
+  # NOT be scored as defects -- if they were, this proof could not tell whether
+  # it was testing the dangling case or the exclusion case.
+  $citeRows = @(
+    '| A | DONE | cites .agent/REPORTS/2026-09-25-Qwen-B5-0384.md | - | - |',
+    '| B | DONE | cites .agent/REPORTS/2026-09-26-solar-pro4-free-B5-0472.md | - | - |',
+    '| C | DONE | cites .agent/PATTERNS/me-so-poor/2026-09-27-a-rule-whose-precondition-cannot-fire-is-a-sizing-task.md | - | - |',
+    '| D | DONE | cites .agent/REPORTS/*.md and .agent/PATTERNS/solar-pro4:free/x.md | - | - |'
+  )
+  [System.IO.File]::WriteAllText($citeFixture, ($citeRows -join "`r`n"), [System.Text.UTF8Encoding]::new($false))
+  # Registered under the REAL instrument name, not a fixture name. That is the
+  # whole point of a differential proof: the battery must judge this through the
+  # same code path it uses in production, or it proves nothing about the defect.
+  Test-Instrument -Name 'check-citations' -Designed 0 `
+    -Detail 'TEMP fixture with 3 real pre-repair dangling shapes (B5-1925) + 1 glob and 1 NTFS-illegal colon path that must NOT be scored. No live file is read or written.' `
+    -Probe {
+      & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot '.agent\tools\check-citations.ps1') -Source $citeFixture | Out-Null
+      $LASTEXITCODE
+    } | Out-Null
+  # A dangling-citation instrument with no ExpectedRed entry must read RED on any
+  # nonzero. State the expectation explicitly and refuse to claim the proof if the
+  # observed code is not the one the fixture guarantees.
+  $observedCite = @($script:Results | Where-Object { $_.Name -eq 'check-citations' })[0]
+  Write-Host ("    differential: observed " + $observedCite.Observed + " vs designed 0, and NO standing red is declared for this instrument -> verdict " + $observedCite.Verdict)
+  if ($observedCite.Observed -ne 1) {
+    Write-Warning ('CITATION PROOF INVALID: fixture guarantees 3 dangling citations, so the instrument must observe 1, but it observed ' + $observedCite.Observed)
+  } else {
+    Write-Host '    differential holds: observed 1 with no declared red, so the RED below is attributable to this instrument alone'
+  }
+  $code = Show-Verdict
+  Remove-Item -LiteralPath $citeFix -Recurse -Force -ErrorAction SilentlyContinue
+  exit $code
+}
+
+# =================================================================================
+# The seven instruments, in boot order.
 # =================================================================================
 Write-Host ("=== B5 verification battery " + $batteryVersion + " ===")
 Write-Host ("repo root: " + $repoRoot)
@@ -431,8 +537,24 @@ Test-Instrument -Name 'run-queue -DryRun' -Designed 0 -Detail 'drained queue is 
   $LASTEXITCODE
 } | Out-Null
 
+# 7. dangling-citation census (B5-1927): every .agent/REPORTS and .agent/PATTERNS
+# reference in the ledger and the decision register must resolve to a real file.
+# Designed 0, and deliberately NO ExpectedRed entry: the tree was clean when this
+# was wired in, so any nonzero exit is a NEW dangling citation and must go red.
+# This closes a gap the other six instruments structurally cannot see -- they
+# verify structure (ids, pipes, schemas) and never verify that a cited file is
+# present. Six DONE rows were citing files that had never been created
+# (B5-0472, B5-0485 among them) and nothing reported it until B5-1925 ran a sweep
+# by hand. Exit 2 (source unreadable) is a false pass and must never read as green.
+Test-Instrument -Name 'check-citations' -Designed 0 -Detail '0 clean / 1 dangling citation found / 2 source unreadable; no standing red declared, so any nonzero is a NEW finding' -Probe {
+  $citeArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $repoRoot '.agent\tools\check-citations.ps1'))
+  if ($CitationSource) { $citeArgs += @('-Source', $CitationSource) }
+  & powershell @citeArgs | Out-Null
+  $LASTEXITCODE
+} | Out-Null
+
 # Completeness bonus (not one of the six): designed 0 with an expected DIVERGENT footer.
-Test-Instrument -Name 'census-crosscheck (bonus)' -Designed 0 -Detail 'DIVERGENT 1 of 549 (B5-1022 shape) is an expected finding; nonzero exit is not' -Probe {
+Test-Instrument -Name 'census-crosscheck (bonus)' -Designed 0 -Detail 'no standing divergence: B5-1109 pipe-shape repaired 2026-10-01, both tools report CONSISTENT; any nonzero exit is a new finding' -Probe {
   & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot '.agent\tools\census-crosscheck.ps1') 2>$null | Out-Null
   $LASTEXITCODE
 } | Out-Null

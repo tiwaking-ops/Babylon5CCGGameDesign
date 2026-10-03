@@ -198,6 +198,7 @@ public class Player {
     /** True once this player could not draw and had no Inner Circle
      *  character left to discard (rulebook Draw Round Step 3: he loses). */
     public boolean hasForfeited() { return hasForfeited; }
+    public void setHasForfeited(boolean v) { hasForfeited = v; }
 
     /** B5-0661: true once this player has unconditionally surrendered
      *  (rulebook :815–:819). A surrendered player is out of the game. */
@@ -428,6 +429,144 @@ public class Player {
     public void raiseUnrest(int n)   { unrest = Math.min(5, unrest + Math.max(0, n)); }
     /** Lower unrest, clamped to the rulebook 1..5 band (:280). */
     public void lowerUnrest(int n)   { unrest = Math.max(1, unrest - Math.max(0, n)); }
+
+    // ── B5-1995: Per-faction Mark tracking ────────────────────────────────────
+    /**
+     * Returns the total count of a mark type across all characters, fleets, and
+     * locations this faction controls. Rulebook VI: "If a card refers to a
+     * player's marks, or a faction's marks, then it includes all marks attached
+     * to all characters in that faction."
+     */
+    public int getTotalMarks(MarkType type) {
+        int total = 0;
+        for (CharacterCard ch : innerCircle) {
+            if (ch != null) total += ch.getMarkCount(type);
+        }
+        for (CharacterCard ch : supportingRole) {
+            if (ch != null) total += ch.getMarkCount(type);
+        }
+        for (CharacterCard ch : asylumCards) {
+            if (ch != null) total += ch.getMarkCount(type);
+        }
+        for (FleetCard fl : fleets) {
+            if (fl != null) total += fl.getMarkCount(type);
+        }
+        for (LocationCard loc : locations) {
+            if (loc != null) total += loc.getMarkCount(type);
+        }
+        // Enhancement cards can also have marks (e.g., Vorlon Enhancement)
+        for (EnhancementCard enh : enhancements) {
+            if (enh != null) total += enh.getMarkCount(type);
+        }
+        if (agenda != null) total += agenda.getMarkCount(type);
+        return total;
+    }
+
+    /** Returns true if this faction has at least one mark of the given type. */
+    public boolean hasMark(MarkType type) {
+        return getTotalMarks(type) > 0;
+    }
+
+    /** Returns true if this faction has any Shadow marks. */
+    public boolean hasShadowMarks() {
+        return hasMark(MarkType.SHADOW);
+    }
+
+    /** Returns true if this faction has any Vorlon marks. */
+    public boolean hasVorlonMarks() {
+        return hasMark(MarkType.VORLON);
+    }
+
+    /**
+     * Rulebook VI: "A faction cannot have both Shadow and Vorlon marks.
+     * If one of these marks is already attached to a character in one faction,
+     * any effect attaching an opposing mark to any character in the same faction
+     * is ignored."
+     * Returns true if the faction can gain marks of the given type.
+     */
+    public boolean canGainMark(MarkType type) {
+        if (type == MarkType.SHADOW) {
+            return !hasVorlonMarks();
+        }
+        if (type == MarkType.VORLON) {
+            return !hasShadowMarks();
+        }
+        return true; // Other mark types have no cross-type restriction
+    }
+
+    /**
+     * Adds marks of a specific type to a target character/fleet/location.
+     * Enforces the Shadow/Vorlon mutual exclusion rule.
+     * Returns the number of marks actually added (0 if blocked by exclusion).
+     */
+    public int addMarksToCharacter(CharacterCard target, MarkType type, int count) {
+        if (target == null || count <= 0) return 0;
+        if (!canGainMark(type)) return 0;
+        return target.addMarks(type, count);
+    }
+
+    public int addMarksToFleet(FleetCard target, MarkType type, int count) {
+        if (target == null || count <= 0) return 0;
+        if (!canGainMark(type)) return 0;
+        return target.addMarks(type, count);
+    }
+
+    public int addMarksToLocation(LocationCard target, MarkType type, int count) {
+        if (target == null || count <= 0) return 0;
+        if (!canGainMark(type)) return 0;
+        return target.addMarks(type, count);
+    }
+
+    /**
+     * Purges marks of a specific type from all cards in this faction.
+     * Rulebook VI: "If a character is cut off from a source of a mark
+     * (for example, if a faction switches agendas or if an aftermath or
+     * enhancement is discarded or blanked) then that character must purge
+     * a mark of that type."
+     * Returns the total number of marks purged.
+     */
+    public int purgeMarks(MarkType type) {
+        int totalPurged = 0;
+        for (CharacterCard ch : innerCircle) {
+            if (ch != null) totalPurged += ch.removeMarks(type, 1);
+        }
+        for (CharacterCard ch : supportingRole) {
+            if (ch != null) totalPurged += ch.removeMarks(type, 1);
+        }
+        for (CharacterCard ch : asylumCards) {
+            if (ch != null) totalPurged += ch.removeMarks(type, 1);
+        }
+        for (FleetCard fl : fleets) {
+            if (fl != null) totalPurged += fl.removeMarks(type, 1);
+        }
+        for (LocationCard loc : locations) {
+            if (loc != null) totalPurged += loc.removeMarks(type, 1);
+        }
+        for (EnhancementCard enh : enhancements) {
+            if (enh != null) totalPurged += enh.removeMarks(type, 1);
+        }
+        if (agenda != null) totalPurged += agenda.removeMarks(type, 1);
+        return totalPurged;
+    }
+
+    /**
+     * Purges marks of a specific type from a specific target card.
+     * Returns the number of marks purged (0 or 1 per rulebook "purge a mark").
+     */
+    public int purgeMarkFromCharacter(CharacterCard target, MarkType type) {
+        if (target == null) return 0;
+        return target.removeMarks(type, 1);
+    }
+
+    public int purgeMarkFromFleet(FleetCard target, MarkType type) {
+        if (target == null) return 0;
+        return target.removeMarks(type, 1);
+    }
+
+    public int purgeMarkFromLocation(LocationCard target, MarkType type) {
+        if (target == null) return 0;
+        return target.removeMarks(type, 1);
+    }
 
     @Override
     public String toString() {

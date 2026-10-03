@@ -1,10 +1,14 @@
 package b5ccg.model;
 
 import b5ccg.model.enums.*;
+import java.util.*;
 
 public class AgendaCard extends Card {
     private final boolean isMajorAgenda;
     private final String  winConditionKey;
+
+    /** B5-1995: per-agenda mark counts. Keyed by MarkType. */
+    private final Map<MarkType, Integer> marks = new HashMap<MarkType, Integer>();
 
     public AgendaCard(String id, String title, String subtype,
                       Rarity rarity, Faction faction, CardSet cardSet,
@@ -50,4 +54,62 @@ public class AgendaCard extends Card {
 
     @Override
     public int getPrimaryStatValue(ConflictType type) { return 0; }
+
+    // ── B5-1995: Mark operations ──────────────────────────────────────────────
+
+    /** Returns the count of a specific mark type on this agenda. */
+    public int getMarkCount(MarkType type) {
+        Integer count = marks.get(type);
+        return count == null ? 0 : count.intValue();
+    }
+
+    /** Sets the count of a specific mark type on this agenda. */
+    public void setMarkCount(MarkType type, int count) {
+        if (count <= 0) {
+            marks.remove(type);
+        } else {
+            marks.put(type, Integer.valueOf(count));
+        }
+    }
+
+    /** Adds marks of a specific type to this agenda. Returns the new count. */
+    public int addMarks(MarkType type, int count) {
+        if (count <= 0) return getMarkCount(type);
+        int current = getMarkCount(type);
+        int next = current + count;
+        marks.put(type, Integer.valueOf(next));
+        return next;
+    }
+
+    /** Removes marks of a specific type from this agenda. Returns the new count (never negative). */
+    public int removeMarks(MarkType type, int count) {
+        if (count <= 0) return getMarkCount(type);
+        int current = getMarkCount(type);
+        int next = Math.max(0, current - count);
+        if (next == 0) {
+            marks.remove(type);
+        } else {
+            marks.put(type, Integer.valueOf(next));
+        }
+        return next;
+    }
+
+    /** Returns true if this agenda has at least one mark of the given type. */
+    public boolean hasMark(MarkType type) {
+        return getMarkCount(type) > 0;
+    }
+
+    /** Returns the total number of marks on this agenda across all types. */
+    public int getTotalMarks() {
+        int total = 0;
+        for (Integer count : marks.values()) {
+            total += count.intValue();
+        }
+        return total;
+    }
+
+    /** Returns an unmodifiable view of the marks map. */
+    public Map<MarkType, Integer> getMarks() {
+        return Collections.unmodifiableMap(marks);
+    }
 }
