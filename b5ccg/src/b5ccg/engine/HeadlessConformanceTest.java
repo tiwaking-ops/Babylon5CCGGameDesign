@@ -107,6 +107,18 @@ import java.lang.reflect.Field;
  *     so a mid-turn gain cannot reorder a published tie-break; a 0 bid is not a
  *     bid; a forfeited or surrendered seat cannot take control. Includes a
  *     divergence witness against the model-scope strict resolver.
+ * SETUP-AMB Starting setup seats exactly ONE Starting Ambassador per faction
+ *     player (B5-2412; rulebook :228/:230/:266). setupGame's findAmbassador
+ *     returned on the first match, so a second copy of the same printed card
+ *     stayed in the hand (playable) or in the draw pile (drawable later) --
+ *     reachable in the real game because Main.startGame pins the ambassador to
+ *     the pile top on an object findAmbassador already took from that list.
+ *     The duplicates leave the game, NOT the discard pile, because
+ *     Deck.recycleDiscard would shuffle them back in. The predicate is
+ *     same-faction + isAmbassador + same TITLE, and both directions are pinned:
+ *     a same-faction ambassador-flagged card of another name (Delenn
+ *     Transformed) and the Non-Aligned second species ambassador (:890) both
+ *     survive.
  *
  * Run after compile.bat / compile.sh:
  *   java -cp b5ccg/out b5ccg.engine.HeadlessConformanceTest
@@ -7934,6 +7946,565 @@ public class HeadlessConformanceTest {
      * DECISION (crown a leader, or report a tie and crown nobody). That is
      * what is asserted here, against real GameState objects.
      */
+    /** B5-2237 helper: how many cards with this id sit in a player's discard pile. */
+    private static int discardCount(Player p, String id) {
+        int n = 0;
+        for (Card c : p.getDeck().getDiscardPile()) {
+            if (id != null && id.equals(c.getId())) n++;
+        }
+        return n;
+    }
+
+    private static boolean discardContains(Player p, String id) {
+        return discardCount(p, id) > 0;
+    }
+
+    /**
+     * B5-2237 — Resolution Step 3 (:440) deferred aftermath discard.
+     *
+     * Rulebook :440 places the discard of a one-shot aftermath in Step 3
+     * ("Discard Conflicts and Aftermaths"), not in Step 2 where the card is
+     * played, and :428 makes the timing load-bearing: "Aftermaths which occur
+     * and are then discarded should only be discarded at the end of the
+     * aftermath step for that conflict. Therefore, a 'discard after play'
+     * aftermath can only be played once on any given target for each conflict."
+     *
+     * The observable the engine must expose is that a played one-shot is IN PLAY
+     * and in NO discard pile until the step ends. Discarding in place satisfied
+     * "it ends up discarded" and violated everything else.
+     */
+    private static void testAftermathDiscardAfterStep() {
+        System.out.println("AMT4: aftermath discarded at END of aftermath step (B5-2237)");
+
+        Player owner = player("AMT4Owner", Faction.NARN);
+        Player other = player("AMT4Other", Faction.CENTAURI);
+        GameState st = state(owner, other);
+        GameController gc = newController(st);
+
+        // Rulebook :590 splits aftermaths two ways: most act like enhancements
+        // and stay in play, some cause an immediate effect and are discarded
+        // after play ("Immediate effects are not reversed when the aftermath
+        // that caused them is discarded"). "permanently" is the discriminator.
+        AftermathCard oneShot = new AftermathCard("am4_rise_to_power", "Rise to Power",
+                "AFTERMATH_WON_MILITARY", Rarity.UNCOMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "Play after winning a Military conflict. Gain 2 Influence.",
+                "WON_MILITARY");
+        AftermathCard permanent = new AftermathCard("am4_war_hero", "War Hero",
+                "AFTERMATH_WON_MILITARY", Rarity.RARE, Faction.ANY, CardSet.PREMIERE,
+                "x", "Play after winning a Military conflict. One of your characters "
+                   + "gains +2 Leadership permanently.", "WON_MILITARY");
+
+        check("AMT4", "an immediate-effect aftermath is one-shot, not permanent",
+                !GameController.isPermanentAftermath(oneShot));
+        check("AMT4", "an aftermath reading '...permanently' stays in play",
+                GameController.isPermanentAftermath(permanent));
+
+        // Step 2 (:418 "Play Aftermath Cards") queues; it must not discard.
+        gc.queueAftermathDiscard(owner, oneShot);
+        check("AMT4", "Step 2 queues the one-shot rather than discarding it",
+                gc.getPendingAftermathDiscardCount() == 1);
+        check("AMT4", "the one-shot is in NO discard pile before Step 3",
+                !discardContains(owner, oneShot.getId())
+             && !discardContains(other, oneShot.getId()));
+
+        // Step 3 (:440) is the step that actually discards.
+        gc.flushPendingAftermathDiscards();
+        check("AMT4", "Step 3 discards the one-shot to its OWNER's pile",
+                discardContains(owner, oneShot.getId()));
+        check("AMT4", "Step 3 does not discard onto another player",
+                !discardContains(other, oneShot.getId()));
+        check("AMT4", "Step 3 empties the deferred queue",
+                gc.getPendingAftermathDiscardCount() == 0);
+        check("AMT4", "the end-of-step discard is logged against the owner",
+                logContains(st, "discards Rise to Power"));
+
+        // Flushing again with an empty queue must not double-discard.
+        gc.flushPendingAftermathDiscards();
+        check("AMT4", "a second Step 3 flush discards nothing again",
+                discardCount(owner, oneShot.getId()) == 1);
+
+        // A permanent is never queued: it stays attached to its target.
+        int before = st.getAttachedAftermaths(owner).size();
+        check("AMT4", "a permanent aftermath is not queueable for discard",
+                GameController.isPermanentAftermath(permanent));
+        st.attachAftermath(permanent, owner);
+        gc.flushPendingAftermathDiscards();
+        check("AMT4", "the permanent aftermath is NOT discarded",
+                !discardContains(owner, permanent.getId()));
+        check("AMT4", "the permanent aftermath is still in play on its target",
+                st.getAttachedAftermaths(owner).size() == before + 1
+             && st.getAttachedAftermaths(owner).contains(permanent));
+
+        // Both aftermaths played in the same step: exactly one discard happens.
+        Player dual = player("AMT4Dual", Faction.VORLON);
+        GameState st2 = state(dual, other);
+        GameController gc2 = newController(st2);
+        AftermathCard second = new AftermathCard("am4_glory", "Glory",
+                "AFTERMATH_WON", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "Play after winning a Diplomacy or Military conflict. Gain 2 Influence.",
+                "WON");
+        gc2.queueAftermathDiscard(dual, oneShot);
+        gc2.queueAftermathDiscard(dual, second);
+        check("AMT4", "two one-shots in one step are both queued before the flush",
+                gc2.getPendingAftermathDiscardCount() == 2);
+        gc2.flushPendingAftermathDiscards();
+        check("AMT4", "Step 3 discards every one-shot queued during the step",
+                discardCount(dual, oneShot.getId()) == 1
+             && discardCount(dual, second.getId()) == 1);
+        check("AMT4", "the drained queue is empty after the flush",
+                gc2.getPendingAftermathDiscardCount() == 0);
+    }
+
+    /**
+     * B5-2406 — the one-shot REGISTRY question left open by B5-2237.
+     *
+     * B5-2237 moved the one-shot discard out of Step 2 (:418) into Step 3
+     * (:440), queueing on GameController.pendingAftermathDiscards and flushing
+     * once the whole aftermath step has run. It asserted the discard happens
+     * once, to the right owner, with an empty queue afterwards. It did NOT
+     * ask what the card's PRESENCE IN THE PLAYER'S HAND is doing meanwhile,
+     * which is the registry question this section settles.
+     *
+     * Two failure modes are possible and they pull opposite ways:
+     *
+     *   DOUBLE-FIRE — the same physical card queued twice, or left in hand and
+     *   queued again, so its effect applies twice and two copies of one card
+     *   reach the discard pile. The queue has no membership guard at all
+     *   (queueAftermathDiscard appends unconditionally), so the guard has to be
+     *   proven, not assumed.
+     *
+     *   BLOCKED REPLAY — the D4 gate (one of each named aftermath in play per
+     *   target) keys off attachedAftermaths, which is cleared only at the round
+     *   boundary (GameState.advanceRound -> clearAttachedAftermaths). A one-shot
+     *   is attached in Step 2 and stays attached after its Step 3 discard, so
+     *   for the rest of the round its NAME occupies the target's D4 slot. A
+     *   player holding a second copy of the same one-shot is then refused by
+     *   canPlayAftermath on a target they are legally allowed to play it on —
+     *   the discard freed the card but not the name.
+     *
+     * Rulebook :428 is the authority for both: "Aftermaths which occur and are
+     * then discarded should only be discarded at the end of the aftermath step
+     * for that conflict. Therefore, a 'discard after play' aftermath can only
+     * be played once on any given target for each conflict." Once per target
+     * PER CONFLICT — not once per round. The D4 slot must therefore be released
+     * when the one-shot is discarded, or the engine enforces a stricter limit
+     * than the rulebook states.
+     */
+    private static void testOneShotRegistryMembership() {
+        System.out.println("AMT5: one-shot registry membership, single-fire and replay (B5-2406)");
+
+        Player owner = player("AMT5Owner", Faction.NARN);
+        Player other = player("AMT5Other", Faction.CENTAURI);
+        GameState st = state(owner, other);
+        GameController gc = newController(st);
+
+        AftermathCard oneShot = new AftermathCard("am4_rise_to_power", "Rise to Power",
+                "AFTERMATH_WON_MILITARY", Rarity.UNCOMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "Play after winning a Military conflict. Gain 2 Influence.",
+                "WON_MILITARY");
+
+        // ── DOUBLE-FIRE: the queue must not accept the same card twice ──
+        gc.queueAftermathDiscard(owner, oneShot);
+        gc.queueAftermathDiscard(owner, oneShot);
+        check("AMT5", "queueing the SAME one-shot twice yields ONE queue entry",
+                gc.getPendingAftermathDiscardCount() == 1);
+        gc.flushPendingAftermathDiscards();
+        check("AMT5", "a double-queued one-shot still discards exactly one copy",
+                discardCount(owner, oneShot.getId()) == 1);
+
+        // Distinct one-shots in one step are NOT duplicates and both survive.
+        AftermathCard other1 = new AftermathCard("am4_glory", "Glory",
+                "AFTERMATH_WON", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "Play after winning a Diplomacy or Military conflict. Gain 2 Influence.",
+                "WON");
+        gc.queueAftermathDiscard(owner, oneShot);
+        gc.queueAftermathDiscard(owner, other1);
+        check("AMT5", "two DISTINCT one-shots queue as two entries",
+                gc.getPendingAftermathDiscardCount() == 2);
+        gc.flushPendingAftermathDiscards();
+        check("AMT5", "both distinct one-shots discard exactly one copy each",
+                discardCount(owner, oneShot.getId()) == 2
+             && discardCount(owner, other1.getId()) == 1);
+
+        // A null owner or null card is refused rather than queued.
+        gc.queueAftermathDiscard(null, oneShot);
+        gc.queueAftermathDiscard(owner, null);
+        check("AMT5", "a null owner or null card is not queueable",
+                gc.getPendingAftermathDiscardCount() == 0);
+
+        // ── BLOCKED REPLAY: the D4 slot must be released on discard ──
+        // The live play path attaches in Step 2 and queues, then Step 3
+        // discards. Reproduce that shape and ask whether a SECOND copy of the
+        // same one-shot is still playable on the same target afterwards.
+        // A FRESH owner: `owner`'s discard pile already carries one-shots from the
+        // double-fire block above, so reusing it would make the pile-count
+        // assertion below measure the earlier block instead of this one.
+        Player owner2 = player("AMT5Owner2", Faction.HUMAN);
+        GameState st2 = state(owner2, other);
+        GameController gc2 = newController(st2);
+        AftermathCard played = new AftermathCard("am4_rise_to_power", "Rise to Power",
+                "AFTERMATH_WON_MILITARY", Rarity.UNCOMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "Play after winning a Military conflict. Gain 2 Influence.",
+                "WON_MILITARY");
+        AftermathCard secondCopy = new AftermathCard("am4_rise_to_power", "Rise to Power",
+                "AFTERMATH_WON_MILITARY", Rarity.UNCOMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "Play after winning a Military conflict. Gain 2 Influence.",
+                "WON_MILITARY");
+
+        st2.attachAftermath(played, owner2);
+        gc2.queueAftermathDiscard(owner2, played);
+        gc2.flushPendingAftermathDiscards();
+        check("AMT5", "the played one-shot reached its owner's discard pile",
+                discardCount(owner2, played.getId()) == 1);
+
+        // :428 allows one play per target PER CONFLICT, so the D4 name slot
+        // must be released by the discard. NOT PINNED HERE: releasing it needs
+        // a GameState.detachAftermath, and GameState is model/, outside this
+        // row's engine-only claim. Asserting either polarity would pin a
+        // known-wrong behaviour as a specification, so the check is withheld
+        // and the defect is reported instead. See the report's "Not fixed".
+        System.out.println("  [AMT5] WITHHELD: 'a discarded one-shot releases the "
+                + "target's D4 name slot' — needs a model/ detach seam, out of "
+                + "this row's engine-only scope; measured true="
+                + st2.canAttachAftermath(secondCopy, owner2)
+                + ", which is the DEFECT (recorded in the B5-2406 report).");
+
+        // And the registry predicate must agree with the legality gate built on
+        // it: while the one-shot is genuinely IN PLAY the D4 slot is held, and
+        // canPlayAftermath is the only thing that consults it.
+        Player p2 = player("AMT5P2", Faction.VORLON);
+        GameState st3 = state(p2, other);
+        p2.addToHand(secondCopy);
+        st3.attachAftermath(played, p2);
+        check("AMT5", "the D4 slot is occupied while the one-shot is IN PLAY",
+                !st3.canAttachAftermath(secondCopy, p2));
+    }
+
+    /** B5-2420 helper: index of the first log line containing needle, or -1. */
+    private static int logIndexOf(GameState st, String needle) {
+        List<String> lines = st.getLog();
+        for (int i = 0; i < lines.size(); i++) {
+            if (lines.get(i).contains(needle)) return i;
+        }
+        return -1;
+    }
+
+    /**
+     * B5-2420 — proves the B5-2237 deferral is WIRED into the real aftermath
+     * path, not merely correct in isolation.
+     *
+     * AMT4 calls queueAftermathDiscard and flushPendingAftermathDiscards
+     * directly. It would keep passing green if the production call sites were
+     * wrong, absent, or in the wrong order — a helper can be perfect while
+     * nothing calls it, or calls it at play time, which is the exact defect
+     * B5-2237 fixed. This section drives GameController.resolveCurrentConflict
+     * end to end with a legal aftermath in a non-human player's hand.
+     */
+    private static void testAftermathRealPathWiring() {
+        System.out.println("AMT6: B5-2237 deferral wired into the REAL aftermath path");
+
+        // ---- 1. a one-shot played through the real path ----
+        Player ai = player("AMT6AI", Faction.NARN);
+        // A human second player keeps both the B5-0338 join loop and the Step 2
+        // play loop off the getAI() path (which needs a populated aiPlayers
+        // list) and off the interactive join window.
+        Player human = new Player("AMT6Human", Faction.CENTAURI, true);
+        human.setDeck(new Deck(new ArrayList<Card>()));
+        GameState st = state(ai, human);
+        // null uiCallback skips the human join decision window, which would
+        // otherwise block on waitForHumanConflictJoin().
+        GameController gc = new GameController(st, new ArrayList<AIPlayer>(), null);
+
+        AftermathCard oneShot = new AftermathCard("am6_rise_to_power", "Rise to Power",
+                "AFTERMATH_WON_MILITARY", Rarity.UNCOMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "Play after winning a Military conflict. Gain 2 Influence.",
+                "WON_MILITARY");
+        ai.addToHand(oneShot);
+
+        ConflictCard cc = new ConflictCard("conf_am6", "AMT6 Strike", "CONFLICT_MILITARY",
+                Rarity.COMMON, Faction.ANY, CardSet.PREMIERE, "x", "text",
+                ConflictType.MILITARY, 2);
+        Conflict c = new Conflict(cc, ai);
+        c.commitCard(ai, ai.getAmbassador());
+        st.setActiveConflict(c);
+
+        gc.resolveCurrentConflict();
+
+        check("AMT6", "the real path played the aftermath out of the AI's hand",
+                !ai.getHand().contains(oneShot));
+        check("AMT6", "the real path discarded the one-shot exactly once",
+                discardCount(ai, oneShot.getId()) == 1);
+        check("AMT6", "the real path put the one-shot on no other player",
+                discardCount(human, oneShot.getId()) == 0);
+        check("AMT6", "nothing is left queued once the step ends",
+                gc.getPendingAftermathDiscardCount() == 0);
+
+        // The ordering proof. Step 2 logs the play; Step 3 logs the discard.
+        // Before B5-2237 there was no discard log line at all, because the
+        // discard happened silently at play time.
+        int playAt = logIndexOf(st, "plays aftermath");
+        int discardAt = logIndexOf(st, "discards Rise to Power");
+        check("AMT6", "the real path logged both the play and the end-of-step discard",
+                playAt >= 0 && discardAt >= 0);
+        check("AMT6", "the discard is logged AFTER the play (Step 3, not Step 2)",
+                playAt >= 0 && discardAt > playAt);
+
+        // ---- 2. a permanent played through the same real path ----
+        Player ai2 = player("AMT6AI2", Faction.VORLON);
+        Player human2 = new Player("AMT6Human2", Faction.MINBARI, true);
+        human2.setDeck(new Deck(new ArrayList<Card>()));
+        GameState st2 = state(ai2, human2);
+        GameController gc2 = new GameController(st2, new ArrayList<AIPlayer>(), null);
+
+        AftermathCard permanent = new AftermathCard("am6_war_hero", "War Hero",
+                "AFTERMATH_WON_MILITARY", Rarity.RARE, Faction.ANY, CardSet.PREMIERE,
+                "x", "Play after winning a Military conflict. One of your characters "
+                   + "gains +2 Leadership permanently.", "WON_MILITARY");
+        ai2.addToHand(permanent);
+
+        ConflictCard cc2 = new ConflictCard("conf_am6b", "AMT6 Strike 2",
+                "CONFLICT_MILITARY", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", ConflictType.MILITARY, 2);
+        Conflict c2 = new Conflict(cc2, ai2);
+        c2.commitCard(ai2, ai2.getAmbassador());
+        st2.setActiveConflict(c2);
+
+        gc2.resolveCurrentConflict();
+
+        check("AMT6", "the real path played the permanent aftermath",
+                !ai2.getHand().contains(permanent));
+        check("AMT6", "the real path did NOT discard the permanent aftermath",
+                discardCount(ai2, permanent.getId()) == 0);
+        check("AMT6", "the permanent aftermath is still in play on its target",
+                st2.getAttachedAftermaths(ai2).contains(permanent));
+        check("AMT6", "a permanent leaves nothing queued either",
+                gc2.getPendingAftermathDiscardCount() == 0);
+
+        // ---- 3. the real path with NO aftermath to play must still flush clean ----
+        Player ai3 = player("AMT6AI3", Faction.CENTAURI);
+        Player human3 = new Player("AMT6Human3", Faction.HUMAN, true);
+        human3.setDeck(new Deck(new ArrayList<Card>()));
+        GameState st3 = state(ai3, human3);
+        GameController gc3 = new GameController(st3, new ArrayList<AIPlayer>(), null);
+        ConflictCard cc3 = new ConflictCard("conf_am6c", "AMT6 Strike 3",
+                "CONFLICT_MILITARY", Rarity.COMMON, Faction.ANY, CardSet.PREMIERE,
+                "x", "text", ConflictType.MILITARY, 2);
+        Conflict c3 = new Conflict(cc3, ai3);
+        c3.commitCard(ai3, ai3.getAmbassador());
+        st3.setActiveConflict(c3);
+        gc3.resolveCurrentConflict();
+        check("AMT6", "a step with no aftermath played queues nothing and flushes clean",
+                gc3.getPendingAftermathDiscardCount() == 0
+             && logIndexOf(st3, "plays aftermath") < 0);
+    }
+
+    /**
+     * B5-2412 -- SETUP-AMB: exactly one Starting Ambassador per faction player
+     * once setup is finished, and nothing else the ambassador FLAG touches.
+     *
+     * <p>Driven through the real private {@code setupGame}, not through the
+     * sweep helper, for the B5-2420 reason: a helper call asserts the helper,
+     * a setup call asserts the wiring. The four players below are one table,
+     * one setup, and they are chosen so the predicate is pinned in BOTH
+     * directions -- three copies must go, and three legal cards that merely
+     * carry the flag must stay.
+     *
+     * <p>The duplicates are real, not hypothetical. Main.startGame pins the
+     * faction ambassador to the draw-pile top with {@code addToTop(amb)} on a
+     * card object that {@code StarterDeckBuilder.findAmbassador} already
+     * returned FROM the same list, so the deck holds that card twice; whichever
+     * copy the shuffle puts in the dealt hand second stayed in the hand after
+     * findAmbassador took the first. That is the reported second Jeffrey
+     * Sinclair.
+     */
+    private static void testStartingAmbassadorSetup() {
+        System.out.println("SETUP-AMB: one Starting Ambassador per faction at setup (B5-2412)");
+
+        // ── seat 1: HUMAN, the reported defect. Three printed Jeffrey Sinclairs
+        //    (one to be seated, two duplicates under two different set ids),
+        //    one duplicate dealt into the hand exactly as the screenshot showed.
+        Player human = new Player("AMBHuman", Faction.HUMAN, true);
+        CharacterCard sinclairSeated = startingAmbassador("char_jeffrey_sinclair", "Jeffrey Sinclair", Faction.HUMAN);
+        CharacterCard sinclairInDeck = startingAmbassador("char_jeffrey_sinclair", "Jeffrey Sinclair", Faction.HUMAN);
+        CharacterCard sinclairDeluxe  = startingAmbassador("de_char_jeffrey_sinclair", "Jeffrey Sinclair", Faction.HUMAN);
+        List<Card> humanDeck = new ArrayList<Card>();
+        humanDeck.add(sinclairInDeck);
+        humanDeck.add(sinclairDeluxe);
+        for (int i = 0; i < 6; i++) humanDeck.add(ambFiller("amb_h_" + i, Faction.HUMAN));
+        human.setDeck(new Deck(humanDeck));
+        human.addToHand(sinclairSeated);
+        human.addToHand(sinclairDeluxe);   // the reported symptom
+        human.addToHand(ambFiller("amb_h_hand", Faction.HUMAN));
+
+        // ── seat 2: MINBARI. "Delenn Transformed" ships with isAmbassador true
+        //    (char_delenn_transformed, MINBARI, RARE). It is a legal Minbari
+        //    character, NOT the :230 starting ambassador, so both copies must
+        //    survive while the two "Delenn" copies collapse to the seated one.
+        Player minbari = new Player("AMBMinbari", Faction.MINBARI, false);
+        CharacterCard delennSeated = startingAmbassador("char_delenn", "Delenn", Faction.MINBARI);
+        CharacterCard delennDup    = startingAmbassador("de_char_delenn", "Delenn", Faction.MINBARI);
+        CharacterCard transformedA = startingAmbassador("char_delenn_transformed", "Delenn Transformed", Faction.MINBARI, Rarity.RARE);
+        CharacterCard transformedB = startingAmbassador("de_char_delenn_transformed", "Delenn Transformed", Faction.MINBARI, Rarity.RARE);
+        List<Card> minbariDeck = new ArrayList<Card>();
+        minbariDeck.add(delennDup);
+        minbariDeck.add(transformedB);
+        for (int i = 0; i < 6; i++) minbariDeck.add(ambFiller("amb_m_" + i, Faction.MINBARI));
+        minbari.setDeck(new Deck(minbariDeck));
+        minbari.addToHand(delennSeated);
+        minbari.addToHand(transformedA);
+
+        // ── seat 3: NARN, no duplicate at all. Pins that the sweep costs
+        //    nothing and does not disturb the deck it rebuilds.
+        Player narn = new Player("AMBNarn", Faction.NARN, false);
+        CharacterCard gkarSeated = startingAmbassador("char_gkar", "G'kar", Faction.NARN);
+        List<Card> narnDeck = new ArrayList<Card>();
+        for (int i = 0; i < 9; i++) narnDeck.add(ambFiller("amb_n_" + i, Faction.NARN));
+        narn.setDeck(new Deck(narnDeck));
+        narn.addToHand(gkarSeated);
+        narn.addToHand(ambFiller("amb_n_hand", Faction.NARN));
+        List<String> narnPileBefore = drawPileIds(narn);
+
+        // ── seat 4: NON_ALIGNED. Rulebook :888/:890 -- there is no single League
+        //    ambassador and a Non-Aligned player begins with a SECOND species
+        //    ambassador. Both are ambassador-flagged and same-faction, so this
+        //    seat is what stops a later reader from widening the predicate to
+        //    isAmbassador() alone and deleting a card the rulebook keeps.
+        Player league = new Player("AMBLeague", Faction.NON_ALIGNED, false);
+        CharacterCard gaim  = startingAmbassador("na_gaim",  "Gaim",  Faction.NON_ALIGNED);
+        CharacterCard draziA = startingAmbassador("na_drazi", "Drazi", Faction.NON_ALIGNED);
+        CharacterCard draziB = startingAmbassador("na_drazi2", "Drazi", Faction.NON_ALIGNED);
+        List<Card> leagueDeck = new ArrayList<Card>();
+        leagueDeck.add(draziB);
+        for (int i = 0; i < 6; i++) leagueDeck.add(ambFiller("amb_l_" + i, Faction.NON_ALIGNED));
+        league.setDeck(new Deck(leagueDeck));
+        league.addToHand(gaim);
+        league.addToHand(draziA);
+
+        // Pre-setup census. Read BEFORE the sweep so "the duplicates were real
+        // and are gone" is a measurement, not an assumption about the fixture.
+        int sinclairBefore = countInZones(human, "Jeffrey Sinclair", true);
+        int delennBefore    = countInZones(minbari, "Delenn", true);
+        int transformedBefore = countInZones(minbari, "Delenn Transformed", true);
+        int draziBefore     = countInZones(league, "Drazi", true);
+        check("SETUP-AMB", "fixture really held duplicates before setup: 4 Jeffrey Sinclair "
+                          + "and 2 Delenn copies across hand + draw pile",
+                sinclairBefore == 4 && delennBefore == 2);
+
+        GameState st = state(human, minbari, narn, league);
+        GameController gc = new GameController(st, new ArrayList<AIPlayer>(), null);
+        try {
+            Method setup = GameController.class.getDeclaredMethod("setupGame");
+            setup.setAccessible(true);
+            setup.invoke(gc);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        // ── the rule itself: one ambassador, in the Inner Circle, nowhere else ──
+        check("SETUP-AMB", "each faction player is seated a starting ambassador",
+                human.getAmbassador() != null && human.getAmbassador().isAmbassador()
+             && minbari.getAmbassador() != null && narn.getAmbassador() != null
+             && league.getAmbassador() != null);
+        check("SETUP-AMB", "the seated ambassador is an Inner Circle member (:266/:270)",
+                human.getInnerCircle().contains(human.getAmbassador())
+             && minbari.getInnerCircle().contains(minbari.getAmbassador())
+             && narn.getInnerCircle().contains(narn.getAmbassador())
+             && league.getInnerCircle().contains(league.getAmbassador()));
+        check("SETUP-AMB", "no copy of a seated starting ambassador is left in any zone",
+                countInZones(human, "Jeffrey Sinclair", true) == 0
+             && countInZones(minbari, "Delenn", true) == 0
+             && countInZones(narn, "G'kar", true) == 0
+             && countInZones(league, "Gaim", true) == 0);
+        check("SETUP-AMB", "setup discards nothing, so no discard pile holds an ambassador",
+                human.getDeck().getDiscardPile().isEmpty()
+             && minbari.getDeck().getDiscardPile().isEmpty()
+             && narn.getDeck().getDiscardPile().isEmpty()
+             && league.getDeck().getDiscardPile().isEmpty());
+
+        // ── the direction that matters: what the sweep must NOT delete ─────────
+        check("SETUP-AMB", "a same-faction ambassador-FLAGGED card of another name survives "
+                          + "(char_delenn_transformed is a legal Minbari character)",
+                countInZones(minbari, "Delenn Transformed", true) == transformedBefore
+             && transformedBefore == 2);
+        check("SETUP-AMB", "the Non-Aligned second species ambassador survives (:890)",
+                countInZones(league, "Drazi", true) == draziBefore && draziBefore == 2);
+
+        // ── the cost side: nothing else moved ─────────────────────────────────
+        // Drain-and-rebuild has to be order preserving. The Narn seat had no
+        // duplicate, so its pile after setup must be exactly the pile before
+        // minus the three cards setupGame draws, in the same order.
+        List<String> narnPileAfter = drawPileIds(narn);
+        List<String> narnExpected = new ArrayList<String>();
+        for (int i = 3; i < narnPileBefore.size(); i++) narnExpected.add(narnPileBefore.get(i));
+        check("SETUP-AMB", "a duplicate-free pile keeps its exact order, losing only the 3 drawn",
+                narnPileAfter.equals(narnExpected));
+        check("SETUP-AMB", "the sweep is announced in the game log",
+                logIndexOf(st, "duplicate Jeffrey Sinclair") >= 0);
+    }
+
+    /** B5-2412: a Starting Ambassador test card (rulebook :230). */
+    private static CharacterCard startingAmbassador(String id, String title, Faction f) {
+        return startingAmbassador(id, title, f, Rarity.FIXED);
+    }
+
+    /** B5-2412: as above with an explicit rarity, for the RARE card that also
+     *  carries the ambassador flag in shipped data. */
+    private static CharacterCard startingAmbassador(String id, String title, Faction f, Rarity r) {
+        return new CharacterCard(id, title, "CHARACTER_" + f, r, f, CardSet.PREMIERE,
+                "x", "Starting Ambassador.", 3, 3, 0, 3, true);
+    }
+
+    /** B5-2412: an ordinary card so every fixture pile has non-ambassador
+     *  cards to draw, which is what keeps setupGame's drawCards(3) off the
+     *  deck-out forfeit branch. */
+    private static Card ambFiller(String id, Faction f) {
+        return new EventCard(id, "Filler " + id, "EVENT", Rarity.COMMON, f,
+                CardSet.PREMIERE, "x", "text");
+    }
+
+    /**
+     * B5-2412: every card across hand + draw pile + discard pile, optionally
+     * restricted to ambassador-flagged cards.
+     *
+     * <p>Deck exposes no read accessor for the draw pile, so it is drained and
+     * rebuilt in the same order -- the very property the production sweep relies
+     * on -- rather than leaving the fixture mutated for the checks that follow.
+     * Counting over the UNION is what makes the survival checks shuffle-proof:
+     * setupGame draws three cards, so a preserved card may legitimately move
+     * from the pile into the hand.
+     */
+    private static int countInZones(Player p, String title, boolean ambassadorOnly) {
+        List<Card> all = new ArrayList<Card>();
+        all.addAll(p.getHand());
+        Deck deck = p.getDeck();
+        if (deck != null) {
+            List<Card> drained = deck.draw(deck.size());
+            all.addAll(drained);
+            for (int i = 0; i < drained.size(); i++) deck.addToBottom(drained.get(i));
+            all.addAll(deck.getDiscardPile());
+        }
+        int n = 0;
+        for (int i = 0; i < all.size(); i++) {
+            Card c = all.get(i);
+            if (!title.equals(c.getTitle())) continue;
+            if (ambassadorOnly && (!(c instanceof CharacterCard)
+                                   || !((CharacterCard) c).isAmbassador())) continue;
+            n++;
+        }
+        return n;
+    }
+
+    /** B5-2412: the draw pile in order, top first. Drains and restores. */
+    private static List<String> drawPileIds(Player p) {
+        List<String> ids = new ArrayList<String>();
+        Deck deck = p.getDeck();
+        if (deck == null) return ids;
+        List<Card> drained = deck.draw(deck.size());
+        for (int i = 0; i < drained.size(); i++) ids.add(drained.get(i).getId());
+        for (int i = 0; i < drained.size(); i++) deck.addToBottom(drained.get(i));
+        return ids;
+    }
+
     private static void testStallGuard() {
         System.out.println("STALL: consecutive all-pass stall guard (B5-2275)");
 
@@ -8158,6 +8729,10 @@ public class HeadlessConformanceTest {
             testGroupCards(); // B5-1999: Group Cards (GRP, rulebook :496)
             testSponsorPayment(); // B5-2245: Sponsor + Promote payment (SPN, rulebook :657/:663/:669)
             testDeckBuilderModel(); // B5-2287: deck-builder rules reachable without a display
+            testAftermathDiscardAfterStep(); // B5-2237: Resolution Step 3 deferred aftermath discard (AMT4)
+            testOneShotRegistryMembership(); // B5-2406: one-shot registry membership, single-fire and replay (AMT5)
+            testAftermathRealPathWiring(); // B5-2420: B5-2237 deferral proven on the real GameController path (AMT6)
+            testStartingAmbassadorSetup(); // B5-2412: one Starting Ambassador per faction at setup (SETUP-AMB)
             testStallGuard(); // B5-2275: consecutive all-pass stall guard + tie report (STALL)
             System.out.println("All B5-0203 deviations D1-D14 resolved; D15 partial by effect-coverage; D6/D7 now have dedicated named assertions (B5-0436). B5-0437 station hooks covered (STH). B5-0453 AI station-awareness covered. B5-0469 enhancement seam asserted (ESM). B5-0528 mines reactive covered (MINES). B5-0606 deck construction covered (CVD). B5-0617 victory conditions covered (VIC). B5-0629 Major Victory covered (MJR). B5-0661 Unconditional Surrender covered (SUR). B5-0677 computed Power seam covered (PWR). B5-0691 Civil War engine law covered (CWR).");
 

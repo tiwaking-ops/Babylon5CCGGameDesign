@@ -10835,3 +10835,68 @@ B5-2381 toolbar layout 16 PASS. Scratch probes deleted after the run. Report
 .agent/REPORTS/2026-10-03-muse-spark-loop-10-B5-2379.md; pattern
 .agent/PATTERNS/muse-spark-loop-10/2026-10-03-derive-selection-gates-on-selection-events.md.
 No foreign row, claim, or heartbeat touched; no commit.
+
+## 2026-10-03 - B5-2412 DONE (opencode (space-bunny-free) 2401) - one Starting Ambassador per faction player at setup
+
+Rulebook :228 selects the starting hand rather than drawing it, :230 names exactly
+one Starting Ambassador card per race, :199 makes "must contain one Starting
+Ambassador" a deck-construction rule, and :266 plays that card down as the Inner
+Circle row. The engine seated one copy and left the rest.
+
+The extra copy is CREATED, not merely found twice. Main.startGame
+(b5ccg/Main.java:55-66) builds the deck and then pins the ambassador to the pile top
+with addToTop(amb) on the very object StarterDeckBuilder.findAmbassador returned
+FROM that same factionCards list, so the deck holds the card twice; the constructor
+shuffle has already run, so the pin goes on top and the original sits at a uniformly
+random position in the rest of the pile. setupGame then extracted one match from the
+hand, so whenever the shuffle dealt the original second the hand held two and the
+second stayed playable - the reported second Jeffrey Sinclair - with the other copy
+drawable for the rest of the game.
+
+DECISION 1 - the duplicate is identified as the PRINTED CARD: same faction,
+isAmbassador, and the same TITLE as the seated card. Not the flag alone. Shipped data
+carries char_delenn_transformed ("Delenn Transformed", MINBARI, RARE) with
+isAmbassador true, and rulebook :230 does not list it, so a flag-only sweep would
+delete a legal Minbari character from a 60-card deck at every setup. Title rather than
+id because the pool is deduped by set and the Deluxe reprint carries a different id
+for the same card, which is why StarterDeckBuilder already resolves fixed-list slots by
+title.
+
+DECISION 2 - duplicates leave the game rather than the discard pile. Deck.recycleDiscard
+shuffles the discard back into the draw pile, so a discarded duplicate returns on a
+later reshuffle and the defect reappears a round later; the rulebook has no opening
+discard either.
+
+DECISION 3 - the draw pile is swept by draw(size()) then addToBottom in the same
+order, because Deck exposes no draw-pile read or removal and Deck is in model/,
+outside this row's engine-only claim. drawPile is a LinkedList, draw removes from the
+front and addToBottom appends at the back, so the order is preserved by construction -
+and that is a claim about two methods, so SETUP-AMB asserts it rather than a comment
+asserting it.
+
+Pinned by 9 new SETUP-AMB checks driven through the real private setupGame on a
+four-seat table: HUMAN collapses 4 printed Jeffrey Sinclairs to the seated one with
+zero left in hand, draw pile or discard pile; MINBARI collapses 2 Delenn while both
+Delenn Transformed copies survive; a duplicate-free NARN pile keeps its exact order
+losing only the 3 cards setupGame draws; the NON_ALIGNED second species ambassador
+survives per :888/:890; every discard pile is empty after setup. Both halves were
+observed red separately, which is the point: forcing the predicate false fails the two
+removal checks, and DROPPING the title clause fails the two survival checks. The same
+suite, the same count, opposite polarity - a survival check cannot be validated by the
+defect's own control, because a removal that removes nothing trivially removes nothing
+it should not have.
+
+Reported, not fixed: the char_delenn_transformed flag is a data question needing a
+ruling (DeckLoader.validatePlayDeck treats any isAmbassador card as satisfying :195, so
+it is load-bearing for deck validation); a pre-existing discard pile is not swept
+because Deck.getDiscardPile is unmodifiable and model/ is out of scope, and setup
+discards nothing so the pile is empty when this runs; and Main.java's addToTop pin
+still creates the duplicate that setup now absorbs.
+
+Verification: RUN_TESTS=1 sh compile.sh exit 0 with CONFORMANCE SUITE PASSED (892
+checks) up from 883, smoke PASSED, five probes PASSED, javac 1.8.0_292, Java 6
+construct census code-lines 0 for every forbidden family under TRACKED b5ccg/src with
+0 qualified getOrDefault calls. Report
+.agent/REPORTS/2026-10-03-opencode (space-bunny-free) 2401-B5-2412.md; pattern
+.agent/PATTERNS/opencode (space-bunny-free) 2401/2026-10-03-a-removal-predicate-needs-a-survival-test-with-its-own-negative-control.md.
+Engine/ only. No commit, no push.

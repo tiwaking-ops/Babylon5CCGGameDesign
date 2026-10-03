@@ -42,6 +42,98 @@ public class GameController {
     private volatile boolean        stallTieEnding = false;
     private boolean                 lastRoundWasFullTablePass = false;
 
+    // ── B5-2237: Resolution Step 3 deferred aftermath discard ─────────────────
+    //  Rulebook Resolution Step 3 (:440) — "Aftermath cards which are to be
+    //  discarded after play are also discarded at this time" — is a statement
+    //  about WHEN, and :428 spells out that the timing is load-bearing:
+    //  "Aftermaths which occur and are then discarded should only be discarded
+    //  at the end of the aftermath step for that conflict. Therefore, a
+    //  'discard after play' aftermath can only be played once on any given
+    //  target for each conflict."
+    //
+    //  The engine used to discard a one-shot the instant its effect resolved,
+    //  i.e. inside Resolution Step 2 (:418 "Play Aftermath Cards"), which is the
+    //  wrong step. Queueing the discard and flushing it after the whole step is
+    //  what makes the rulebook's consequence true: during the step a one-shot is
+    //  in play and NOT yet in any discard pile, so nothing that runs inside the
+    //  step can observe it as already discarded or pick it back up. This is the
+    //  same deferral the game already uses for the conflict card itself, which
+    //  Step 3 discards in the same breath (:440).
+    private final List<PendingAftermathDiscard> pendingAftermathDiscards =
+        new ArrayList<PendingAftermathDiscard>();
+
+    /** One deferred one-shot aftermath discard: the card and the player who owns it. */
+    static final class PendingAftermathDiscard {
+        final Player    owner;
+        final AftermathCard card;
+        PendingAftermathDiscard(Player owner, AftermathCard card) {
+            this.owner = owner;
+            this.card  = card;
+        }
+    }
+
+    /**
+     * B5-2237: a lasting aftermath stays in play on its target; only an
+     * immediate-effect one-shot is discarded after play. The distinction is the
+     * rulebook's own (Aftermath Cards, :590): "Most aftermath cards act like
+     * enhancements, i.e., they modify the card they are played on ... Some
+     * aftermath cards cause an immediate effect ... Immediate effects are not
+     * reversed when the aftermath that caused them is discarded."
+     *
+     * Measured across all 20 aftermaths the engine dispatches: the 18 immediate
+     * ones (Negotiated Surrender, Diplomatic Advantage, United Front, Draw Two,
+     * Hidden Agent, Refugees, Rise to Power, Approval of the Grey, Focus Your
+     * Efforts, Glory, Retribution, Reverse Advances, Opponent Lose One/Two Inf,
+     * Crisis of Self, Heal Face Down, Rescue, Martyr) carry no "permanently",
+     * and the 2 enhancements (War Hero, Battle Tested) both carry it. So the
+     * word is the discriminator the data actually supports.
+     */
+    static boolean isPermanentAftermath(AftermathCard am) {
+        return am != null && am.getText() != null
+            && am.getText().toLowerCase().contains("permanently");
+    }
+
+    /**
+     * Queues a one-shot for the Resolution Step 3 discard. Never discards in place.
+     *
+     * B5-2406: MEMBERSHIP GUARD. This used to append unconditionally, so the
+     * same physical card queued twice produced two queue entries and the
+     * flush discarded it twice — two copies of one card in one discard pile.
+     * The registry it now guards is the one the D4 gate reads
+     * (GameState.canAttachAftermath, one of each named aftermath in play per
+     * target), so a duplicate entry is not a harmless repeat: it is the same
+     * name occupying the same slot twice.
+     *
+     * Identity is the card's own object, not its id: two DIFFERENT physical
+     * copies of "Rise to Power" are two legal cards and both must queue. Only
+     * the same instance is a duplicate. That is why this compares `card` by
+     * reference rather than calling getId().
+     */
+    void queueAftermathDiscard(Player owner, AftermathCard card) {
+        if (owner == null || card == null) return;
+        for (PendingAftermathDiscard pd : pendingAftermathDiscards) {
+            if (pd.card == card) return;   // already queued this step
+        }
+        pendingAftermathDiscards.add(new PendingAftermathDiscard(owner, card));
+    }
+
+    /** How many one-shots are waiting for the end-of-step discard. */
+    int getPendingAftermathDiscardCount() { return pendingAftermathDiscards.size(); }
+
+    /**
+     * Resolution Step 3 (:440) — the discard itself, run once the whole
+     * aftermath step has finished. Clears the queue, so a second call with
+     * nothing queued is a no-op rather than a double discard.
+     */
+    void flushPendingAftermathDiscards() {
+        for (PendingAftermathDiscard pd : pendingAftermathDiscards) {
+            pd.owner.getDeck().discard(pd.card);
+            state.log(pd.owner.getName() + " discards " + pd.card.getTitle()
+                      + " — aftermath resolved, discarded after play.");
+        }
+        pendingAftermathDiscards.clear();
+    }
+
     public GameController(GameState state, List<AIPlayer> aiPlayers,
                           GameStateCallback uiCallback) {
         this.state      = state;
@@ -117,6 +209,21 @@ public class GameController {
                 // and those actions are never legal — the root cause of
                 // B5-0202 Finding 7's unreachable Build Influence.
                 p.getInnerCircle().add(amb);
+                // B5-2412: seating ONE copy is not the same as there being one.
+                // Rulebook :230 names exactly one Starting Ambassador card per
+                // race and :199 makes "must contain one Starting Ambassador" a
+                // deck-construction rule, so a second copy of that card is a
+                // card the game should not contain at all. findAmbassador
+                // returned on the FIRST match, so every further copy stayed in
+                // the hand (playable) or in the draw pile (drawable later), and
+                // the reported symptom was a second Jeffrey Sinclair sitting in
+                // the human hand. Sweep them here, once, at setup.
+                int swept = sweepDuplicateStartingAmbassadors(p, amb);
+                if (swept > 0) {
+                    state.log(p.getName() + " removes " + swept + " duplicate "
+                              + amb.getTitle() + " (rulebook :230 -- one Starting "
+                              + "Ambassador per race).");
+                }
             }
             // B5-1973: Faction-specific starting setup (homeworld, starting fleet, starting agenda)
             if (pool != null) {
@@ -149,6 +256,91 @@ public class GameController {
             }
         }
         return null;
+    }
+
+    /**
+     * B5-2412 — remove every FURTHER copy of the player's printed Starting
+     * Ambassador, from the hand and from the draw pile, keeping the one
+     * {@code keep} that {@link #findAmbassador} already seated.
+     *
+     * <p><b>What counts as a duplicate.</b> Rulebook :230 names ONE Starting
+     * Ambassador card per race (Jeffrey Sinclair / Londo Mollari / Delenn /
+     * G'kar), so the identity of the starting ambassador is the printed card,
+     * not "a card flagged isAmbassador". The predicate is therefore
+     * same-faction + isAmbassador + same TITLE as the seated card. Title, not
+     * id, because the pool is deduped by set and the Deluxe reprint carries a
+     * different id for the same card, and the same title match is the strategy
+     * StarterDeckBuilder already uses to find a fixed-list card under a reprint.
+     *
+     * <p>The title clause is load-bearing, not defensive. Shipped data contains
+     * {@code char_delenn_transformed} ("Delenn Transformed", MINBARI, RARE)
+     * with {@code isAmbassador} true — it is a legal Minbari character, not the
+     * :230 starting ambassador. Matching on {@code isAmbassador()} alone would
+     * delete a card the rulebook never removes, so the predicate is pinned by
+     * the SETUP-AMB conformance checks in both directions.
+     *
+     * <p><b>Where the copies go.</b> Out of the game, NOT the discard pile. The
+     * rulebook has no opening discard, and {@link Deck#recycleDiscard()} shuffles
+     * the discard pile back into the draw pile, so a discarded duplicate would
+     * re-enter the deck later and the defect would return on a later round
+     * instead of being closed at setup.
+     *
+     * <p><b>Why the draw pile is drained and rebuilt.</b> {@link Deck} exposes no
+     * draw-pile enumeration or removal, and Deck lives in {@code model/}, outside
+     * this row's engine-only claim. Draining with {@code draw(size())} and
+     * rebuilding with {@code addToBottom} in the same order is exactly order
+     * preserving — both operations work the same single list from opposite ends —
+     * and costs one pass over a 60-card pile at setup. The conformance section
+     * pins the order preservation, so a future Deck API change cannot make this
+     * silently shuffle a player's deck.
+     *
+     * @return how many duplicate copies were removed (hand + draw pile)
+     */
+    private int sweepDuplicateStartingAmbassadors(Player p, CharacterCard keep) {
+        if (p == null || keep == null) return 0;
+        int removed = 0;
+
+        List<Card> hand = p.getHand();
+        for (int i = hand.size() - 1; i >= 0; i--) {
+            Card c = hand.get(i);
+            if (c != keep && isSameStartingAmbassador(c, keep)) {
+                hand.remove(i);
+                removed++;
+            }
+        }
+
+        Deck deck = p.getDeck();
+        if (deck == null) return removed;
+        int before = deck.size();
+        if (before == 0) return removed;
+        List<Card> drained = deck.draw(before);   // top -> bottom, order preserved
+        List<Card> survivors = new ArrayList<Card>(drained.size());
+        for (int i = 0; i < drained.size(); i++) {
+            Card c = drained.get(i);
+            if (isSameStartingAmbassador(c, keep)) {
+                removed++;                       // dropped: out of the game
+            } else {
+                survivors.add(c);
+            }
+        }
+        for (int i = 0; i < survivors.size(); i++) deck.addToBottom(survivors.get(i));
+        return removed;
+    }
+
+    /**
+     * B5-2412 — is {@code c} another copy of the printed Starting Ambassador
+     * card {@code seated}? Same faction, flagged ambassador, same card TITLE.
+     * See {@link #sweepDuplicateStartingAmbassadors} for why title and not id,
+     * and why the flag alone is not the predicate.
+     */
+    private static boolean isSameStartingAmbassador(Card c, CharacterCard seated) {
+        if (c == null || !(c instanceof CharacterCard)) return false;
+        CharacterCard ch = (CharacterCard) c;
+        if (!ch.isAmbassador()) return false;
+        if (ch.getFaction() != seated.getFaction()) return false;
+        String seatedTitle = seated.getTitle();
+        String thisTitle   = ch.getTitle();
+        return seatedTitle != null && seatedTitle.equals(thisTitle);
     }
 
     private void runActionPhase() {
@@ -821,7 +1013,13 @@ public class GameController {
         }
     }
 
-    private void resolveCurrentConflict() {
+    // B5-2420: package-private, not private, so HeadlessConformanceTest can drive
+    // the REAL aftermath path (B5-0338 join loop -> rules.resolveConflict ->
+    // Step 2 play -> Step 3 flush). The AMT4 section exercises the queue and flush
+    // helpers directly, so before this widening no check covered the production
+    // wiring that actually calls them: a helper could be perfect while the call
+    // sites were wrong, or removed. Same package, same module, no new API.
+    void resolveCurrentConflict() {
         Conflict conflict = state.getActiveConflict();
         if (conflict == null) return;
 
@@ -941,17 +1139,26 @@ public class GameController {
                         } else {
                             applySimpleAftermathEffect(target, am, winner, state);
                         }
-                        // After effect, discard one-shot aftermaths (non-permanent)
-                        // Permanent aftermaths are identified by the word "permanently"
-                        // in the card's text. They stay attached to the target.
-                        if (!am.getText().toLowerCase().contains("permanently")) {
-                            p.getDeck().discard(am);
+                        // B5-2237: do NOT discard here. Step 2 (:418) is
+                        // "Play Aftermath Cards"; the discard belongs to Step 3
+                        // (:440), after the whole step. Permanent aftermaths stay
+                        // attached to the target and are never queued; one-shots
+                        // are queued and flushed below, once the step is done.
+                        if (!isPermanentAftermath(am)) {
+                            queueAftermathDiscard(p, am);
                         }
                         break;
                     }
                 }
             }
         }
+
+        // Resolution Step 3 (rulebook :440): "Discard Conflicts and
+        // Aftermaths ... Aftermath cards which are to be discarded after play are
+        // also discarded at this time." The whole aftermath step has now run, so
+        // the one-shots queued during it land in their owners' discard piles here
+        // (B5-2237). Permanents are not in the queue and stay in play.
+        flushPendingAftermathDiscards();
 
         state.clearActiveConflict();
     }
