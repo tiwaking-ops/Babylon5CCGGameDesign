@@ -348,9 +348,7 @@ public class MainWindow extends JFrame {
         sidebar.add(legendPanel);
         add(sidebar, BorderLayout.EAST);
 
-        // ── Bottom toolbar ────────────────────────────────────────────────────
-        JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
-        toolbar.setBackground(new Color(10, 20, 10));
+        // ── Top toolbar (B5-2375 split rows, B5-2377 primary row) ───────────────
 
         statusLabel = new JLabel("InitialisingÃ¢â‚¬Â¦");
         statusLabel.setForeground(new Color(200, 220, 200));
@@ -1161,111 +1159,118 @@ public class MainWindow extends JFrame {
         filterPanel.add(new JSeparator(JSeparator.VERTICAL));
         filterPanel.add(showUnplayable);
 
-        // B5-0348: hand filter/sort panel
-        toolbar.add(Box.createHorizontalStrut(8));
-        toolbar.add(filterPanel);
-        toolbar.add(Box.createHorizontalStrut(8));
+        // B5-2375: Split toolbar layout — filterPanel is always visible in its own row, actions/buttons in scrollable panel below.
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+        buttonPanel.setBackground(new Color(10, 20, 10));
 
-        // Assemble toolbar
-        toolbar.add(passButton);
-        toolbar.add(Box.createHorizontalStrut(8));
-        toolbar.add(playCardOnlyButton);
-        toolbar.add(Box.createHorizontalStrut(4));
-        toolbar.add(initiateConflictButton);
-        toolbar.add(Box.createHorizontalStrut(12));
-        toolbar.add(sponsorButton);
-        toolbar.add(promoteButton);
-        toolbar.add(buildInfluenceButton);
-        toolbar.add(Box.createHorizontalStrut(12));
-        toolbar.add(discardAgendaButton);
-        toolbar.add(replaceAgendaButton);
-        toolbar.add(revealAgendaButton);
-        toolbar.add(contingencySelector);
-        toolbar.add(Box.createHorizontalStrut(4));
-        toolbar.add(revealContingencyButton);
-        toolbar.add(Box.createHorizontalStrut(12));
-        toolbar.add(leadFleetSelector);
-        toolbar.add(Box.createHorizontalStrut(4));
-        toolbar.add(leadFleetButton);
-        toolbar.add(Box.createHorizontalStrut(12));
-        toolbar.add(rotateEffectKindSelector);
-        toolbar.add(Box.createHorizontalStrut(4));
-        toolbar.add(useRotateEffectButton);
-        toolbar.add(Box.createHorizontalStrut(12));
-        toolbar.add(costLabel);
-        toolbar.add(Box.createHorizontalStrut(12));
+        // B5-2377: primary action row — the six human ACTION-turn controls
+        // (Pass Turn, Play Card, Initiate Conflict, Sponsor, Promote, Build
+        // Influence) live in their own always-visible row OUTSIDE the
+        // scrollable buttonPanel, so they stay on screen without scrolling
+        // at 1920 width no matter how far the rest of the toolbar scrolls.
+        JPanel primaryActionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+        primaryActionPanel.setBackground(new Color(10, 20, 10));
+        primaryActionPanel.add(passButton);
+        primaryActionPanel.add(Box.createHorizontalStrut(8));
+        primaryActionPanel.add(playCardOnlyButton);
+        primaryActionPanel.add(Box.createHorizontalStrut(4));
+        primaryActionPanel.add(initiateConflictButton);
+        primaryActionPanel.add(Box.createHorizontalStrut(12));
+        primaryActionPanel.add(sponsorButton);
+        primaryActionPanel.add(promoteButton);
+        primaryActionPanel.add(buildInfluenceButton);
+
+        // All remaining controls go to the scrollable buttonPanel below.
+        buttonPanel.add(Box.createHorizontalStrut(12));
+        buttonPanel.add(discardAgendaButton);
+        buttonPanel.add(replaceAgendaButton);
+        buttonPanel.add(revealAgendaButton);
+        buttonPanel.add(contingencySelector);
+        buttonPanel.add(Box.createHorizontalStrut(4));
+        buttonPanel.add(revealContingencyButton);
+        buttonPanel.add(Box.createHorizontalStrut(12));
+        buttonPanel.add(leadFleetSelector);
+        buttonPanel.add(Box.createHorizontalStrut(4));
+        buttonPanel.add(leadFleetButton);
+        buttonPanel.add(Box.createHorizontalStrut(12));
+        buttonPanel.add(rotateEffectKindSelector);
+        buttonPanel.add(Box.createHorizontalStrut(4));
+        buttonPanel.add(useRotateEffectButton);
+        buttonPanel.add(Box.createHorizontalStrut(12));
+        buttonPanel.add(costLabel);
+        buttonPanel.add(Box.createHorizontalStrut(12));
         // B5-2253 (B5-0310 F2): the conflict picker sits immediately before the
         // target dropdown it feeds, so the declare-then-target sequence reads
         // left to right in the toolbar.
-        toolbar.add(conflictPickerLabel);
-        toolbar.add(Box.createHorizontalStrut(4));
-        toolbar.add(conflictPickerSelector);
-        toolbar.add(Box.createHorizontalStrut(4));
-        toolbar.add(targetSelector);
-        toolbar.add(Box.createHorizontalStrut(12));
-        toolbar.add(supportButton);
-        toolbar.add(opposeButton);
-        toolbar.add(Box.createHorizontalStrut(12));
-        toolbar.add(attackTargetSelector);
-        toolbar.add(Box.createHorizontalStrut(4));
-        toolbar.add(attackButton);
-        toolbar.add(healButton);
-        toolbar.add(repairButton);
-        toolbar.add(Box.createHorizontalStrut(8));
-        toolbar.add(mercenaryBidAmountSelector);
-        toolbar.add(mercenaryBidButton);
-        toolbar.add(Box.createHorizontalStrut(8));
-        toolbar.add(mercenaryOfferLabel);
-        toolbar.add(Box.createHorizontalStrut(4));
-        toolbar.add(mercenaryControllerLabel);
-        toolbar.add(Box.createHorizontalStrut(8));
-        toolbar.add(censureTargetLabel);
-        toolbar.add(Box.createHorizontalStrut(4));
-        toolbar.add(censureTargetSelector);
-        toolbar.add(Box.createHorizontalStrut(4));
-        toolbar.add(censurePlayButton);
-        toolbar.add(Box.createHorizontalStrut(8));
-        toolbar.add(charCensureTargetLabel);
-        toolbar.add(Box.createHorizontalStrut(4));
-        toolbar.add(charCensureTargetSelector);
-        toolbar.add(Box.createHorizontalStrut(4));
-        toolbar.add(charCensurePlayButton);
-        toolbar.add(Box.createHorizontalStrut(8));
-        toolbar.add(warTargetSelector);
-        toolbar.add(Box.createHorizontalStrut(4));
-        toolbar.add(declareWarButton);
-        toolbar.add(Box.createHorizontalStrut(8));
-        toolbar.add(warStatusLabel);
-        toolbar.add(Box.createHorizontalStrut(12));
+        buttonPanel.add(conflictPickerLabel);
+        buttonPanel.add(Box.createHorizontalStrut(4));
+        buttonPanel.add(conflictPickerSelector);
+        buttonPanel.add(Box.createHorizontalStrut(4));
+        buttonPanel.add(targetSelector);
+        buttonPanel.add(Box.createHorizontalStrut(12));
+        buttonPanel.add(supportButton);
+        buttonPanel.add(opposeButton);
+        buttonPanel.add(Box.createHorizontalStrut(12));
+        buttonPanel.add(attackTargetSelector);
+        buttonPanel.add(Box.createHorizontalStrut(4));
+        buttonPanel.add(attackButton);
+        buttonPanel.add(healButton);
+        buttonPanel.add(repairButton);
+        buttonPanel.add(Box.createHorizontalStrut(8));
+        buttonPanel.add(mercenaryBidAmountSelector);
+        buttonPanel.add(mercenaryBidButton);
+        buttonPanel.add(Box.createHorizontalStrut(8));
+        buttonPanel.add(mercenaryOfferLabel);
+        buttonPanel.add(Box.createHorizontalStrut(4));
+        buttonPanel.add(mercenaryControllerLabel);
+        buttonPanel.add(Box.createHorizontalStrut(8));
+        buttonPanel.add(censureTargetLabel);
+        buttonPanel.add(Box.createHorizontalStrut(4));
+        buttonPanel.add(censureTargetSelector);
+        buttonPanel.add(Box.createHorizontalStrut(4));
+        buttonPanel.add(censurePlayButton);
+        buttonPanel.add(Box.createHorizontalStrut(8));
+        buttonPanel.add(charCensureTargetLabel);
+        buttonPanel.add(Box.createHorizontalStrut(4));
+        buttonPanel.add(charCensureTargetSelector);
+        buttonPanel.add(Box.createHorizontalStrut(4));
+        buttonPanel.add(charCensurePlayButton);
+        buttonPanel.add(Box.createHorizontalStrut(8));
+        buttonPanel.add(warTargetSelector);
+        buttonPanel.add(Box.createHorizontalStrut(4));
+        buttonPanel.add(declareWarButton);
+        buttonPanel.add(Box.createHorizontalStrut(8));
+        buttonPanel.add(warStatusLabel);
+        buttonPanel.add(Box.createHorizontalStrut(12));
         // B5-0701: surrender availability readout. Sits with the other
         // target+button pairs; the hint label carries the +3-influence
         // consequence readout the row asks for.
-        toolbar.add(surrenderTargetSelector);
-        toolbar.add(Box.createHorizontalStrut(4));
-        toolbar.add(surrenderButton);
-        toolbar.add(Box.createHorizontalStrut(4));
-        toolbar.add(surrenderHintLabel);
-        toolbar.add(Box.createHorizontalStrut(8));
+        buttonPanel.add(surrenderTargetSelector);
+        buttonPanel.add(Box.createHorizontalStrut(4));
+        buttonPanel.add(surrenderButton);
+        buttonPanel.add(Box.createHorizontalStrut(4));
+        buttonPanel.add(surrenderHintLabel);
+        buttonPanel.add(Box.createHorizontalStrut(8));
 
         // B5-2267: forfeit button — no target selector needed; confirmation
         // dialog handles the irrevocable commit. Sits beside surrender.
-        toolbar.add(forfeitButton);
-        toolbar.add(Box.createHorizontalStrut(4));
-        toolbar.add(forfeitHintLabel);
-        toolbar.add(Box.createHorizontalStrut(12));
+        buttonPanel.add(forfeitButton);
+        buttonPanel.add(Box.createHorizontalStrut(4));
+        buttonPanel.add(forfeitHintLabel);
+        buttonPanel.add(Box.createHorizontalStrut(12));
 
-        toolbar.add(phaseLabel);
-        toolbar.add(Box.createHorizontalStrut(8));
-        toolbar.add(initiativeLabel);
-        toolbar.add(Box.createHorizontalStrut(12));
-        toolbar.add(statusLabel);
-        toolbar.add(Box.createHorizontalStrut(12));
+        buttonPanel.add(phaseLabel);
+        buttonPanel.add(Box.createHorizontalStrut(8));
+        buttonPanel.add(initiativeLabel);
+        buttonPanel.add(Box.createHorizontalStrut(12));
+        buttonPanel.add(statusLabel);
+        buttonPanel.add(Box.createHorizontalStrut(12));
 
         // B5-2267: draw-round buy-cards offer. Shows during DRAW phase only.
-        toolbar.add(drawRoundBuyLabel);
-        toolbar.add(Box.createHorizontalStrut(4));
-        toolbar.add(drawRoundBuyButton);
-        toolbar.add(Box.createHorizontalStrut(12));
+        buttonPanel.add(drawRoundBuyLabel);
+        buttonPanel.add(Box.createHorizontalStrut(4));
+        buttonPanel.add(drawRoundBuyButton);
+        buttonPanel.add(Box.createHorizontalStrut(12));
 
         // B5-2008: opens the setup dialog seeded with the live game's seats.
         gameSetupButton = makeButton("Game Setup", new ActionListener() {
@@ -1274,7 +1279,11 @@ public class MainWindow extends JFrame {
                 showGameSetup();
             }
         });
-        toolbar.add(gameSetupButton);
+        // B5-2377: the Game Setup and Council Vote buttons were added to the
+        // pre-B5-2375 toolbar panel, which B5-2375 stopped adding to the frame,
+        // so both were orphaned and unreachable. They belong with the other
+        // dialog openers in the scrollable buttonPanel.
+        buttonPanel.add(gameSetupButton);
 
         // B5-2004: opens the Council vote ballot. Enabled only while the engine
         // holds an open vote session; see refreshCouncilVoteControl.
@@ -1286,7 +1295,9 @@ public class MainWindow extends JFrame {
         });
         councilVoteButton.setToolTipText(
             "Cast your ambassador's Council vote on the measure now on the floor.");
-        toolbar.add(councilVoteButton);
+        // B5-2377: same orphan repair as Game Setup above — Council Vote was
+        // added to the detached pre-B5-2375 toolbar panel and never displayed.
+        buttonPanel.add(councilVoteButton);
 
         // B5-2007: opens the Deck Builder dialog for deck construction with
         // live validation feedback.
@@ -1310,11 +1321,28 @@ public class MainWindow extends JFrame {
         startingGameButton.setToolTipText(
             "Set up the opening: starting ambassador, the three typed cards beside it, "
             + "shuffle and cut, and the initiative order for the first conflict round.");
-        toolbar.add(startingGameButton);
+        buttonPanel.add(startingGameButton);
 
-        toolbar.add(deckBuilderButton);
+        buttonPanel.add(deckBuilderButton);
 
-        add(toolbar, BorderLayout.NORTH);
+        // B5-2375: Insert new layout wrapper for two-row toolbar.
+        // B5-2377: the primary action row sits between the filter row and the
+        // scroller, outside the scroll pane, so it never scrolls away.
+        JPanel toolbarPanel = new JPanel();
+        toolbarPanel.setLayout(new BorderLayout());
+        toolbarPanel.setBackground(new Color(10, 20, 10));
+        JPanel topRows = new JPanel();
+        topRows.setLayout(new BorderLayout());
+        topRows.setBackground(new Color(10, 20, 10));
+        topRows.add(filterPanel, BorderLayout.NORTH);
+        topRows.add(primaryActionPanel, BorderLayout.CENTER);
+        toolbarPanel.add(topRows, BorderLayout.NORTH);
+        JScrollPane buttonScroller = new JScrollPane(buttonPanel,
+            JScrollPane.VERTICAL_SCROLLBAR_NEVER,
+            JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        buttonScroller.setBorder(BorderFactory.createEmptyBorder());
+        toolbarPanel.add(buttonScroller, BorderLayout.CENTER);
+        add(toolbarPanel, BorderLayout.NORTH);
 
         // ── Hand ──────────────────────────────────────────────────────────────
         handPanel = new HandPanel();
@@ -1975,39 +2003,11 @@ public class MainWindow extends JFrame {
         // B5-0487: Censure opponent-fleet target picker
         refreshCensureControl(human, actionPhase && myTurn);
 
-        // Sponsor: ACTION phase, my turn, selected card is a ready character in
-        // hand, AND the engine says the faction can afford it.
-        // B5-2257: the conjunction with rules.canRecruit is what makes the lit
-        // button agree with the branch it dispatches to. GameController's
-        // RECRUIT_CHARACTER branch re-checks canRecruit at its own commit point
-        // (GameController:384), so a lit button whose predicate is false is a
-        // button that refuses on click — and pre-B5-2257 that refusal was a
-        // silent no-op. The four SHAPE terms stay because canRecruit is
-        // membership plus affordability ONLY (RulesEngine:452-455): dropping them
-        // would WIDEN the gate, which is the B5-0423 hazard this file already
-        // records for a hand-rolled Heal/Repair predicate.
-        sponsorButton.setEnabled(actionPhase && myTurn
-            && ch != null && ch instanceof CharacterCard
-            && !ch.isFaceDown() && !ch.isRotated()
-            && human.getHand().contains(ch)
-            && rules.canRecruit(human, ch));
-
-        // Promote: the same conjunction, with rules.canPromote. canPromote
-        // carries terms no shape test can see — the AsylumCharacterCard
-        // exclusion (RulesEngine:277), and the Inner-Circle-size surcharge
-        // inside promotionCost via its final applied-pool line (:281). Pre-B5-2257
-        // the gate tested findUnrotatedIC != null, which answers the LEADER half
-        // of canPromote and none of the rest.
-        promoteButton.setEnabled(actionPhase && myTurn
-            && ch != null && ch instanceof CharacterCard
-            && !ch.isFaceDown() && !ch.isRotated()
-            && human.getSupportingRole().contains(ch)
-            && findUnrotatedIC(human) != null
-            && rules.canPromote(human, ch));
-
-        // Build Influence: ACTION phase, my turn, has unrotated IC, influence <= 9
-        buildInfluenceButton.setEnabled(actionPhase && myTurn
-            && rules.canBuildInfluence(human));
+        // B5-2379: the Sponsor / Promote / Build Influence gates read the
+        // selection, so they live in refreshSponsorPromoteBuildInfluence
+        // alongside the refresh() call below — applyCardSelection() and
+        // clearSelection() share it instead of each deriving their own.
+        refreshSponsorPromoteBuildInfluence(human, ch, actionPhase, myTurn);
 
         // B5-0701: surrender availability. The engine decides; this only renders.
         refreshSurrenderControl(human);
@@ -2725,6 +2725,53 @@ public class MainWindow extends JFrame {
      * live state + current selection; never mutates selection, so it is safe
      * from state refreshes AND from programmatic selector changes.
      */
+    /**
+     * B5-2379: Sponsor / Promote / Build Influence enablement, one authority.
+     * These three gates read the selection, but they used to be derived in
+     * refresh() only, so selecting a hand card never lit Sponsor or Promote
+     * until the next engine state change — measured live: every Sponsor
+     * conjunct true including rules.canRecruit, button still dark. Callers:
+     * refresh() on every state change, applyCardSelection() on every
+     * hand/board/picker selection, clearSelection() after a submit so a spent
+     * selection goes dark at once instead of lingering lit.
+     */
+    private void refreshSponsorPromoteBuildInfluence(Player human,
+            CharacterCard ch, boolean actionPhase, boolean myTurn) {
+        // Sponsor: ACTION phase, my turn, selected card is a ready character in
+        // hand, AND the engine says the faction can afford it.
+        // B5-2257: the conjunction with rules.canRecruit is what makes the lit
+        // button agree with the branch it dispatches to. GameController's
+        // RECRUIT_CHARACTER branch re-checks canRecruit at its own commit point
+        // (GameController:384), so a lit button whose predicate is false is a
+        // button that refuses on click — and pre-B5-2257 that refusal was a
+        // silent no-op. The four SHAPE terms stay because canRecruit is
+        // membership plus affordability ONLY (RulesEngine:452-455): dropping them
+        // would WIDEN the gate, which is the B5-0423 hazard this file already
+        // records for a hand-rolled Heal/Repair predicate.
+        sponsorButton.setEnabled(actionPhase && myTurn
+            && ch != null && ch instanceof CharacterCard
+            && !ch.isFaceDown() && !ch.isRotated()
+            && human.getHand().contains(ch)
+            && rules.canRecruit(human, ch));
+
+        // Promote: the same conjunction, with rules.canPromote. canPromote
+        // carries terms no shape test can see — the AsylumCharacterCard
+        // exclusion (RulesEngine:277), and the Inner-Circle-size surcharge
+        // inside promotionCost via its final applied-pool line (:281). Pre-B5-2257
+        // the gate tested findUnrotatedIC != null, which answers the LEADER half
+        // of canPromote and none of the rest.
+        promoteButton.setEnabled(actionPhase && myTurn
+            && ch != null && ch instanceof CharacterCard
+            && !ch.isFaceDown() && !ch.isRotated()
+            && human.getSupportingRole().contains(ch)
+            && findUnrotatedIC(human) != null
+            && rules.canPromote(human, ch));
+
+        // Build Influence: ACTION phase, my turn, has unrotated IC, influence <= 9
+        buildInfluenceButton.setEnabled(actionPhase && myTurn
+            && rules.canBuildInfluence(human));
+    }
+
     private void updatePlayInitiateButtons() {
         GameState st = MainWindow.this.controller.getState();
         if (st.isGameOver()) return;
@@ -3082,6 +3129,13 @@ public class MainWindow extends JFrame {
         refreshCensureControl(hp, gs.getPhase() == GamePhase.ACTION
             && gs.getActivePlayer() == hp && controller.isWaitingForHuman());
         updatePlayInitiateButtons();
+        // B5-2379: Sponsor / Promote / Build Influence read the selection, so
+        // they re-derive here on the real selection path — refresh() alone
+        // left them dark until the next engine state change.
+        refreshSponsorPromoteBuildInfluence(hp,
+            (card instanceof CharacterCard) ? (CharacterCard) card : null,
+            gs.getPhase() == GamePhase.ACTION,
+            gs.getActivePlayer() == hp && controller.isWaitingForHuman());
         // B5-0326 F5: refresh cost preview immediately
         refreshCostPreview();
         refreshLeadFleetAndRotateEffect(hp, gs.getPhase() == GamePhase.ACTION
@@ -3091,6 +3145,13 @@ public class MainWindow extends JFrame {
     /** B5-0328 F4: drop the selection after a submit; buttons stay disabled. */
     private void clearSelection() {
         selectedCard = null;
+        // B5-2379: a spent selection must go dark at once — without this the
+        // Sponsor / Promote / Build Influence buttons linger lit on the
+        // previous selection until the next engine refresh.
+        refreshSponsorPromoteBuildInfluence(humanPlayer(), null,
+            controller.getState().getPhase() == GamePhase.ACTION,
+            controller.getState().getActivePlayer() == humanPlayer()
+            && controller.isWaitingForHuman());
         selectedTarget = null;
         selectedFleet = null;
         selectedAssistant = null;
@@ -3877,6 +3938,22 @@ public class MainWindow extends JFrame {
         private final JLabel countLabel = new JLabel(" ");
         private final JButton constructButton = new JButton("Use This Deck");
 
+        // B5-1980: pool filter controls. The rules live in DeckBuilderModel; these
+        // are only the pixels that set that model's state and re-read it, so nothing
+        // here decides what a filter means.
+        private final JTextField searchField = new JTextField(14);
+        private final JComboBox typeBox = new JComboBox();
+        private final JComboBox rarityBox = new JComboBox();
+        private final JComboBox costBox = new JComboBox();
+        private final JLabel filterNote = new JLabel(" ");
+        private final JButton clearFiltersButton = new JButton("Clear Filters");
+
+        /** Sentinel for "no constraint on this axis" in a JComboBox. JComboBox will
+         *  happily hold null but renders it as the text "null", so the absence of a
+         *  filter is carried by a real object instead. No CardType or Rarity name
+         *  equals it, so it cannot collide with a genuine selection. */
+        private static final String ALL_FILTER = "All";
+
         /**
          * B5-2287: the rules live in {@link DeckBuilderModel}, not here. This
          * dialog is the view; the model is what HeadlessConformanceTest covers,
@@ -3928,6 +4005,11 @@ public class MainWindow extends JFrame {
             north.add(head);
             north.add(new JLabel("Your faction:"));
             north.add(factionBox);
+            // B5-1980: the filter row. It is a sibling of the faction box, not part
+            // of it, because faction decides what is PLAYABLE while these decide what
+            // is VISIBLE -- widening a filter must never change legality.
+            north.add(buildFilterRow());
+            north.add(filterNote);
             add(north, BorderLayout.NORTH);
 
             poolList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
@@ -4044,6 +4126,137 @@ public class MainWindow extends JFrame {
             return (sel instanceof Faction) ? (Faction) sel : Faction.HUMAN;
         }
 
+        // ---- B5-1980 pool filters -------------------------------------------------
+        // Everything below is view wiring. The meaning of each filter lives in
+        // DeckBuilderModel; this code only moves values between widgets and that model.
+
+        /**
+         * Builds the one filter row. Populating the cost list from the authored pool
+         * rather than hardcoding a range means the offered bounds cannot drift from
+         * the data -- there is no "0..9" here to fall out of step with a card that
+         * costs 12.
+         */
+        private JPanel buildFilterRow() {
+            typeBox.addItem(ALL_FILTER);
+            CardType[] types = CardType.values();
+            for (int i = 0; i < types.length; i++) typeBox.addItem(types[i]);
+
+            rarityBox.addItem(ALL_FILTER);
+            Rarity[] rarities = Rarity.values();
+            for (int i = 0; i < rarities.length; i++) rarityBox.addItem(rarities[i]);
+
+            costBox.addItem("Any cost");
+            int maxCost = 0;
+            if (model != null) {
+                List<Card> authored = model.sourceCards();
+                for (int i = 0; i < authored.size(); i++) {
+                    if (authored.get(i).getCost() > maxCost) maxCost = authored.get(i).getCost();
+                }
+            }
+            for (int c = 0; c <= maxCost; c++) costBox.addItem(Integer.toString(c));
+
+            ActionListener relayout = new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) { applyFiltersToModel(); }
+            };
+            typeBox.addActionListener(relayout);
+            rarityBox.addActionListener(relayout);
+            costBox.addActionListener(relayout);
+
+            // Search updates on every keystroke, not on Enter: a filter that needs a
+            // submit action to take effect is a filter people forget they set.
+            searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+                @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { applyFiltersToModel(); }
+                @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { applyFiltersToModel(); }
+                @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { applyFiltersToModel(); }
+            });
+
+            clearFiltersButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    // Clear the widgets as well as the model, or the combos would keep
+                    // showing a constraint that is no longer applied -- a control lying
+                    // about state is worse than no control.
+                    searchField.setText("");
+                    typeBox.setSelectedIndex(0);
+                    rarityBox.setSelectedIndex(0);
+                    costBox.setSelectedIndex(0);
+                    applyFiltersToModel();
+                }
+            });
+
+            JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 2));
+            row.setBackground(new Color(10, 20, 10));
+            searchField.setToolTipText("Search card name or rules text");
+            searchField.setBackground(new Color(18, 28, 18));
+            searchField.setForeground(new Color(220, 230, 220));
+            row.add(new JLabel("Search:"));
+            row.add(searchField);
+            row.add(new JLabel("Type:"));
+            row.add(typeBox);
+            row.add(new JLabel("Rarity:"));
+            row.add(rarityBox);
+            row.add(new JLabel("Max cost:"));
+            row.add(costBox);
+            row.add(clearFiltersButton);
+            return row;
+        }
+
+        private CardType chosenType() {
+            Object sel = typeBox.getSelectedItem();
+            return (sel instanceof CardType) ? (CardType) sel : null;
+        }
+
+        private Rarity chosenRarity() {
+            Object sel = rarityBox.getSelectedItem();
+            return (sel instanceof Rarity) ? (Rarity) sel : null;
+        }
+
+        /**
+         * Pushes the current widget state into the model and redraws the pool.
+         *
+         * <p>Note what is NOT touched: the deck and the faction. Filtering the pool
+         * must never remove cards the player already picked, which is the same
+         * non-destructive property setFaction documents.
+         */
+        private void applyFiltersToModel() {
+            if (model == null) return;
+            model.setTypeFilter(chosenType());
+            model.setRarityFilter(chosenRarity());
+            Object costSel = costBox.getSelectedItem();
+            if (costSel instanceof String && "Any cost".equals(costSel)) {
+                model.clearCostLimit();
+            } else {
+                try {
+                    model.setCostLimit(Integer.parseInt(String.valueOf(costSel)));
+                } catch (NumberFormatException nfe) {
+                    model.clearCostLimit();
+                }
+            }
+            model.setQuery(searchField.getText());
+            refreshPool();
+        }
+
+        /**
+         * Reports how many cards the filters are showing, and says so plainly when
+         * the answer is zero -- a silently empty pool reads as a bug.
+         */
+        private void refreshFilterNote() {
+            if (model == null) {
+                filterNote.setText(" ");
+                clearFiltersButton.setEnabled(false);
+                return;
+            }
+            List<Card> shown = model.pool();
+            if (model.hasPoolFilters()) {
+                filterNote.setText("Filters: " + shown.size() + " of "
+                    + model.sourceCards().size() + " authored cards shown");
+            } else {
+                filterNote.setText(shown.size() + " cards playable by your faction");
+            }
+            clearFiltersButton.setEnabled(model.hasPoolFilters());
+        }
+
         /**
          * Repopulates the pool from the model's filtered view for the current
          * faction. The model keeps the unfiltered source, so switching faction
@@ -4051,11 +4264,15 @@ public class MainWindow extends JFrame {
          */
         private void refreshPool() {
             poolModel.clear();
-            if (model == null) return;
+            if (model == null) {
+                refreshFilterNote();
+                return;
+            }
             List<Card> cards = model.pool();
             for (int i = 0; i < cards.size(); i++) {
                 poolModel.addElement(cards.get(i));
             }
+            refreshFilterNote();
         }
 
         /** Mirrors the model's deck into the selection list. One-way: the model

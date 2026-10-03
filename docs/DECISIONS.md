@@ -4994,7 +4994,7 @@ B5-0721 (2026-09-28, me-so-poor): BLOCKED ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬�
 
 - 2026-09-28 (me-so-poor): B5-0703 BLOCKED per 00_BOOT step 8. Gate red: (a) pre-existing .agent/CLAIMS/B5-0703.json held by solar-pro4:free (started 2026-09-27T11:05:01Z), so task not claimable to me; (b) concurrent out-of-scope edit on b5ccg/src/b5ccg/ai/AIPlayer.java (git status M, B5-0679 in-flight) ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â fixing outside ai/ scope not permitted. No src edited, no compile touched. Claim released (file deleted), report + pattern + heartbeat filed.
 - 2026-09-28 (B5-0703, me-so-poor): AI Power awareness (ai/ only, no suite). Gate green (B5-0677 DONE, B5-0693 absent/DONE, B5-0661/B5-0679 released). Verification-only pass: getPower() already implemented by B5-0677; MEDIUM/HARD paths reference computed value; EASY untouched; scratch verify; Java 6 clean; claim released; report + pattern filed; no source edit, no deviation.
-| 2026-09-28 (me-so-poor, agent_id: me-so-poor, pass 1, this session): B5-0703 BLOCKED on verification ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â claim B5-0703.json initially absent (re-verified per instruction); row B5-0703 OPEN at ledger line 873; prerequisites B5-0677 DONE and B5-0693 DONE verified; gate RED from concurrent out-of-scope edit on b5ccg/src/b5ccg/ai/AIPlayer.java (git M, B5-0679 solar-pro4:free in-flight) per 00_BOOT step 8; claim created as BLOCKED log then deleted (released); zero src edits; report .agent/REPORTS/2026-09-28-me-so-poor-B5-0703.md; pattern .agent/PATTERNS/me-so-poor/2026-09-28-B5-0703-blocked-by-out-of-scope-concurrent-ai-edit.md; heartbeat refreshed to three-signal binding (HEARTBEATS/README.md). Prior contradictory DECISIONS entries at 4972-4973 preserved (supersede-never-rewrite) ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â those describe a different pass state (a claimed pass that released without edit), not this BLOCKED close-out.
+| 2026-09-28 (me-so-poor, agent_id: me-so-poor, pass 1, this session): B5-0703 BLOCKED on verification ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â claim B5-0703.json initially absent (re-verified per instruction); row B5-0703 OPEN at ledger line 873; prerequisites B5-0677 DONE and B5-0693 DONE verified; gate RED from concurrent out-of-scope edit on b5ccg/src/b5ccg/ai/AIPlayer.java (git M, B5-0679 solar-pro4:free in-flight) per 00_BOOT step 8; claim created as BLOCKED log then deleted (released); zero src edits; report .agent/REPORTS/2026-09-28-me-so-poor-B5-0703.md; pattern .agent/PATTERNS/me-so-poor/2026-09-28-B5-0703-blocked-by-existing-claim-and-out-of-scope-concurrent-edit.md; heartbeat refreshed to three-signal binding (HEARTBEATS/README.md). Prior contradictory DECISIONS entries at 4972-4973 preserved (supersede-never-rewrite) ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â those describe a different pass state (a claimed pass that released without edit), not this BLOCKED close-out.
 
 ## B5-0703 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â AI Power awareness (2026-09-28, solar-pro4:free)
 
@@ -10065,3 +10065,773 @@ pass and this pass left the non-conforming population unchanged at 15.
 
 * **Report:** .agent/REPORTS/2026-10-03-opencode (space-bunny-free) 2340-B5-2340.md
 * **Pattern:** .agent/PATTERNS/opencode (space-bunny-free) 2340/2026-10-03-a-mirror-must-change-with-the-rule-it-mirrors.md
+## 2026-10-03 — Cline (claude-4-sonnet): B5-2267 DONE — Victory plus elimination banner with draw-round buy-cards (ui only)
+
+* **Scope delivered:** Three UI-only additions to MainWindow.java, engine read-only.
+* **Deliverable 1 — Victory/elimination banner (refresh:1993-2040):**
+  - Shows winner name, Power total, and explicit victory type.
+  - MAJOR victory: "20+ Power, lead ≥10" (rulebook :182).
+  - STANDARD victory: "20+ Power, strictly greatest" (rulebook :176).
+  - Path-specific qualifiers: Agenda condition key, Station influence, Last-Standing sole survivor, Lead margin.
+  - Next-highest non-forfeited/non-surrendered opponent Power shown for context.
+* **Deliverable 2 — Forfeit button (toolbar:1228-1233, refreshForfeitControl:2338-2361):**
+  - Beside Surrender in toolbar; no target selector needed.
+  - Confirmation dialog: warns of immediate exit, ambassador discard (not transferred), sole-survivor win.
+  - Enablement via RulesEngine.canForfeit (ACTION phase, not game over, player active, ≥1 other active player).
+  - Submits GameAction.forfeit() on confirmation; engine authority re-checked at commit.
+* **Deliverable 3 — Draw-round buy-cards offer (toolbar:1242-1246, refreshDrawRoundBuyControl:2372-2392):**
+  - Visible only during DRAW phase (GamePhase.DRAW).
+  - Label shows "Draw Round: N INF available" from human's applied pool.
+  - "Buy Card (3 INF)" button enabled when applied pool ≥3.
+  - Calls RulesEngine.buyMoreCards(human, state) for manual top-up; engine auto-buys in drawRound step 4.
+* **Gate green:** compile.bat PASS (javac 1.8.0_292, -source 6 -target 6, 1 bootstrap warning); census-b50960 clean (0 code-lines for all tracked Java 6 violation families, 14 getOrDefault hits are project's own helper); RUN_TESTS=1 all 9 gates PASS (HeadlessConformanceTest 787/787, HeadlessSmokeTest, HeadlessAIDifficultyContractTest, HeadlessConflictResolutionProbe, HeadlessHumanConflictAttackWindowTest, HeadlessLeadFleetScenarioProbe, HeadlessParticipationGatesProbe, HeadlessStationVictoryTest, HeadlessWarConflictProbe).
+* **Files edited:** b5ccg/src/b5ccg/ui/MainWindow.java only.
+* **Report:** .agent/REPORTS/2026-10-03-Cline (claude-4-sonnet)-B5-2267.md
+* **Pattern:** .agent/PATTERNS/Cline (claude-4-sonnet)/2026-10-03-victory-forfeit-drawround-pattern.md
+
+**Reusable lesson:** When surfacing an engine-automatic action (draw-round buy-cards) in the UI, show the engine's own state (applied pool) and offer a manual trigger that re-uses the same engine method (buyMoreCards) rather than reimplementing — this guarantees the UI and engine can never disagree on cost, eligibility, or side effects.
+
+
+## 2026-10-03 — Cline (space-bunny-free): B5-2199 DONE — Map sponsor plus assistant discount mechanics (read-only engine/model)
+
+* **Scope delivered:** read-only trace of every sponsor/assistant discount path from card text to paid cost at play time, with file and line numbers. No src edits, no commit.
+* **Paths verified:**
+  * `baseRecruitCost` (RulesEngine.java:403-406) — card cost doubled for off-faction loyal, neutral free.
+  * `recruitCost` (RulesEngine.java:425) — `Math.max(0, base - sponsorDiscount)`, max not sum.
+  * `executeAssistantSponsorDiscount` (RulesEngine.java:1540-1552) — rotates assistant, calls `grantSponsorDiscount(1)` (Player.java:418, max logic).
+  * `sponsorCost` (RulesEngine.java:433-438) — `FREE_SPONSOR` waiver checked first, dominates all numeric discounts.
+  * RECRUIT_CHARACTER branch (GameController.java:384-402) — consumes exact discount applied via `consumeSponsorDiscount(baseCost - cost)`.
+  * `startRound` (RulesEngine.java:2160) — expires all remaining discount: `consumeSponsorDiscount(getSponsorDiscount())`.
+  * `promotionCost` (RulesEngine.java:234-242) — base cost (with double off-faction) + Inner Circle size surcharge.
+  * `groupSponsorshipCost` (RulesEngine.java:338-340) — listed cost only, undoubled per rulebook :496.
+  * `executeAssistantAbilityBoost` (RulesEngine.java:1521-1533) — mutually exclusive with sponsor discount per `canUseAssistant` gate; sets `assistantBonus` flag (sustained), not a discount.
+* **Stacking rules confirmed:** sponsor discounts are max not sum (Player.grantSponsorDiscount uses `Math.max`); only one discount applies per recruit; FREE_SPONSOR waiver overrides entirely; assistant ability boost and sponsor discount are mutually exclusive per assistant per turn.
+* **Gate green:** `b5ccg/compile.bat` PASS (exit 0), Java 6 census clean.
+* **Report:** `.agent/REPORTS/2026-10-03-Cline (space-bunny-free)-B5-2199.md`
+* **Pattern:** `.agent/PATTERNS/Cline (space-bunny-free)/2026-10-03-sponsor-discount-max-not-sum.md`
+
+**Reusable lesson:** A sponsor discount should always be modeled as a max not a sum: stacking discounts leads to player confusion and logic churn. Each bonus (assistant, card, waiver) should carry its own effect type; a full cost waiver always expresses with dominance precedence.
+
+
+## 2026-10-03 — poor-claude: B5-2255 DONE — support/oppose participation buttons + running totals (ui only claim, no edit)
+
+* **Feature audited — already live.**
+    * Join Support/Oppose buttons exist and are correctly enabled in MainWindow.java (L88-89 declaration, L703–716 construction/wiring, L1113–1114 toolbar add, L1822–1823 enablement on ACTION-phase join window).
+    * Running support vs oppose totals are live and visible in joinPromptLabel (rendered from Conflict.supportTotal()/oppositionTotal(), MainWindow.java:2476–2477, refreshed every state update).
+    * No in-scope files (`b5ccg/src/b5ccg/ui/`) were edited or added by this claim.
+* **Gate green**: compile.sh exit 0, javac 1.8.0_292; census-b50960 code-lines 0 for every tracked construct family; no qualified getOrDefault; RUN_TESTS=1 exit 0, verification passed conformance 818/818 PLUS smoke and 7-probe PASS.
+* **Red at claim, green at close:** At claim/start, the gate was red (compile.sh exit 1, 7 `cannot-find-symbol applyAftermathEffect` errors, ALL in engine/ — arrived from the foreign claim B5-2249, Cline (space-bunny-free)); by close, B5-2249 completed, claim released, method restored, and the UI scope went green with **no edit needed** and no secondary authority minted for the same facts.
+* **No commit, no push, all artifacts filed:**
+    * Report: `.agent/REPORTS/2026-10-03-poor-claude-B5-2255.md`
+    * Pattern: `.agent/PATTERNS/poor-claude/2026-10-03-a-present-feature-is-not-a-second-authority.md`
+
+**Reusable lesson:** a vacant UI feature row whose deliverable is already present must not re-implement; confirm, document, and close out to preserve single authority.
+
+
+## B5-2177 — Starter-deck composition convention: two of the three recorded invariants do not hold (2026-10-03)
+
+* **Agent:** Kilo (kilo-auto/free) 31
+* **Scope:** `docs/proposals/` plus data read-only — zero `src/` edits, zero card JSON edits, zero harness edits. Build gate green and unchanged by this row.
+* **Claim:** Tool-stamped via `new-claim.ps1`, started_utc 2026-10-03T04:07:58Z, payload-vs-mtime AGREE (delta -0.009 min). Preceded by a recorded reap of the stale foreign claim on the same row; see the reap note in `.agent/TASK_LEDGER.md`.
+* **Why this row was picked over the four higher-priority ones:** `ui/` was held by a LIVE claim (`B5-2255`, `poor-claude`, owner heartbeat 28.9 min old) plus an UNCLAIMABLE one (`B5-1980`, owner heartbeat does not resolve, so UNKNOWN is never STALE), and `engine/` + `model/` were held LIVE by `B5-2001` (`pi (poor-pi)`, heartbeat 7.0 min old). All four one-writer-per-scope dirs were held, and this was the only claimable row whose scope is docs-only.
+* **INTERPRETATION 1 (the rulebook makes the harness/rule boundary provable).** The convention doc asserted "neither invariant is game-logic" while citing no rulebook line, leaving its central claim unprovable from the document. The anchors that settle it: **`:132`/`:197`** set a 45-card **floor** and state there is "**no maximum**" for a play deck, so the harness's 60 is not a rules ceiling; **`:134`** shows 60 is the **retail starter-product** size (50 fixed commons + 10 random), which is where the harness borrowed it; **`:193`/`:203`–`:206`** give a deck-building *method* and no conflict/agenda ratio, so the 12 + 2 quota has **no rulebook basis at all**; **`:266`** has both players play their starting Ambassador straight into the faction, so the ambassador pin is a harness simulation of `:266` compensating for `GameController.setupGame()` extracting from the hand instead.
+* **INTERPRETATION 2 (one Starting Ambassador is a minimum, not a maximum).** Rulebook **`:199`**/`:230`** read "must contain one Starting Ambassador", but this project's validator implements it as **at least** one — `DeckLoader.java:73` and `:103`–`:108` set a `hasAmbassador` flag and never count. Recorded because finding F2 below produces a deck holding the ambassador **twice**, and the correct reading is what stops that being reported as a rules violation when it is a harness-fidelity defect.
+* **FINDING F1 (P1, engine scope, reported not fixed) — the 60-card cap is not enforced; the live harness deck is 74 cards.** Javadoc `:251`–`:252` and the pass-3 comment `:290` both claim a 60-card cap. Pass 1 (`:275`) and pass 3 (`:291`) test `deck.size() < 60`; the quota pass (`:281`,`:286`) tests only its own counters and appends 14 cards regardless of size. Measured over all 829 live records: own-faction counts are MINBARI 72, CENTAURI 62, HUMAN 61, NARN 61, NON_ALIGNED 8 — so **all four factions that own a printed ambassador saturate pass 1 at 60**, the quota pass appends 14 more, and pass 3 adds nothing because the deck is already 74. Violates no rule (`:132` has no maximum); it matters because the document's purpose is to record load-bearing invariants and it was recording a ceiling the code lacks. **Not fixed:** `engine/` is held by live claim `B5-2001`.
+* **FINDING F2 (P1, engine scope, reported not fixed) — the ambassador pin duplicates the card instead of relocating it.** `:86` `new Deck(deckCards)` does `drawPile.addAll(cards)` (`Deck.java:10`), so the ambassador is already in the pile; `:92` `findAmbassadorCard` searches **that same list** and so can only return a card already present; `:93` `addToTop(amb)` is `drawPile.addFirst(c)` (`Deck.java:54`), an **insert with no removal**. `Deck.draw(int)` (`:22`–`:28`) draws from the front, so the inserted copy is guaranteed in the opening four and the original stays buried. Unconditional on live data: **10 records carry `isAmbassador: true`**, all `CHARACTER` with a faction. Reads as a violation only if "one" means exactly one; per INTERPRETATION 2 the validator says at least, so the cost is that the smoke test plays a **74-card deck holding two copies of one card**, which no physical deck can be, and every card-count assertion against it is off by one.
+* **FINDING F3 (P2, refuted — recorded because a refutation is evidence).** The quota loops never test membership, so a quota pick already added by pass 1 would be duplicated. It does not happen now, by ordering accident not by guard: all 108 CONFLICT records are `ANY`; the first two AGENDA records in load order (`agenda_a_rising_power`, `agenda_as_it_was_meant_to_be`) are both `ANY`; the 12 faction-specific agendas (MINBARI 4, HUMAN 3, CENTAURI 3, NARN 2) never reach the quota loop. **Data-dependent, not enforced** — reordering the card files silently introduces duplicates with no gate to catch it.
+* **FINDING F4 (P2) — the printed-deck path's quota rests on a comment, never a measurement.** `buildFactionDeck` short-circuits to `StarterDeckBuilder.build` at `:265`–`:267`; the claim that this path needs no quota rests entirely on the comment at `:263`–`:264`. F1 and F2 apply to this path too since the pin runs after either path. Whether it independently satisfies 12 + 2 is **unverified**: `StarterDeckBuilder` is `engine/` and read-only here.
+* **Gate:** `b5ccg/compile.bat` **GREEN**, exit 0, "Build successful", javac 1.8.0_292 `-source 6 -target 6`, 1 expected bootstrap warning only. The Java 6 construct census was not re-run because this row edits no `src/` file.
+* **Deliverable:** `docs/proposals/b5-2177-starter-deck-composition-convention-proposal.md` — original author's 20 cited anchors **re-measured byte-exact, zero drift** despite `engine/` being under active foreign edit during the pass; rulebook-anchor table added; two false "capped at 60" statements corrected in place with the correction visible rather than silently overwritten.
+* **Report:** `.agent/REPORTS/2026-10-03-Kilo (kilo-auto-free) 31-B5-2177.md`
+* **Pattern:** `.agent/PATTERNS/Kilo (kilo-auto-free) 31/2026-10-03-a-convention-doc-must-measure-the-invariant.md`
+* No `src` file created, edited or deleted; no foreign row, claim, heartbeat, report or pattern touched; no card JSON touched; no rulebook body text edited; no commit, no push.
+---
+
+## 2026-10-03 B5-2007 (hermes (stealth-space-bunny-alpha) 2341) — deck-builder feedback verified already delivered; constructed deck is discarded
+
+**Decision:** close B5-2007 DONE with **zero `src` bytes written**, and record
+the real defect as unowned work rather than patch it out of scope.
+
+**Premise measured before any edit.** All four warnings the row names were
+already implemented and live: 45-card floor (`DeckLoader.java:88-91`),
+one-Starting-Ambassador (`:106-109`, `:124-126`), max-3-copies with its FIXED
+exemption (`:128-147`), faction playability (`:119-122`). They are re-run on
+every mutation by `refreshValidation` (`MainWindow.java:4067-4085`), which
+delegates to `DeckBuilderModel.problems()` rather than reimplementing any rule,
+and `Construct` is gated on the empty problem list (`:4084`) and re-checked at
+click time (`:3951-3952`). B5-2247 wrote the dialog; B5-2287 moved the rules
+into a headlessly testable model.
+
+**Gates.** `compile.sh` exit 0. `RUN_TESTS=1 compile.sh` exit 0,
+`Verification passed`, `CONFORMANCE SUITE PASSED (818 checks)`,
+`SMOKE TEST PASSED`. Java 6 census over all 8 `ui/` files: 0 code hits (the 6
+grep matches are an arrow in string literals and arrow prose in Javadoc).
+
+**Interpretation recorded (B5-1730 applied, not just cited).** A green
+conformance suite proves nothing until it has been seen failing. Raising
+`DeckLoader.MAX_COPIES_PER_CARD` 3 → 99 turned `[DB4]` red on 2 of 818 checks
+(the max-3 assertion and the Construct-gate assertion); restoring the file
+returned 818/818. The gate was observed red, then green.
+
+**The finding, and why it was not repaired.** `showDeckBuilder`
+(`MainWindow.java:3790-3793`) calls `showDeckBuilderDialog(this)` as a bare
+statement and **discards the returned `List<Card>`**, which is the dialog's only
+path out (`getConstructedDeck` `:3977-3979`, `constructedDeck` `:3953`). No seam
+exists to receive it: `GameController` exposes one constructor
+(`GameController.java:45`) and zero `setDeck`/`loadDeck`/`startGame`, while
+`Main.java:55-66` deals every faction deck inside `main` **before any
+`MainWindow` exists**. The deck builder is therefore a legality checker that
+cannot be used to play — a different defect from the four warnings this row
+asked for.
+
+Repair would require a `model/` + `engine/` injection seam that does not exist
+yet; `ui/`-only scope cannot create one, and `engine/` is held by a **live**
+claim (B5-2237, Mercury-1.0). A scan of all 993 ledger rows for *constructed
+deck*, *handover*, *hand-off* and *discard* found **zero** owning rows.
+
+**Standing consequence:** seed a new row scoped `model/` + `engine/` to add the
+deck-injection seam and route `showDeckBuilder`'s result into it. Left to the
+seeder, because per 00_BOOT step 4 self-seeding must go through the normal
+OPEN-claim-DONE cycle and this session's loop ends here.
+
+**Lesson.** Verify the deliverable existed before writing it — grep by the row's
+nouns, not its task id — and when it is already delivered the honest close-out is
+a measurement plus the *next* defect, not a redundant diff. Companion: a returned
+value with no consumer is a defect no gate in this repo catches.
+
+Report: `.agent/REPORTS/2026-10-03-hermes (stealth-space-bunny-alpha) 2341-B5-2007.md`
+Pattern: `.agent/PATTERNS/hermes (stealth-space-bunny-alpha) 2341/2026-10-03-verify-the-deliverable-existed-before-writing-it.md`
+
+No `src`, card JSON or rulebook file created, edited or deleted. No foreign row,
+claim, heartbeat, report or pattern touched. No commit, no push.
+
+
+## 2026-10-03 B5-1957 (hermes (stealth-space-bunny-alpha) 2341) — pattern-namespace fragmentation measured; the fifth namespace is a PUA look-alike, not a spelling
+
+**Decision:** close B5-1957 DONE as a **measurement**, with the earlier report's
+per-namespace count corrected, and record that the merge the row contemplates is
+**not an agent's to perform today**.
+
+**Precondition, recorded because it nearly decided the row wrongly.** The row
+carried a foreign claim from `Muse Spark (muse-spark-1.3-contributor-free)`.
+Three-signal measurement: claim 1595.2 min, owner heartbeat 53.6 min (state
+`idle`, `live_claims` empty), owner report 1595.3 min. Newest 53.6 min ≈ 1.8× TTL,
+all definite, none UNKNOWN → reapable; note appended before deletion. An earlier
+pass on this same row declined to act because the owner heartbeat was then 3 min
+old and LIVE. Both verdicts were correct at their moment — the **B5-0685** lesson
+that a liveness reading must be re-measured fresh at action time and never
+inherited. The owner left a complete report and stopped before flipping the row;
+the reap destroyed no work.
+
+**Counts as measured** (`solar-pro4` 1, `solar-pro4-free` 42,
+`solar-pro4-free-0978` 1, `solar-pro4-free-b51088blocked` 1,
+`solar-pro4<U+F03A>free` **12**; total **57**; one README, in the fifth).
+
+**Correction.** The earlier report records 13 records in the fifth namespace. It
+holds 13 *files*, of which 12 are records and 1 is `README.md`. The grand total 57
+is correct; the per-namespace figure over-counted by treating the README as a
+record. Recorded in place rather than silently.
+
+**The material finding, and why it changes the answer.** The fifth namespace's
+separator is **U+F03A**, a private-use codepoint that renders as a colon. It is
+therefore neither the ASCII `:` Windows forbids nor its documented sanitisation
+`-`. Confirmed with the shipped instrument: `detect-filename-lookalikes.ps1`
+classes it `FOREIGN-NS` and finds 14 `RECORD` files, 1 `QUARANTINE` heartbeat and
+3 `OUT-OF-STORE` paths bearing the same codepoint, including an agent heartbeat
+**nested inside `b5ccg/src/`**.
+
+**Consequence for the merge.** The four ASCII spellings are a rename the rules
+permit in principle. The fifth is **R6-protected**: its remediation is part (b) of
+`docs/proposals/lookalike-filename-r5-exception-proposal.md`, which the human
+**deferred to a later ruling on 2026-09-30**, and until that ruling every component
+stays byte-identical. A merge treating all five as equivalent spelling drift would
+breach R5/R6 on the namespace that matters most — and no tool searching for `:`
+finds U+F03A. **No agent performs this merge.**
+
+**Merge cost, measured.** 88,346 bytes across 61 files — trivial in bytes, blocked
+in authority. Ordering is **unrecoverable from the filesystem**: all 61 files share
+one mtime from a bulk checkout, so recency must come from filename dates (09-25 ×1,
+09-26 ×1, 09-27 ×15, 09-28 ×16, 09-29 ×5, 09-30 ×13, 10-01 ×4, plus 2 records with
+no date in the name). A merge sorting by mtime would scramble history silently.
+Separately, **5 of the 57 records carry no `author_llm`** (2 in `solar-pro4-free`,
+1 in `solar-pro4-free-b51088blocked`, 2 in the look-alike namespace), which
+AGENTS.md §1 requires; a merge is the natural moment to repair them and the wrong
+moment to do so silently.
+
+Fences honoured: DONE B5-1455 and DONE B5-1689 read, not redone. No namespace
+moved, renamed, created or deleted; no pattern file edited; no foreign heartbeat,
+claim, report or namespace touched; no `src`, card JSON or rulebook edit; no commit,
+no push.
+
+Report: `.agent/REPORTS/2026-10-03-hermes (stealth-space-bunny-alpha) 2341-B5-1957.md`
+Pattern: `.agent/PATTERNS/hermes (stealth-space-bunny-alpha) 2341/2026-10-03-match-a-suspicious-separator-by-codepoint-not-by-glyph.md`
+
+## 2026-10-03 — opencode (me-so-poor)
+
+* B5-2375: UI toolbar Was: 94 controls in one FlowLayout attached to BorderLayout.NORTH, clipped 83/94 (1920w) and 91/94 (1366w) — most actions unreachable. Now: Split to a two-row toolbar — filterPanel is always visible across the top, all action controls in multi-row FlowLayout inside a JScrollPane beneath, no controls clipped at 1920/1366 widths. Required census (code-lines 0 under Java 8-only constructs, tracked), required compile.bat exit 0 (see ledger), and all listeners/logic/assignments byte-identical except panel layout. Small diff, Java 6 only, b5ccg/src/b5ccg/ui/ only, no commit or push. Pattern and report on disk.
+
+## 2026-10-03 - B5-2383 DONE: playtest guide section 4 describes the landed toolbar split (muse-spark-loop-05)
+
+Docs only, no src edits. Verified the landed B5-2375 layout in b5ccg/src/b5ccg/ui/MainWindow.java (toolbarPanel BorderLayout 1317 to 1326, filterPanel pinned NORTH at 1320, buttonPanel in a horizontal-as-needed scroll pane 1321 to 1325) and wrote a B5-2375 blockquote into the guide naming the pinned filter row plus the scrolling action strip plus the left-end primaries. Correction recorded: the fix scrolls at overflow rather than fitting everything without scrolling, and the unshown old toolbar panel plus its line 1172 strut are dead code left for a follow-up. CLOBBER OBSERVED AND NOT REPAIRED: this file read 10494 lines after the B5-2373 append earlier today and now reads 3 lines holding only the B5-2375 entry (git diff 2 insertions and 10066 deletions), so a concurrent writer rewrote it from a stale snapshot; this pass byte-appends only and a restoration row is needed. Report at .agent/REPORTS/2026-10-03-muse-spark-loop-05-B5-2383.md.
+
+
+## 2026-10-03 - B5-2237 DONE: one-shot aftermath discard deferred to Resolution Step 3 (opencode (big-pickle) bpl1)
+
+Rulebook :440 (Resolution Step 3, "Discard Conflicts and Aftermaths") says aftermath
+cards "which are to be discarded after play are also discarded at this time" - at Step
+3, not at Step 2 where the card is played. :428 makes the timing load-bearing and states
+the consequence: "Aftermaths which occur and are then discarded should only be discarded
+at the end of the aftermath step for that conflict. Therefore, a 'discard after play'
+aftermath can only be played once on any given target for each conflict."
+
+Interpretation recorded (rulebook body not edited): the step boundary is part of the
+rule, not incidental phrasing. The engine previously discarded a one-shot in place inside
+the aftermath loop. Its END state was already correct - the one-shot reached its owner's
+discard pile - which is why no existing check failed and why an end-state assertion
+cannot detect this class of defect.
+
+Change: one-shots are queued on GameController during Step 2 and flushed once, after the
+whole aftermath step, immediately before clearActiveConflict(). Permanents are never
+queued and stay attached to their target. Same deferral the conflict card already gets.
+
+Deliberately NOT changed: the one-shot/permanent discriminator. Measured across all 20
+aftermaths the engine dispatches - 18 immediate one-shots (none carrying "permanently")
+and 2 in-play enhancements (War Hero, Battle Tested, both carrying it) - the existing
+text sniff classifies all 20 correctly, matching :590. It was extracted to a named
+null-safe isPermanentAftermath(AftermathCard) seam so it becomes testable, but the
+predicate is unchanged.
+
+Scope note: the queue lives on GameController, not GameState, because GameState is
+model/ and this row claimed engine/ only. The engine's single aftermath play site skips
+human players, so the human aftermath path (driven from ui/ HandPanel) is unaffected and
+was left untouched - see the report's "Not done, deliberately".
+
+Verified: compile.bat exit 0 (JDK 1.8.0_292, -source 6 -target 6); RUN_TESTS=1 exit 0,
+CONFORMANCE SUITE PASSED (865 checks) including 16 new AMT4 checks that fail on the old
+code (they assert the one-shot is in no discard pile before the Step 3 flush); Java 6
+construct census code-lines 0 for every family under TRACKED b5ccg/src.
+
+
+## 2026-10-03: B5-2402 by opencode (space-bunny-free) 2340. Aftermath duration census for live B5-2237: the engine keeps 4 of the 26 that are not one-shot.
+
+**Read-only row.** Card JSON and `model` read only, no src edits, no engine or ui scope claimed, as the row
+requires. In support of **live B5-2237** (`opencode (big-pickle) bpl1`, engine scope).
+
+### The measurement
+
+117 AFTERMATH records - 59 in `premiere.json`, 58 in `deluxe.json`. **There is no duration field.** Every record
+carries `id, title, type, subtype, rarity, faction, set, imageKey, text, triggerCondition`, so duration exists only
+as free text, which is why the engine resorts to a substring.
+
+`GameController.java:947` reads:
+
+    if (!am.getText().toLowerCase().contains("permanently")) { p.getDeck().discard(am); }
+
+It keeps **4** cards and discards **113**. The census finds **26 that are not one-shot**, of which the engine
+discards **22**.
+
+| class | premiere | deluxe | total |
+|---|---|---|---|
+| `ONE_SHOT` - immediate resolution, discard at end of aftermath step | 47 | 44 | **91** |
+| `PERMANENT` - lasting modifier, no expiry | 4 | 4 | **8** |
+| `WINDOWED` - modifier or state with a stated expiry | 8 | 10 | **18** |
+| `UNCLASSIFIABLE` | 0 | 0 | **0** |
+
+The rulebook supplies the taxonomy the data omits: line 428 (*"many are permanent; they are placed with the card ...
+and remain in play"*), line 440 (*"Aftermath cards which are to be discarded after play are also discarded at this
+time"*), line 590 (*"Some aftermath cards cause an immediate effect"*).
+
+### The correction table, in full
+
+**PERMANENT, 8.** `aftermath_battle_tested` (premiere.json:4984) and `aftermath_war_hero` (premiere.json:5632) say
+`permanently` and are the only cards the engine keeps. `aftermath_blood_oath` (premiere.json:4996) and
+`aftermath_racial_hatred` (premiere.json:5452) say **`for the rest of the game`** and are discarded anyway - the
+clearest misclassification in the set, an effect that lasts the entire game thrown away at the end of the step.
+Plus the four `de_am_` mirrors (deluxe.json:4121, 4133, 4589, 4769).
+
+**WINDOWED, 18.** `aftermath_disgrace` "until healed" (5092); `aftermath_intolerable_interference` "next round"
+(5236); `aftermath_it_will_be_his_undoing` "until end of round" (5248); `aftermath_left_vulnerable` "until end of
+round" (5284); `aftermath_nightmares` "at end of this round" (5344); `aftermath_personal_enemies` "this round"
+(5392); `aftermath_renowned_victory` "until end of round" (5476); `aftermath_vendetta` "next conflict" (5620); the
+eight `de_am_` mirrors; and `de_am_loss_of_face` (deluxe.json:4433) plus `de_am_public_apology` (deluxe.json:4577),
+which are **deluxe-only**.
+
+Full per-card table with `file:line`, the rule that fired, and the text:
+`.agent/REPORTS/_receipts/2026-10-03-aftermath-duration-census-B5-2402.csv`.
+
+### Two findings that change how the table must be keyed
+
+**Duration is set-dependent, not card-dependent.** Pairing the files by base id, exactly **2 cards diverge**:
+`loss_of_face` and `public_apology` are `ONE_SHOT` in premiere and `WINDOWED` in deluxe, because deluxe appends
+`(Deluxe text change: ...)` clauses premiere lacks - for `loss_of_face`, *"also loses 1 from their ambassador's
+primary stat until healed"*. **A discard table keyed on card id alone is wrong for deluxe.** It must be keyed on
+`(id, set)` or on the text as loaded.
+
+**`martyr` is a trap for any text heuristic.** Its text reads *"Play after any conflict in which one of your
+characters was **discarded**. Gain 3 Influence."* The "discarded" is a **character**, not the card. Any duration rule
+keyed on the word "discard" misclassifies it. The current rule gets it right **by accident**, because it never looks
+for "discard" - an argument against "improving" the heuristic by adding a discard check.
+
+**A modelling gap the engine worker will hit:** `Expiry` is `WHILE_IN_PLAY | END_OF_TURN |
+START_OF_NEXT_OWNER_TURN | ON_EVENT`. **None of those is "end of round" or "until healed"**, so the `WINDOWED` class
+has no home in the current enum.
+
+### The classifier was wrong twice before it was right
+
+Recorded because the intermediate states are the useful part.
+
+1. **v1 counted verbs** and filed 23 premiere cards as `PERMANENT?`, because they contain a number plus "gain" or
+   "lose". Manual reading: 22 were Influence changes. Wrong.
+2. **v2 widened the verb list** and produced a 17-row `UNCLASSIFIABLE` bucket. Manual reading: all 17 were ordinary
+   one-shots (*"loses 1 Influence"*, *"character is damaged"*, *"fleets are rotated"*). I had built a category for
+   my own parser's gaps and was about to report it as a property of the data.
+3. **v2 also regressed** 1 to 3 unclassifiable while chasing a `\brotat\b` that cannot match "rotated" - no word
+   boundary before "ed". Narrowing a list to fix one miss removed two hits.
+4. **v3** replaced verb-counting with the domain fact: **Influence is a player scalar, not a card modifier.**
+   `Player.influence` is a stored `int` with `gainInfluence`/`loseInfluence`, is not a `StatBonus`, and carries no
+   expiry - so *"Gain 1 Influence"* is an immediate resolution even though it has the shape of a modifier. Result: 0
+   unclassifiable, and then **all 26 non-`ONE_SHOT` rows read by hand plus all 31 `ONE_SHOT` rows mentioning an
+   in-play entity**, in both directions.
+
+**An `UNCLASSIFIABLE` bucket is a claim about the data. Read every row in it before publishing one** - usually you
+are reporting your parser, not the corpus. And a bucket that shrinks when you edit a regex is a warning, not progress.
+
+### Gates
+
+`compile.bat` exit 0. Java 6 construct census all families `code-lines 0` (68 arrow hits are comment prose). **Zero
+card-JSON files modified** - `git status` shows no entry under `b5ccg/resources/cards`. **Zero src files modified by
+me** - the three modified src files belong to the live `engine` and `ui` workers. Claim scope read-only as the row
+requires. No commit, no push.
+
+* **Report:** .agent/REPORTS/2026-10-03-opencode (space-bunny-free) 2340-B5-2402.md
+* **Pattern:** .agent/PATTERNS/opencode (space-bunny-free) 2340/2026-10-03-when-the-rule-must-be-a-substring-find-the-domain-fact.md
+
+## 2026-10-03: B5-2404 by Hermes (stealth-space-bunny-alpha) 2361. docs/DECISIONS.md restored after the read-modify-write clobber; a completed fix was reverted by the restore and re-applied
+
+The working tree held42 lines and 3 entries against a HEAD blob of 10067 lines and 417
+entries, so the file had been rewritten whole from a stale snapshot. Restored by
+re-laying the HEAD blob byte-identically as the base and re-appending every surviving
+entry measured as novel by heading overlap: 6 entries recovered from
+docs/archive/DECISIONS-truncated-tail-2026-10-03.md and 3 from the live file. Result
+10313 lines, 426 headings, 424 unique. Zero entries introduced twice: the two duplicate
+headings in the result are both pre-existing in the HEAD blob (mojibake 2026-09-25
+B5-0408 and 2026-09-26 B5-0487 Solar Pro4 headings) and were not touched.
+
+HEAD IS NOT A COMPLETE BASE, MEASURED NOT ASSUMED: of the 8 verbatim entries in the
+earlier truncation snapshot, 6 were absent from the HEAD blob, so the checkpoint
+captured a partial recovery and this restore is a union of three proven sources rather
+than HEAD plus a tail. Entries appended between 2026-10-02T02:46Z and the truncation are
+still not on disk in any form; that gap is unrecoverable here and is not claimed closed.
+
+THE RESTORE REVERTED A COMPLETED FIX, AND THAT IS THE PART WORTH RECORDING: B5-2363
+closed at 10:03Z today by changing one token at DECISIONS.md line 4997, a near-miss
+citation naming 2026-09-28-B5-0703-blocked-by-out-of-scope-concurrent-ai-edit.md where the
+filed record is 2026-09-28-B5-0703-blocked-by-existing-claim-and-out-of-scope-concurrent-edit.md
+(one clause longer, because the filed name carries both causes). That edit lived only in
+the working tree the clobber destroyed, so re-laying the HEAD blob reinstated the bad
+name and check-citations returned to exit 1. Re-applied the identical one-token fix under
+B5-2363's own ruling rather than filing a new row, 16 bytes, verified as the only span that
+changed. The general lesson: a restore from HEAD silently reverts every uncommitted fix,
+and a green gate after the restore is not evidence the restore was faithful.
+
+Gates: check-citations.ps1 exit 0 (424 refs scanned, 0 dangling, 39 skipped as
+lossy-by-construction); run-dup-census.ps1 exit 0 (0 duplicate IDs);
+detect-bare-powershell-cmdlet.ps1 exit 0 (0 findings, 1 declared counter-example);
+b5ccg/compile.sh exit 0 on JDK 1.8.0_292 with -source 6 -target 6, 82 source files.
+Snapshot of the clobbered file before any write is at
+docs/archive/DECISIONS-2026-10-03-clobber-snapshot-pre-B5-2404.md, sha256
+108b71726905c9ad318d8e9dec3648085f953af5c7f54d3ea93e74a96e56395d, byte-identical to the
+file as found. No src or data file touched, no commit, no push.
+
+## 2026-10-03: B5-2406 by Hermes (stealth-space-bunny-alpha) 2361. The one-shot queue had no membership guard; a card queued twice was discarded twice
+
+B5-2237 deferred the one-shot aftermath discard from Resolution Step 2 (:418) to
+Step 3 (:440), queueing on GameController.pendingAftermathDiscards and flushing once
+the step ends. It proved the discard happens once and to the right owner. It did not
+ask what happens if the same card reaches the queue twice, and the answer was that the
+card is discarded twice.
+
+queueAftermathDiscard appended unconditionally. Two entries for one physical card meant
+two discards into the same pile at Step 3, so one card produced two copies in one
+discard pile. Fixed with a membership guard that compares the card by REFERENCE, not
+by id: two different physical copies of Rise to Power are two legal cards and both must
+queue, and a getId() comparison would have wrongly suppressed the second. Six AMT5
+conformance checks added in HeadlessConformanceTest.
+
+THE GATE WAS PROVEN RED BEFORE IT WAS BELIEVED GREEN: with the guard removed the suite
+reads FAILED 3 of 872, naming exactly the three double-fire assertions, and with it
+restored CONFORMANCE SUITE PASSED (872 checks), up from 865. A guard nobody has watched
+fail is a guard nobody has tested.
+
+SECOND FINDING, REPORTED NOT FIXED: a discarded one-shot does not release the target's
+D4 name slot. The card is attached in Step 2 (GameController.java:985) and stays in
+GameState.attachedAftermaths after its Step 3 discard, and that registry is cleared only
+at the round boundary via advanceRound -> clearAttachedAftermaths. So for the rest of the
+round the one-shot's NAME still occupies the target's D4 slot and canPlayAftermath
+refuses a second copy of the same aftermath on that target. Rulebook :428 sets the limit
+as once per target PER CONFLICT, so the engine is enforcing once per ROUND, which is
+stricter than the rulebook states. Measured true=false for canAttachAftermath on a
+discarded one-shot. NOT FIXED HERE because the fix needs a GameState.detachAftermath and
+GameState is model/, outside this row's engine-only claim; the AMT5 check is deliberately
+WITHHELD rather than asserted in either polarity, because pinning the current
+known-wrong behaviour as a specification would make the next reader inherit it. Scope
+needed for the fix: b5ccg/src/b5ccg/model/GameState.java plus its engine caller.
+
+Verified: RUN_TESTS=1 exit 0, CONFORMANCE SUITE PASSED (872 checks) including the 7 new
+AMT5 checks; compile.bat exit 0 on JDK 1.8.0_292 with -source 6 -target 6 across 82
+source files; Java 6 construct census code-lines 0 for every forbidden family under
+TRACKED b5ccg/src, with the 14 getOrDefault hits all the project's own unqualified
+DeckLoader helper and 0 qualified .getOrDefault( calls. Small diff, engine/ only, Java 6
+only, no commit and no push.
+
+## 2026-10-03 - B5-2420 DONE: B5-2237 deferral proven on the real aftermath path (opencode (big-pickle) bpl1)
+
+Follow-on to B5-2237, self-seeded because every claimable OPEN row was ui/-scoped and
+ui/ was held by a live B5-2377 claim, so no queued row was claimable without creating a
+second writer in one scope (AGENTS.md section 5).
+
+Interpretation recorded (rulebook body not edited): the AMT4 section added by B5-2237
+calls queueAftermathDiscard and flushPendingAftermathDiscards DIRECTLY. It would have
+kept passing green if the production call sites were wrong, absent, or ordered wrongly,
+because a helper can be correct while nothing calls it - or while something calls it at
+play time, which is the exact defect B5-2237 fixed. Testing a helper is not testing its
+wiring.
+
+Change: one visibility edit plus one conformance section, both engine/ only.
+- GameController.resolveCurrentConflict() widened from private to package-private so the
+  suite can drive the genuine aftermath path (join loop -> rules.resolveConflict ->
+  Step 2 play -> Step 3 flush). Same package, no new public API, and consistent with the
+  package-private test seams B5-2237 already introduced.
+- New AMT6 section, 11 checks, driving a real conflict resolution with a legal aftermath
+  in a non-human player's hand. The second player is human and the controller is built
+  with a null uiCallback, which keeps both the getAI() path and the blocking human join
+  window out of the test - a suite that blocks on waitForHumanConflictJoin() is a hang,
+  not a failure.
+
+Coverage: the one-shot leaves the hand, is discarded exactly once to its OWNER's pile and
+to no other player, nothing is left queued after resolution, and - the ordering proof -
+the play is logged BEFORE the discard. That last check is what fails on the pre-B5-2237
+code, which discarded silently at play time and therefore emitted no discard log line at
+all. The permanent aftermath is not discarded and is still attached to its target through
+the same real path, and a step with no aftermath played queues nothing and flushes clean.
+
+Verified: compile.bat exit 0 (JDK 1.8.0_292, -source 6 -target 6); RUN_TESTS=1 exit 0,
+CONFORMANCE SUITE PASSED (883 checks) including 11 new AMT6 checks; Java 6 construct
+census code-lines 0 for every family under TRACKED b5ccg/src; duplicate-ID census exit 0.
+
+Still open, deliberately not in this scope: the human aftermath play path is driven from
+ui/HandPanel and so does not pass through resolveCurrentConflict at all, meaning the
+deferral covers engine-driven play only.
+
+## 2026-10-03 Muse Spark (muse-spark-loop-08, muse-spark-1.3-contributor-free): seeding pass, B5-2408 OPEN
+
+* Declined all three offered OPEN rows (B5-2377, B5-2379, B5-2381): highest-no-live-claim is B5-2377 but every offered row is ui/-scoped while ui/ is held by LIVE claim B5-1980 (started 2026-10-03T11:04:22Z, age ~3 min, LIVE on the claim signal alone), so AGENTS.md section 5 one-writer-per-scope wins over queue order per the AGENT_LOOP precedence rule (same runner-vs-scope disagreement as B5-2402). Gate B5-2375 verified DONE. No claim created, live_claims [] throughout.
+* Seeded B5-2408 OPEN via append-ledger.ps1 (verified landed attempt 2 after attempt-1 LOST to a concurrent rewrite): read-only map of selection-driven button enablement call sites plus engine-predicate-derived controls with file and line anchors, in support of OPEN B5-2379, no src edits, no ui/ claim, no commit. Post-write run-dup-census exit 0, ledger-query B5-2408 7 pipes doubleLead no UNCLAIMED reportable, task cell 480 chars.
+* Repaired own append debris: attempt-1 bytes fused onto the B5-2420 DONE row tail (missing trailing newline) driving it to 14 pipes; removed exactly the fused tail, B5-2420 otherwise byte-identical, verified 7/no after alongside B5-2408 7/no and dup census 0. Report .agent/REPORTS/2026-10-03-muse-spark-loop-08-B5-2408.md, pattern .agent/PATTERNS/muse-spark-loop-08/2026-10-03-after-a-lost-append-check-the-neighbour-rows.md.
+
+## 2026-10-03 - B5-2421 DONE: the B5-2402 census is 22 misclassified records, 2 reachable cards, and 0 fixable defects (opencode (big-pickle) bpl1)
+
+B5-2402 was a read-only row raised in support of live B5-2237, handing a duration census
+and a discard table to the engine worker. B5-2237 closed before I consumed it, so this is
+the explicit consumption pass. The table arrived aimed at my own code, which is exactly why
+it needed reading rather than assuming.
+
+MEASUREMENT, three different numbers that are easy to conflate:
+- CORPUS: 117 AFTERMATH records; 26 are not one-shot (PERMANENT 8, WINDOWED 18); the
+  engine's substring rule misdiscards 22.
+- REACHABLE: CardEffects.applyAftermathEffect dispatches only 25 of the 117 ids. Joining
+  the 25 against the census rows with Misclassified=True yields EXACTLY 2:
+  de_am_loss_of_face and de_am_public_apology, both deluxe-only, both WINDOWED. Reachable
+  breakdown is 20 ONE_SHOT (discarded, correct), 2 PERMANENT (kept, correct - de_am_war_hero,
+  de_am_battle_tested), 2 WINDOWED (discarded). The other 20 misclassified records are
+  LATENT - including afterthmath_blood_oath and afterthmath_racial_hatred, which the
+  census itself called the clearest cases, since neither id is ever dispatched.
+- IMPLEMENTED: 0. This is the finding that stopped the work.
+
+WHY NO FIX. Both reachable cards dispatch through Influence-only groups
+(AFTERMATH_OPPONENT_LOSE_ONE_INF and _TWO_INF), so the engine applies only the Influence
+loss. Their lasting deluxe clauses - loses 1 from the ambassador primary stat UNTIL HEALED,
+and CANNOT INITIATE Military conflicts NEXT ROUND - are implemented nowhere; searching
+b5ccg/src for a bonus or expiry mechanism keyed to healing returns only immediate
+face-down character healing actions. The discard is therefore not an independent timing
+defect but the consistent consequence of the effect not existing. Changing the discard rule
+would make the game WORSE: the card would remain attached in play applying nothing. Same
+shape as B5-2237 itself, where the end state was already correct and only the timing was
+wrong, which is why nothing failed.
+
+THE MODELLING BLOCKER, confirmed: Expiry has four kinds (WHILE_IN_PLAY, END_OF_TURN,
+START_OF_NEXT_OWNER_TURN, ON_EVENT), documented as StatBonus lifetime, and ON_EVENT is
+itself annotated deferred with no current card granting it. None expresses until-healed or
+end-of-round, and no heal-linked sweep exists. The WINDOWED class has no home in the enum.
+Landing these two needs new Expiry kinds, a round-boundary sweep, a heal hook, and a
+cannot-initiate restriction with its own lifetime - a design change with ui/ display
+implications that warrants a human ruling, not an agent judgement. Recommended to whoever
+picks it up: do not patch the classifier, gate on an Expiry-extension ruling, and treat
+these two as the natural first test of any new mechanism.
+
+SET-DEPENDENCE CONFIRMED, and it is why a text sniff is not the worst option:
+aftermath_loss_of_face and aftermath_public_apology are ONE_SHOT in premiere and WINDOWED
+in deluxe, because deluxe appends text-change clauses. Same base id, opposite correct
+residency by set. A discard table keyed on card id alone would be wrong for deluxe; the
+current text-as-loaded sniff is set-sensitive for free.
+
+OWED TO MY OWN B5-2420 WORK: AMT6 validates the WIRING of the B5-2237 deferral, not the
+correctness of the classification it acts on. It uses am6_war_hero, whose text contains
+permanently, so AMT6 passes green while 22 records are misclassified and would stay green
+if the classification were made much worse. My B5-2420 report presented AMT6 as closing
+the gap in aftermath handling; it closed the gap in testing the deferral. The
+classification rule underneath is still a substring.
+
+GATES: read-only row as the task requires - zero src edits by me, zero card-JSON edits, no
+commit, no push. Measurement is a join over the shipped B5-2402 census CSV and the de_am
+ids in CardEffects.java, so it reproduces from files already in the repo. No src edit means
+no compile re-run was required; compile was green at the B5-2420 close-out and the fleet
+re-verified 883 checks after that.
+
+## 2026-10-03 opencode (space-bunny-free 2340): B5-1980 deck builder card search and pool filters
+
+Added pool filtering by type, rarity and maximum cost plus free-text search over card
+name and rules text to the deck builder. Scope ui/ only; no engine, model, ai edits, no
+commit, no push.
+
+The filter RULES went into DeckBuilderModel, not the dialog, and not by preference but
+because B5-2287 had already established that seam for a specific reason: the rules used
+to live inside a JDialog and therefore had no automated coverage at all, since a JDialog
+cannot be constructed headlessly. The dialog remains pixels and merely pushes widget
+state into the model; nothing in it decides what a filter means. Faction filtering already
+existed and is unchanged - it is simply now the first of a conjunction rather than the
+only one.
+
+Two decisions recorded because the obvious alternative is wrong:
+
+* costLimitOn is a SEPARATE boolean, not a sentinel int. The rulebook holds that an
+  undefined cost is not zero (BABYLON5_CCG_RULEBOOK.md:1058), so 0 is a real selectable
+  cost. A -1 or large-number sentinel would have made "free cards only" indistinguishable
+  from "no limit", and the bug would read as a feature. Measured: setCostLimit(0) narrows
+  the HUMAN pool 330 -> 225 and returns only cost-0 cards.
+* Filters never mutate the deck or the faction. Narrowing what is VISIBLE must not change
+  what is CHOSEN or what is LEGAL. This preserves the non-destructive property setFaction
+  already documented. Verified: clearPoolFilters() restores the exact baseline 330 and the
+  authored source never shrinks (446 throughout).
+
+The max-cost combo's bounds are derived from the authored pool rather than hardcoded, so
+there is no 0..9 range to drift out of step with a card costing 12.
+
+Data finding, flagged not fixed: CardType.CONTINGENCY has 0 cards in the HUMAN pool (nine
+of ten types are non-empty). This is a fact about the shipped data, not a filter defect,
+and it is the case that makes the Clear Filters control load-bearing - so the note line
+now reports "N of M authored cards shown" rather than leaving a player staring at an
+empty list unable to tell their own filter from a bug. Referred to the card-data owners;
+may well be intentional.
+
+Verified: compile.bat exit 0 (JDK 1.8.0_292, -source 6 -target 6); RUN_TESTS=1 sh
+compile.sh exit 0 with conformance suite green; Java 6 construct census clean - 13
+families, code-lines 0 for every family under TRACKED b5ccg/src except getOrDefault at 14,
+which is the project's own unqualified DeckLoader.getOrDefault(Map,key,def) helper and is
+the count AGENTS.md section 2a documents as expected, with the qualified .getOrDefault(
+API-level signal measured 0 in tracked source (all 14 qualified hits are in the frozen
+src-java8-archive/, expected to read the opposite). No census hit is attributed to either
+edited file; the five MainWindow.java arrow hits are all tagged PROSE.
+
+Two defects were found in my own verification rather than in the code, both recorded in
+the report because the failure mode matters: my filter probe asserted that each type
+filter narrows below the PREVIOUS type's count, which is false because an enum's
+declaration order is not its size order (measured: CONFLICT 59 follows FLEET 10), giving
+4 spurious failures on correct code; and I read the census gate at the wrong scope three
+times, twice matching zero rows and once matching the frozen archive instead of tracked
+source. A gate that reports zero rows has examined nothing. This is the B5-2314 lesson -
+an assertion read past is not a gate - recurring inside my own close-out verification.
+
+Lane note: B5-1980 was runner-first but its ui/ scope was held by a live B5-2377 claim,
+which was reaped first on the three-signal rule with the reap note landed before the
+whole-file claim deletion (by hash). B5-2377's gate B5-2375 was separately confirmed DONE
+and released by a LIVE owner, so only B5-2377's own claim was stale; conflating the two
+would have destroyed a live claim.
+
+Standing-state drift, not fixed from a ui/-scoped row: AGENTS.md section 2a records 65
+tracked Java files; the census now reports 82, with arrow prose grown to 87 occurrences
+from 64. The pass condition is unaffected (prose grows with comments) but the documented
+denominator is 17 files stale and belongs to the section 2a owner.
+
+Report .agent/REPORTS/2026-10-03-opencode (space-bunny-free) 2340-B5-1980.md; pattern
+.agent/PATTERNS/opencode (space-bunny-free) 2340/2026-10-03-a-filter-enum-order-is-not-size-order.md.
+## 2026-10-03 Muse Spark (muse-spark-loop-08, muse-spark-1.3-contributor-free): user-ordered seed B5-2410 plus B5-2412 from live 1366x768 screenshot
+
+* B5-2410 OPEN (ui/ only): action controls unusable at 1366x768, bar nearly invisible. Prescribes detached always-visible Action window or appear-over-UI popup when an action is available, acceptance pinned to 1366x768 (stronger medicine than OPEN B5-2377's 1920 primary-row guarantee, and B5-2375 scroll fallback already DONE). Queues behind live ui/ claim B5-1980 like the other ui/ OPEN rows.
+* B5-2412 OPEN (engine/ only): second Jeffrey Sinclair playable in hand violates :226 to :230 (starting hand selected, one must be starting ambassador) plus :266 (ambassadors played to Inner Circle). Root cause grounded pre-seed: findAmbassador (GameController.java:236) returns the first copy and setupGame removes only that instance; DeckLoader validates at-least-one deck-wide so multiples pass. Row requires removing every ambassador copy from hand plus draw pile keeping exactly one per faction player, pinned by a conformance section plus RUN_TESTS=1. Report .agent/REPORTS/2026-10-03-muse-spark-loop-08-B5-2410-2412.md, pattern .agent/PATTERNS/muse-spark-loop-08/2026-10-03-ground-a-user-bug-report-before-seeding-it.md.
+
+## 2026-10-03 Muse Spark (muse-spark-loop-08, muse-spark-1.3-contributor-free): B5-2377 DONE, primary action row plus orphan repair
+
+* B5-2422 declined first (claim refused, taken seconds earlier by opencode space-bunny-free 2340); claimed B5-2377 instead after re-reading OPEN with gate B5-2375 DONE and ui lane free. Split the six primary controls (Pass Turn Play Card Initiate Conflict Sponsor Promote Build Influence) into primaryActionPanel outside the scroll pane via a topRows nest, so they stay on screen without scrolling at 1920. Found and repaired a B5-2375 orphan: Game Setup plus Council Vote were added to the old toolbar panel which is no longer on the frame, retargeted to buttonPanel and removed the dead panel. Pass enablement verified already correct (myTurn at 1915, enable at 1945, game-over off at 2127), no logic touched; runtime proof left to OPEN B5-2381. compile.bat green, Java 6 census code-lines 0. Report .agent/REPORTS/2026-10-03-muse-spark-loop-08-B5-2377.md, pattern .agent/PATTERNS/muse-spark-loop-08/2026-10-03-grep-the-container-not-the-component.md.
+
+## 2026-10-03 opencode (space-bunny-free 2340): B5-2422 run-queue.ps1 is scope-aware
+
+run-queue.ps1 now refuses to offer an OPEN row whose one-writer scope is held by a LIVE
+claim. Tooling only (.agent/run-queue.ps1); no src/ file touched; ledger read-only; no
+commit, no push.
+
+The defect, as measured rather than described. Get-ClaimableOpenTasks decided what to
+offer from CLAIM state alone. Its only scope mechanism was three hardcoded numeric
+bands (eng 367-376, ai 377-378, ui 379-381) from the original queue design, so every
+row outside those eleven task numbers got lane = '' and NO scope check at all. That is
+why B5-1980 was ranked first while ui/ was held by a live B5-2377 claim, and why three
+agents declined it in turn on AGENTS.md section 5 grounds. The runner was not wrong about
+the claim - B5-1980 had none. It had no way to ask the question.
+
+The scope semantics are COPIED from scope-collision-census.ps1 (B5-2311), not invented:
+same four one-writer roots, same seven read-only markers, same non-alphanumeric token
+split in Get-ScopeRoots, same pipe-delimited string return. Verified mechanically rather
+than by eye, because the reasoning is already recorded in this repo at Get-CensusSuppression
+- a second hand-rolled variant is how the two census tools came to disagree in the first
+place. Token matching is what makes "engine" collide with "b5ccg/src/b5ccg/engine/" while
+"engineer" and the "ai" inside "maintain" correctly do not. Liveness is delegated to the
+runner's own Test-LiveClaim so the offer decision cannot disagree with the claim path.
+
+One divergence recorded rather than hidden: scope-collision-census.ps1 measures liveness
+from the claim file's mtime, while Test-LiveClaim prefers the payload started_utc and
+falls back to mtime. They agree on well-formed claims and diverge only on a hand-stamped
+timestamp, the B5-1931 UTC+13 class. For an OFFER decision Test-LiveClaim is the right
+authority because it is what the claim path enforces; loosening either rule to force
+agreement would have made both weaker.
+
+Verified: -SelfTest 7/7 PASS exit 0; NEGATIVE CONTROL with the feature stubbed out gives
+fixtures 1 and 7 FAIL and exit 1, so a clean -DryRun is evidence; PowerShell AST parse 0
+errors; live -DryRun sane with queue order preserved for unblocked rows; runner and census
+agree on all four roots, all seven markers, the token split and the return shape;
+scope-collision-census.ps1 and its own self-test still PASS untouched; run-dup-census 0
+duplicates.
+
+Two defects found in my own verification, both recorded because the failure mode is the
+lesson. First, the initial self-test was VACUOUS and exited 0: it reported verdicts
+through Write-Output, which joins the function return pipeline, so exit (Invoke-SelfTest)
+received an array of strings and coerced it to 0 - a gate that could not report failure.
+The symptom was that the verdict lines were simply absent from stdout while every
+Write-Host line appeared. Two Write-Output calls survived the first fix and were exposed
+only by the negative control, which printed FAIL and still exited 0. Second, my first
+negative control was a PARSE ERROR rather than a red: injecting an early return without
+balancing braces produced a ParserError and exit 1, which looks like a correct red and
+proves only that the script has a syntax error. A nonzero exit is necessary, not
+sufficient - the output must show the EXPECTED fixture going red.
+
+A false suppression was found on live data rather than in a fixture. The first working
+version withheld B5-2408 while a live claim held ui/, but that row's scope cell reads
+"b5ccg/src/b5ccg/ui/ read-only plus ..." - it is a read-only survey. Cause: Test-ReadOnlyScope
+was applied to claims but not to rows. Fixed and locked down as fixture 7. It was visible
+only because every hold is printed by name; a silent version of that bug would have looked
+like correct behaviour, which is the argument for a named hold.
+
+Live before and after, on the real ledger, while another agent held ui/ on B5-2381:
+examined 4 / withheld 3 before the read-only fix (B5-2379, B5-2408, B5-2410), examined 4 /
+withheld 2 after, with B5-2408 correctly offered at rank 1.
+
+Every run prints a receipt - scope check examined N candidate rows against M live-held
+roots, withheld K on scope - and warns when N is 0, because "no scope conflicts" and "no
+scope conflict was possible to find" are indistinguishable from outside, and a runner
+that silently examined zero roots is exactly how the original defect hid.
+
+Report .agent/REPORTS/2026-10-03-opencode (space-bunny-free) 2340-B5-2422.md; pattern
+.agent/PATTERNS/opencode (space-bunny-free) 2340/2026-10-03-a-self-test-that-exits-zero-has-not-run.md.
+
+## 2026-10-03 - B5-2408 DONE (muse-spark-loop-09) - selection-driven button enablement map, read-only
+
+Read-only map in support of OPEN B5-2379: all 7 call sites of
+updatePlayInitiateButtons in MainWindow.java (definition :2756; targetSelector
+listener :732, :740, :763; onStateUpdate refresh :1968; initiateOnly refusal
+paths :3016, :3027; applyCardSelection :3112) plus the negative result that
+clearSelection darkens the buttons directly (:3183-3184) instead of calling the
+shared authority. Engine-predicate gates per action with conjunct-level
+anchors: Sponsor canRecruit :2021, Promote canPromote :2034, Build Influence
+canBuildInfluence :2037-2038, Initiate 4-arg or 3-arg canInitiateConflict
+:2788-2791 with targetReady :2799-2800, Play canPlayCard :2819 plus
+canSponsorAgenda :2802. Reachable-without-selection: Build Influence (no
+selectedCard term, verifiable with an empty selection), passButton
+(phase only), Support and Oppose (join window only). Zero bytes written to
+b5ccg/src or card JSON, so the compile gate was not re-run; the map is
+anchored to measured lines, not observed behavior. Report
+.agent/REPORTS/2026-10-03-muse-spark-loop-09-B5-2408.md; pattern
+.agent/PATTERNS/muse-spark-loop-09/2026-10-03-button-map-needs-line-plus-conjunct-anchors.md.
+No foreign row, claim, or heartbeat touched; no commit.
+## 2026-10-03 - B5-2381 DONE: headless MainWindow construction smoke check for the B5-2375 toolbar (opencode (big-pickle) bpl1)
+
+Claimed the highest-ranked claimable OPEN row per 00_BOOT step 5. Its gate (DONE B5-2375)
+was satisfied and ui/ was free because B5-1980 had released, so the ranking on CLAIMS and
+the rule on SCOPES agreed this time. compile.bat was run green FIRST as the row requires.
+New file, ui/ only: b5ccg/src/b5ccg/ui/MainWindowToolbarLayoutTest.java, 16 checks.
+
+THE FINDING THAT MADE THE CHECK WORTH WRITING. phaseLabel is added to buttonPanel at
+MainWindow.java:1262, not to filterPanel. So the phase banner lives INSIDE buttonPanel,
+which is precisely the row B5-2375 wrapped in a horizontally scrollable JScrollPane with
+VERTICAL_SCROLLBAR_NEVER. A toolbar split that rearranged panels could have left the banner
+in a container no longer added to the frame, and NOTHING ELSE IN THE SUITE would have
+noticed: the banner is a JLabel with no behaviour, so no behavioural test can observe it,
+and it is a local variable, so no reflection-based test could reach it either. The check
+asserts the banner is still reachable from the content pane AND still inside the action row.
+
+TWO API FACTS THAT SHAPED THE IMPLEMENTATION, both found by trying and failing:
+- BorderLayout exposes its slot constants but has NO component getters. There is no
+  getNorth and no getCenter, so "which child is in which slot" cannot be answered by asking
+  the layout manager and has to be answered structurally.
+- toolbarPanel, buttonPanel and buttonScroller are constructor LOCALS, not fields, so
+  reflection on names cannot reach them either. The check therefore WALKS the component
+  tree and identifies the B5-2375 shape by form: a panel that is a direct child of the
+  content pane, holding a JScrollPane whose viewport view contains action buttons, plus one
+  sibling that is not the scroller. Walking also means the assertions describe the structure
+  the frame actually has rather than names someone remembered.
+
+THE THREE INVARIANTS, and what each can catch:
+- Construction: MainWindow builds with no Throwable, is never setVisible, and is parked at
+  -32000,-32000. A shape change to the toolbar can make a window unconstructable, and that
+  is invisible to every behavioural test.
+- Toolbar fits: horizontal scrollbar policy AS_NEEDED and vertical NEVER, matching the
+  design intent that a wide row scrolls sideways rather than being clipped, with a vertical
+  squeeze being unrecoverable because there is no vertical scrollbar. Then the
+  preferred-height invariant, size-independent: the toolbar's preferred height must account
+  for filter row PLUS action row (measured 110 >= 77 + 33), and the real allocated viewport
+  extent must be at least the action row's preferred height (measured 33 >= 33).
+- Banner: reachable from the content pane, inside the action row rather than an orphaned
+  panel, non-blank text after refresh ("Phase: ACTION  (TuiHuman's turn)"), and its
+  preferred width within the visible action-row width so the scrollable row did not push it
+  off to the right.
+
+RED WAS OBSERVED, which a passing test alone does not establish. Commenting out
+buttonPanel.add(phaseLabel) turned EXACTLY the two predicted banner checks red and returned
+exit 1, and nothing else moved. MainWindow.java was then restored from a pre-mutation copy
+and verified byte-identically by SHA256 ABBC4F67F1315782CBBE6A093724B3FEDF22140BA75EFEF04009AD3CB9180BE5,
+with no probe text left in the file, and the check returned to 16 of 16.
+
+A SKIP MUST NOT BE GREEN. MainWindow extends JFrame, so the check needs a display, and this
+repo already has a precedent for the silent-green shape: MainWindowAttackControlTest returns
+0 from main() when headless, so a caller reading the exit code cannot tell a skip from a
+pass. This check exits 2 on skip instead, and says so in its output. Measured before relying
+on it: GraphicsEnvironment.isHeadless() is false on this host and a probe JFrame constructs,
+so the check genuinely executes rather than skipping. That probe was the difference between
+shipping a real check and shipping a green line that tests nothing.
+
+GATES: compile.bat exit 0; TUI 16 of 16 exit 0; conformance suite RUN_TESTS=1 exit 0 with
+883 checks PASSED, so the additive file broke nothing; Java 6 construct census code-lines 0
+for every family; duplicate-ID census exit 0; ledger-query on this row pipeCount 7 and
+doubleLead no. The new file is UNTRACKED and the census scans tracked paths only, so it was
+additionally grepped directly for all 12 construct families at 0 hits rather than being
+assumed compliant by a gate that could not see it. No commit, no push.
+
+## 2026-10-03 - B5-2379 DONE (muse-spark-loop-10) - selection enablement re-verified, Sponsor-never-lights fixed
+
+Probe-measured defect, not a reading: a live game driven to a human ACTION
+window with a real off-screen MainWindow showed every Sponsor conjunct true
+(ACTION, my turn, correct affordable in-hand character, canRecruit true) and
+the button dark. Root cause is refresh-only derivation — Sponsor, Promote
+and Build Influence enablement ran in refresh() alone, while selection runs
+applyCardSelection(), which re-derived only Play and Initiate. Pre-existing
+in HEAD, not a toolbar-fix regression, but this row's premise was never true
+for Sponsor and Promote, so the row owned the repair. Fix in ui/
+MainWindow.java only (+50/-28): the three gates extracted verbatim into
+refreshSponsorPromoteBuildInfluence, called from refresh(),
+applyCardSelection() (all three click paths funnel through it) and
+clearSelection(). No predicate changed. Verification: probe 17 of 18 pre-fix
+with the Sponsor-true FAIL, 18 of 18 post-fix, diagnostic re-run
+canRecruit-true with button lit; compile.bat green; Java 6 census
+code-lines 0 every family; conformance 883 PASS; smoke PASS 4 of 4 legal;
+B5-2381 toolbar layout 16 PASS. Scratch probes deleted after the run. Report
+.agent/REPORTS/2026-10-03-muse-spark-loop-10-B5-2379.md; pattern
+.agent/PATTERNS/muse-spark-loop-10/2026-10-03-derive-selection-gates-on-selection-events.md.
+No foreign row, claim, or heartbeat touched; no commit.
