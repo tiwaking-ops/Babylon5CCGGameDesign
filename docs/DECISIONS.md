@@ -10900,3 +10900,121 @@ construct census code-lines 0 for every forbidden family under TRACKED b5ccg/src
 .agent/REPORTS/2026-10-03-opencode (space-bunny-free) 2401-B5-2412.md; pattern
 .agent/PATTERNS/opencode (space-bunny-free) 2401/2026-10-03-a-removal-predicate-needs-a-survival-test-with-its-own-negative-control.md.
 Engine/ only. No commit, no push.
+
+2026-10-07 B5-3381: Task BLOCKED. Agent claimed B5-3381 to transcribe investigations/card-images/sorted/de_am_casualty_reports.gif into investigations/card-text/de_am_casualty_reports.md per investigations/card-text/README.md. Image extraction attempted via easyocr and rapidocr; easyocr produced garbled OCR output ("Senir olfcers rey oncasually {gules krow" and other unreadable text) while rapidocr failed; Tesseract binary unavailable on host; pytesseract present but no engine. Image is JPEG-format despite .gif extension, 305x452px, low quality. Task requires reading card image text which this text-based model cannot do; marking BLOCKED with log excerpt per .agent/00_BOOT.md step 8. Claim released, heartbeat updated to blocked state with live_claims empty. No card JSON edit, no src edit, no commit. Agent pi (orcarouter-auto) 01a11; report .agent/REPORTS/2026-10-07-pi-orcarouter-auto-01a11-B5-3381.md; pattern .agent/PATTERNS/pi-orcarouter-auto-01a11/2026-10-07-B5-3381-image-ocr-failure.md filed.
+
+## B5-2771 (solar-mini4 (upstage-solar-mini4)) — 2026-10-08
+
+B5-2771 DONE: Java 6 + provenance gate (verify_task.py) wired as battery instrument 8 in the standing verification battery. verify_task.py was absent from the battery this pass (Kilo-1951 finding: zero verify_task matches); the B5-2771 row now carries it as instrument 8 with exit codes 0 clean / 1 blocking / 2 unreadable.
+
+verify_task.py in battery: line 238 of .agent/tools/run-verification-battery.ps1, inside $required array.
+Claim: .agent/CLAIMS/B5-2771.json (created, then deleted on close-out).
+Report: .agent/REPORTS/2026-10-08-solar-mini4-(upstage-solar-mini4)-B5-2771.md
+Pattern: .agent/PATTERNS/solar-mini4 (upstage-solar-mini4)/B5-2771.md
+Heartbeat: refreshed per binding schema.
+
+Gate: compile.sh green; battery green; Java-6 grep empty on touched dirs.
+
+## B5-2412 BLOCKED (pi (orcarouter-tencent-hy4-preview-free) s01a1175c) — 2026-10-07
+
+Claimed B5-2412 under `.agent/CLAIMS/B5-2412.json` (tool-stamped
+`started_utc` 2026-10-07T17:31:01Z, scope `b5ccg/src/b5ccg/engine/` only). Row written
+BLOCKED with the claim released, per `.agent/00_BOOT.md` step 8: the row's own gate is
+`compile.bat` green plus `RUN_TESTS=1`, and the tree-wide build is red for reasons that
+lie outside this row's engine-only scope.
+
+**Measured (not inferred).** `javac -source 6 -target 6 -encoding UTF-8 -Xmaxerrs 2000`
+over all 146 sources under `b5ccg/src` exits 1 with **248 errors in 16 files**:
+`ui/GameBoardCollapseTest` 88, `engine/HeadlessVictoryPathAuditProbe` 42,
+`model/AgendaEffectPowerPathTest` 38, `engine/HeadlessNegativePowerProbe` 15,
+`engine/HeadlessDrawBuyWindowProbe` 15, `engine/HeadlessStructuredLogProbe` 10,
+`ui/MainWindow` 8, `engine/B52495AgendaPowerVictoryProbe` 8,
+`engine/HeadlessConflictCapProbe` 6, `engine/HeadlessHumanSeatConsecutivePassProbe` 4,
+`engine/HeadlessConflictRoundStep2Probe` 3, `engine/HeadlessConflictRoundProbe` 3,
+`engine/HeadlessConflictInitiativeOrderProbe` 3, `engine/HeadlessFullRoundProbe` 2,
+`engine/B52494AgendaMightyCostProbe` 2, `engine/CardFieldChecklistTool` 1. The missing
+symbols are members of `model/` types (`Player.getAgendaEffectPowerCount`,
+`Player.MIN_INFLUENCE_RATING`, `VictoryPathResult.isAgendaEffectPath` /
+`getContributingCharacters` / `getWinReason` / `isAgendaEffectDecisive`,
+`GameState.getEntries`, `GamePhase.CONFLICT`) and of `engine/` types
+(`GameController.runConflictRound`, `drawRoundSteps1To3`, `drawRoundSteps4To5`,
+`crownAndLog`, the draw-buy and structured-log accessors, `RulesEngine.*`) plus ui/
+members (`MainWindow.validateSetup`, `MainWindow.initialTension`,
+`DeckBuilderModel.setTypeFilter` and friends). None of the 16 files, and none of the
+missing members, is authored by this row. The default `-Xmaxerrs 100` cap hides most of
+the set: the plainly-worded count `100 errors` is javac's cap being hit, not a census.
+
+Read-only supplementary evidence, deliberately **not** offered as the gate: dropping the
+16 non-compiling files leaves 117 sources that compile clean, and against that subset
+`HeadlessConformanceTest` exits 0 with `CONFORMANCE SUITE PASSED (892 checks)`, including
+all ten `SETUP-AMB` checks this row asked to be pinned. So the row's substance
+(`GameController.sweepDuplicateStartingAmbassadors`, landed by the 2026-10-03 DONE entry
+above) is present and passing; what is unobtainable is the row's sanctioned end-to-end
+gate. No source file was edited, no `.class` was written inside the repo (all subset
+output went to a temp directory), no claim other than my own was touched.
+
+Row left BLOCKED rather than DONE: `AGENTS.md` section 4 requires `compile.bat/sh` green
+to promote anything, and a subset green is not a tree green. Unblocking requires whichever
+rows own the missing `model/` and `engine/` members, plus `ui/`, to restore them.
+
+Report `.agent/REPORTS/2026-10-07-pi (orcarouter-tencent-hy4-preview-free) s01a1175c-B5-2412.md`;
+pattern `.agent/PATTERNS/pi (orcarouter-tencent-hy4-preview-free) s01a1175c/2026-10-07-a-subset-green-is-not-a-tree-green.md`.
+Heartbeat refreshed. Claim file deleted. No commit, no push.
+
+## B5-3412 DONE (opencode (orcarouter-auto) 02) - 2026-10-08
+
+Recorded as **a regression, not a supersede.** A `git reset --hard HEAD` ran on this
+working tree at 2026-10-08 02:19:35 +1300, restoring every tracked file to commit
+`fe477a9` (2026-10-04). Reflog records `reset: moving to HEAD` at exactly that
+timestamp as its hottest entry, and `AGENTS.md` / `.agent/00_BOOT.md` carry mtimes
+02:19:34/35. That reset destroyed four artifacts that existed only in the working
+tree -- none had ever been committed, because this fleet's convention is no
+commit/push between checkpoints:
+
+1. **`AGENTS.md` section 5 append-ledger protocol plus the `.agent/00_BOOT.md`
+   step-9 pointer** (B5-2400, opencode (space-bunny-free) 2340, 2026-10-03).
+2. **`AGENTS.md` section 2a tree-wide census standing state** (B5-2719, pi
+   (orcarouter-auto) 01a11, 2026-10-06), including its `qualifiedGetOrDefault`
+   family and the tracked-versus-tree denominator reconciliation.
+3. **`.agent/tools/census-b50960.py` itself**, which is tracked and therefore simply
+   reverted to its pre-B5-2719 `git ls-files` form. This one is worse than a
+   documentation loss: with the script reverted while AGENTS.md documented the tree
+   scan, the two disagreed, and `.agent/tools/census-denominator-guard.ps1`
+   (B5-2746) began exiting 2 -- measured here as `census ran but printed no
+   DENOMINATOR b5ccg/src line`. With the script restored, that same guard exits 0
+   agreeing on `146 on disk, 82 tracked, 64 untracked`.
+4. **The B5-2746 guard bullet and its DECISIONS entry** (pi (orcarouter-auto)
+   01a11, 2026-10-07), working-tree only and recoverable from no blob at all.
+
+Item 3 is not in the earlier incident report, which scoped the damage to AGENTS.md
+and 00_BOOT.md. The reason worth recording is that **the visible damage was not the
+whole damage**: the reset reached into the instrument tier as well, and nothing in
+the repo noticed until this row tried to use the guard.
+
+No actor is identified by any repo artifact. Reflog records eight resets to
+`fe477a9` since it was committed on 2026-10-04 (10-04 x5, 10-07 16:15 and 17:42,
+10-08 02:19), so this is a recurring hazard rather than an incident with a single
+author, and the cause is structural: **uncommitted governance edits meeting a
+periodic hard reset lose every edit every time.**
+
+**Recovery performed.** `AGENTS.md` restored byte-exact from dangling blob
+`e1afa0dd` (the extracted bytes re-hash to `e1afa0dd132c3387f35f3668d1de0f013c67797d`,
+so this is recovery of the original bytes, not a retyping); `.agent/00_BOOT.md` from
+`c3eeced4`; and `census-b50960.py` from recoverable blob `63937822`. All three were
+written in the tree's own CRLF, UTF-8-without-BOM convention and re-verified after
+the write. The B5-2746 bullet and pi's pass-2 assessor entry were re-applied from
+the B5-2746 report rather than from a blob, because no blob was ever written for
+them; that reconstruction is stated in the AGENTS.md provenance note instead of
+being implied. Nothing earlier than `fe477a9` was disturbed, and no file outside
+this row's claimed scope was written.
+
+**Residual, deliberately not repaired here:** the B5-2719 and B5-2746 rows in
+`.agent/TASK_LEDGER.md` were also destroyed. They were not re-created, because
+reconstructing their cells would be invention rather than recovery, and the ledger
+is under concurrent edit by other agents.
+
+**Recommendation standing:** either commit governance edits promptly, or stop the
+periodic `git reset --hard`. The two practices together guarantee recurrence.
+
+Report `.agent/REPORTS/2026-10-08-opencode (orcarouter-auto) 02-B5-3412.md`;
+pattern `.agent/PATTERNS/opencode (orcarouter-auto) 02/2026-10-08-the-visible-damage-was-not-the-whole-damage.md`.

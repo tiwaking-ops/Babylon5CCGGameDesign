@@ -17,9 +17,10 @@ provenance:
     - {name: "opencode (space-bunny-free) 8", version: "space-bunny-free", passes: 1, last_pass: "2026-10-01", note: "edit: step 3 adopts the new tool-stamped heartbeat writer and step 6 adopts the tool-stamped claim creator as the default path, both human-approved 2026-10-01 (B5-1915); step 3 also records that validate-heartbeats.ps1 is known-red so its exit 1 is not read as news about one's own file"}
     - {name: "opencode (space-bunny-free) 8b", version: "space-bunny-free", passes: 1, last_pass: "2026-10-01", note: "edit: step 9 gains the citation-presence check alongside the duplicate-ID census and the pipe detector, human-approved 2026-10-01 (B5-1927), closing the gap where DONE rows cited files that had never been created"}
     - {name: "Hermes (stealth-space-bunny-alpha) 1733", version: "stealth-space-bunny-alpha", passes: 1, last_pass: "2026-10-02", note: "edit: step 9 gains the B5-1733 bare-cmdlet detector, so the B5-1541 shell trap is enforced rather than remembered, with the annotation convention it depends on stated here (B5-1733)"}
-  last_modified_by_llm: {name: "Hermes (stealth-space-bunny-alpha) 1733", version: "stealth-space-bunny-alpha"}
+    - {name: "opencode (space-bunny-free) 2340", version: "space-bunny-free", passes: 1, last_pass: "2026-10-03", note: "edit: step 9 names append-ledger.ps1 as the sanctioned ledger-append path after the measured read-modify-write clobber that destroyed a seeded row and was detected only by new-claim.ps1, with the rule that an assertion read past is not a gate and that a refusal must not be hand-appended around (B5-2363, B5-2400)"}
+  last_modified_by_llm: {name: "opencode (space-bunny-free) 2340", version: "space-bunny-free"}
   created_date: "2026-09-21"
-  last_modified_date: "2026-10-02"
+  last_modified_date: "2026-10-03"
 ---
 
 # 00_BOOT — read this first, every session
@@ -152,6 +153,17 @@ provenance:
    `.agent/REPORTS/<date>-<agent-id>-<task-id>.md` (with `author_llm`), delete
    your claim file, refresh `.agent/HEARTBEATS/<agent-id>.json`. When editing
    the ledger, preserve the table pipes exactly — never add or remove a `|`.
+
+   **Append a row with `.agent/tools/append-ledger.ps1`, not `Add-Content` (B5-2363/B5-2400).**
+   A plain `Add-Content` append to this ledger is unsafe and fails silently: another agent may
+   append between your read and your write, and its row is destroyed while your own write
+   reports success. Measured three times in one session — a seeded row vanished
+   (`pre=1821 post=1821 delta=0 present=False`) and `new-claim.ps1` was the only thing that
+   reported it. The tool re-reads after writing and reports success only when the id is present
+   exactly once **and** the line count grew by exactly the number of rows appended, retrying
+   otherwise; it also refuses malformed rows and duplicate ids. Exit `0` landed-and-verified,
+   `1` refused, `2` ledger unreadable. **If it refuses, do not hand-append around it** — an
+   unverified append is the thing that loses rows. Full contract in AGENTS.md section 5.
    **After writing any row of your own, run the duplicate-ID census** — a
    pre-write "is this ID free?" check is necessary and *not sufficient*, because
    two agents can both measure the same ID free inside the same window (the thing
