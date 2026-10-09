@@ -99,6 +99,15 @@ $reportsDir = Join-Path $repoRoot ".agent/REPORTS"
 $now = [DateTime]::UtcNow
 $FutureTimestampToleranceMinutes = 60
 
+# B5-3490: bounded-decay threshold (B5-2475, adopted B5-3489). A heartbeat-absent
+# claim becomes decay-reapable once BOTH its started_utc and its file mtime are
+# older than this many minutes AND the other conjunctive conditions hold
+# (plausible timestamp, every heartbeat-lookup tier empty, no report in the
+# window, non-terminal row). Fixed at 60 minutes (2xTTL) by the in-session
+# threshold ruling -- deliberately NOT derived from -TtlMinutes, so a custom TTL
+# never silently retunes the decay window.
+$DecayMinutes = 60
+
 if (-not (Test-Path -LiteralPath $ledger)) { Write-Error "ledger not found: $ledger"; exit 2 }
 
 # --- row parsing: structured row-start cells only ---
@@ -226,17 +235,27 @@ if (Test-Path -LiteralPath $claimsDir) {
         try {
             $c = Get-Content -Raw -Encoding UTF8 -LiteralPath $cf.FullName | ConvertFrom-Json
             $started = $null
+            $parsedOk = $false
             if ($c.started_utc) {
-                try { $started = [DateTime]::Parse($c.started_utc).ToUniversalTime() } catch { $started = $null }
+                try { $started = [DateTime]::Parse($c.started_utc).ToUniversalTime(); $parsedOk = $true } catch { $started = $null; $parsedOk = $false }
             }
             if (-not $started) { $started = $cf.LastWriteTimeUtc }
             $futureSkew = (($started - $now).TotalMinutes -gt $FutureTimestampToleranceMinutes)
+            # B5-3490: condition-2 plausibility for the bounded-decay rule
+            # (HEARTBEATS/README, adopted B5-3489): the timestamp must be a real
+            # reading -- parsed (not the mtime fallback), non-future,
+            # non-midnight, post-epoch -- mirroring the B5-0653/B5-0952 guards in
+            # run-queue.ps1 so both tools share one plausibility definition.
+            $unixEpoch = [DateTime]::new(1970, 1, 1, 0, 0, 0, [DateTimeKind]::Utc)
+            $isMidnight = ($parsedOk -and $started.Hour -eq 0 -and $started.Minute -eq 0 -and $started.Second -eq 0)
+            $plausible = ($parsedOk -and -not $futureSkew -and -not $isMidnight -and ($started -gt $unixEpoch))
             $claims[$cf.BaseName] = [pscustomobject]@{
                 Owner   = $c.agent_id
                 Started = $started
                 FileT   = $cf.LastWriteTimeUtc
                 Bad     = $false
                 FutureSkew = $futureSkew
+                Plausible = $plausible
             }
         } catch {
             # An UNPARSEABLE claim is UNKNOWN, not UNCLAIMED (B5-0659). Dropping it
@@ -357,6 +376,55 @@ function Get-CensusSuppression {
     return $sup
 }
 
+function Test-HeartbeatAbsentEveryTier {
+    # B5-3490: condition-3 lookup across all three heartbeat-resolution tiers
+    # named by the adopted rule (HEARTBEATS/README): exact filename stem,
+    # _registry.json mapping, canonical transliteration. $true means absent
+    # everywhere. An unreadable owner or registry proves nothing, so both fall
+    # through toward "not provably absent" rather than toward absence.
+    param([string]$Owner)
+    if (-not $Owner) { return $false }
+    if (Test-Path -LiteralPath (Join-Path $hbDir ($Owner + ".json"))) { return $false }
+    $regPath = Join-Path $hbDir "_registry.json"
+    if (Test-Path -LiteralPath $regPath) {
+        try {
+            $reg = Get-Content -Raw -Encoding UTF8 -LiteralPath $regPath | ConvertFrom-Json
+            if ($reg.map -and $reg.map.PSObject.Properties[$Owner]) {
+                $mapped = [string]$reg.map.PSObject.Properties[$Owner].Value
+                if ($mapped -and (Test-Path -LiteralPath (Join-Path $hbDir $mapped))) { return $false }
+            }
+        } catch { }
+    }
+    if ($heartbeats.ContainsKey((Get-NormName $Owner))) { return $false }
+    return $true
+}
+
+function Get-DecayEvidence {
+    # B5-3490: bounded-decay eligibility (B5-2475 conditions, adopted B5-3489).
+    # Returns an evidence string when ALL FIVE conjunctive conditions hold for a
+    # heartbeat-absent claim, else $null. The verdict stays UNKNOWN either way --
+    # this only distinguishes "decay-reapable, reap with the forensic note" from
+    # "still protected", so a reaper (00_BOOT step 10) can act without
+    # re-deriving the rule, while run-queue.ps1 Test-LiveClaim keeps answering
+    # unstealable for both (offer behavior unchanged).
+    param($Claim, [string]$TaskId, [string]$RowStatus)
+    # Condition 5 first (cheapest): the row must be OPEN or CLAIMED. A DONE/VOID
+    # row with a lingering claim is a B5-0622 orphan release, never a decay reap.
+    if (@('OPEN','CLAIMED') -notcontains $RowStatus) { return $null }
+    # Condition 2: a plausible timestamp (computed once at index time so every
+    # consumer shares one plausibility definition).
+    if (-not $Claim.Plausible) { return $null }
+    # Condition 1: BOTH the stamped time and the file mtime older than 60 min.
+    $claimAgeMin = ($now - $Claim.Started).TotalMinutes
+    $fileAgeMin = ($now - $Claim.FileT).TotalMinutes
+    if (-not ($claimAgeMin -gt $DecayMinutes -and $fileAgeMin -gt $DecayMinutes)) { return $null }
+    # Condition 4: no task report with mtime inside the last 60 minutes.
+    if ($reports.ContainsKey($TaskId) -and (($now - $reports[$TaskId]).TotalMinutes -lt $DecayMinutes)) { return $null }
+    # Condition 3: the owner heartbeat resolves by NONE of the three tiers.
+    if (-not (Test-HeartbeatAbsentEveryTier -Owner ([string]$Claim.Owner))) { return $null }
+    return ("claim age " + [math]::Round($claimAgeMin,1) + " min and file age " + [math]::Round($fileAgeMin,1) + " min both over " + $DecayMinutes + ", owner heartbeat ABSENT at all 3 tiers (exact stem, _registry.json, transliteration), no report in " + $DecayMinutes + " min, row " + $RowStatus + ", timestamp plausible")
+}
+
 $suppressed = Get-CensusSuppression
 
 # --- per-row verdict ---
@@ -392,7 +460,12 @@ foreach ($r in $rows) {
             $normOwner = Get-NormName $owner
             if (-not $heartbeats.ContainsKey($normOwner)) {
                 $verdict = "UNKNOWN"
-                $reason = "no heartbeat file matching owner '$owner' (normalised '$normOwner'); absent signal never treated as live"
+                $decayEvidence = Get-DecayEvidence -Claim $claimOrNull -TaskId $r.Id -RowStatus $r.Status
+                if ($decayEvidence) {
+                    $reason = "decay-reapable per bounded-decay rule (B5-3489): " + $decayEvidence + "; reap only with the mandatory forensic note, row stays OPEN"
+                } else {
+                    $reason = "no heartbeat file matching owner '$owner' (normalised '$normOwner'); absent signal never treated as live"
+                }
             } else {
                 $hf = $heartbeats[$normOwner]
                 $hbAge = [math]::Round(($now - $hf).TotalMinutes, 1)
