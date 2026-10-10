@@ -1,0 +1,10 @@
+﻿{
+    "task":  "B5-3667",
+    "agent_id":  "Cline (b5-3667-take2)",
+    "started_utc":  "2026-10-10T03:09:51Z",
+    "ttl_min":  30,
+    "scope":  [
+                  "b5ccg/resources/cards/, b5ccg/compile.bat, b5ccg/src/b5ccg/engine/"
+              ],
+    "javac":  "1.8.0_292"
+}
